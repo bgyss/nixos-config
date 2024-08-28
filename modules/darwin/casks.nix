@@ -49,6 +49,7 @@ _:
 
   # Games
   "steam"
+  "epic-games"
 
   # GIS
   "qgis"
