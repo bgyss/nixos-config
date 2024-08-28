@@ -11,6 +11,10 @@ _:
   "miniconda"
   "visual-studio-code"
 
+  # Virtualization
+  "parallels"
+  "parallels-toolbox"
+
   # Communication Tools
   "discord"
   "loom"
