@@ -48,6 +48,7 @@ _:
   "adobe-creative-cloud"
 
   # Games
+  "gog-galaxy"
   "steam"
   "epic-games"
 
