@@ -70,9 +70,10 @@ with pkgs; [
   yt-dlp
 
   # Python packages
-  python310
-  python310Packages.virtualenv # globally install virtualenv
-  python310Packages.huggingface-hub # huggingface cli 
+  python312
+  python312Packages.virtualenv # globally install virtualenv
+  python312Packages.huggingface-hub # huggingface cli 
+  python312Packages.openai # openai cli
 
   # AI / machine learning packages
   ollama
