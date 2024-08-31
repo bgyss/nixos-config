@@ -61,4 +61,7 @@ _:
 
   # AI
   "diffusionbee"
+
+  # Bittorrent
+  "transmission"
 ]

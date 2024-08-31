@@ -77,4 +77,7 @@ with pkgs; [
 
   # AI / machine learning packages
   ollama
+
+  # bittorent
+  transmission_4
 ]
