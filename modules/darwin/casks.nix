@@ -11,6 +11,10 @@ _:
   "miniconda"
   "visual-studio-code"
 
+  # backup / restore
+  "backblaze"
+  "backblaze-downloader"
+
   # Virtualization
   "parallels"
   "parallels-toolbox"
