@@ -19,6 +19,10 @@ _:
   "parallels"
   "parallels-toolbox"
 
+  # Productivity Tools
+
+  "notion-calendar"
+
   # Communication Tools
   "discord"
   "loom"
