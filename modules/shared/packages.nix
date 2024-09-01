@@ -45,9 +45,12 @@ with pkgs; [
   meslo-lgs-nf
 
   # Node.js development tools
-  nodePackages.npm # globally install npm
+  nodePackages.npm      # globally install npm
   nodePackages.prettier
   nodejs
+
+  # Rust development tools
+  rustup
 
   # Text and terminal utilities
   htop
@@ -71,9 +74,10 @@ with pkgs; [
 
   # Python packages
   python312
-  python312Packages.virtualenv # globally install virtualenv
   python312Packages.huggingface-hub # huggingface cli 
-  python312Packages.openai # openai cli
+  python312Packages.llm             # llm cli util from datasette
+  python312Packages.openai          # openai cli
+  python312Packages.virtualenv      # globally install virtualenv
 
   # AI / machine learning packages
   ollama
