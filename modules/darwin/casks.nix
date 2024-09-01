@@ -20,7 +20,6 @@ _:
   "parallels-toolbox"
 
   # Productivity Tools
-
   "notion-calendar"
 
   # Communication Tools
@@ -37,6 +36,7 @@ _:
   # Entertainment Tools
   "vlc"
   "sonos"
+  "yacreader"
 
   # Productivity Tools
   "raycast"

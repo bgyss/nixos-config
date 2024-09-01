@@ -73,7 +73,7 @@ in
     { path = "/Applications/Slack.app/"; }
     { path = "/Applications/Discord.app/"; }
     { path = "/Applications/HEY.app/"; }
-    { path = "/Appilcations/Notion\ Calendar.app/"; }
+    { path = "/Applications/Notion\ Calendar.app/"; }
     { path = "/Applications/Arc.app/"; }
     { path = "/Applications/Cursor.app"; }
     { path = "/System/Applications/Messages.app/"; }
