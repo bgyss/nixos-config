@@ -17,6 +17,7 @@ with pkgs; [
   eza
   killall
   neofetch
+  ngrok
   nix-direnv
   openssh
   sqlite
