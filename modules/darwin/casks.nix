@@ -2,20 +2,31 @@ _:
 
 [
   # Development Tools
+  "cursor"
   "homebrew/cask/docker"
   "insomnia"
   "tableplus"
   "ngrok"
   "postico"
+  "miniconda"
   "visual-studio-code"
-  "wireshark"
-  "cursor"
+
+  # backup / restore
+  "backblaze"
+  "backblaze-downloader"
+
+  # Virtualization
+  "parallels"
+  "parallels-toolbox"
+
+  # Productivity Tools
+  "notion-calendar" 
 
   # Communication Tools
   "discord"
   "loom"
+  "notion"
   "slack"
-  "telegram"
   "zoom"
 
   # Utility Tools
@@ -23,16 +34,44 @@ _:
   "syncthing"
 
   # Entertainment Tools
-  "steam"
   "vlc"
+  "sonos"
+  "yacreader"
+  "simple-comic"
 
   # Productivity Tools
   "raycast"
-  "asana"
+  "chatgpt"
 
   # Browsers
   "google-chrome"
 
+  # 3D Applications
+  "blender"
+  "touchdesigner"
+
+  # Microsoft Applications
+  "microsoft-auto-update"
+  "microsoft-excel"
+  "microsoft-onenote"
+  "microsoft-outlook"
+  "microsoft-powerpoint"
+  "microsoft-word"
+
+  # Adobe Applications
+  "adobe-creative-cloud"
+
+  # Games
+  "gog-galaxy"
+  "steam"
+  "epic-games"
+
+  # GIS
+  "qgis"
+
   # AI
   "diffusionbee"
+
+  # Bittorrent
+  "transmission"
 ]
