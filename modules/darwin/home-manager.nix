@@ -69,8 +69,6 @@ in
 
   # Fully declarative dock using the latest from Nix Store
   local.dock.enable = true;
-  # Fully declarative dock using the latest from Nix Store
-  local.dock.enable = true;
   local.dock.entries = [
     { path = "/Applications/Slack.app/"; }
     { path = "/Applications/Discord.app/"; }
