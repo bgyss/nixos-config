@@ -1,11 +1,11 @@
-{ pkgs, ... }:
+{ pkgs }:
 
 with pkgs; [
   # General packages for development and system management
-  act
   alacritty
   aspell
   aspellDicts.en
+  autojump
   bash-completion
   bat
   btop
@@ -13,87 +13,87 @@ with pkgs; [
   difftastic
   du-dust
   gcc
-  git-filter-repo
+  direnv
+  eza
   killall
   neofetch
+  ngrok
+  nix-direnv
   openssh
-  pandoc
   sqlite
+  uv
   wget
   zip
 
+  # Emulation
+  dosbox-staging
+  scummvm
+
   # Encryption and security tools
-  _1password
   age
   age-plugin-yubikey
   gnupg
   libfido2
 
   # Cloud-related tools and SDKs
-  # docker
-  # docker-compose
-  # awscli2 - marked broken Mar 22
-  flyctl
-  google-cloud-sdk
-  go
-  gopls
-  ngrok
-  ssm-session-manager-plugin
-  terraform
-  terraform-ls
-  tflint
+  docker
+  docker-compose
 
   # Media-related packages
   emacs-all-the-icons-fonts
-  imagemagick
   dejavu_fonts
-  ffmpeg
+  ffmpeg_7
   fd
   font-awesome
-  glow
   hack-font
-  jpegoptim
-  meslo-lgs-nf
   noto-fonts
   noto-fonts-emoji
-  pngquant
-
-  # PHP
-  php82
-  php82Packages.composer
-  php82Packages.php-cs-fixer
-  php82Extensions.xdebug
-  php82Packages.deployer
-  phpunit
+  meslo-lgs-nf
 
   # Node.js development tools
-  fzf
-  nodePackages.live-server
-  nodePackages.nodemon
+  nodePackages.npm      # globally install npm
   nodePackages.prettier
-  nodePackages.npm
   nodejs
 
-  # Source code management, Git, GitHub tools
-  gh
+  # Rust development tools
+  rustup
+
+  # OCR
+  tesseract
 
   # Text and terminal utilities
   htop
   hunspell
   iftop
   jetbrains-mono
-  jetbrains.phpstorm
   jq
   ripgrep
-  slack
   tree
   tmux
   unrar
   unzip
   zsh-powerlevel10k
+  pv
+  glances
+
+  # Media players
+  mpv
+  spotify
+
+  # Media tools
+  yt-dlp
 
   # Python packages
-  black
-  python3
-  virtualenv
+  python312
+  python312Packages.huggingface-hub # huggingface cli 
+  python312Packages.llm             # llm cli util from datasette
+  python312Packages.openai          # openai cli
+  python312Packages.virtualenv      # globally install virtualenv
+
+  # AI / machine learning packages
+  ollama
+  koboldcpp
+
+  # bittorent
+  transmission_4
 ]
