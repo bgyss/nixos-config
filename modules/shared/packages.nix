@@ -62,6 +62,7 @@ with pkgs; [
   tesseract
 
   # Text and terminal utilities
+  zsh
   htop
   hunspell
   iftop

@@ -10,6 +10,7 @@ _:
   "postico"
   "miniconda"
   "visual-studio-code"
+  "rive"
 
   # backup / restore
   "backblaze"
@@ -41,7 +42,7 @@ _:
 
   # Productivity Tools
   "raycast"
-  "chatgpt"
+ 
 
   # Browsers
   "google-chrome"
@@ -71,6 +72,8 @@ _:
 
   # AI
   "diffusionbee"
+  "chatgpt"
+  "claude"
 
   # Bittorrent
   "transmission"
