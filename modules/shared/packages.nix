@@ -11,10 +11,11 @@ with pkgs; [
   btop
   coreutils
   difftastic
-  du-dust
-  gcc
   direnv
+  du-dust
   eza
+  gcc
+  just
   killall
   neofetch
   ngrok

@@ -21,6 +21,7 @@ _:
   "parallels-toolbox"
 
   # Productivity Tools
+  "figma"
   "notion-calendar" 
 
   # Communication Tools
@@ -43,7 +44,6 @@ _:
   # Productivity Tools
   "raycast"
  
-
   # Browsers
   "google-chrome"
 
