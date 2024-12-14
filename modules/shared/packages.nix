@@ -87,7 +87,8 @@ with pkgs; [
   spotify
 
   # Media tools
-  yt-dlp
+  # disabling due to incompatibilities with youtube downloading
+  # yt-dlp
 
   # Python packages
   python312

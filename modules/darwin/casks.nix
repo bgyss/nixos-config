@@ -11,6 +11,7 @@ _:
   "miniconda"
   "visual-studio-code"
   "rive"
+  "warp"
 
   # backup / restore
   "backblaze"

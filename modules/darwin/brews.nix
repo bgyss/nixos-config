@@ -1,65 +1,74 @@
 _:
 
+# modded version that can support specific args for formulae
+# requested this from Claude 3.5 Sonnet because I was having 
+# a weird compatibility problem with yt-dlp
+
+let
+  mkBrew = name: args: if args == null then name else { inherit name args; };
+in
 [
-    "aider"
-    "awscli"
-    "ca-certificates"
-    "cairo"
-    "certifi"
-    "cffi"
-    "cryptography"
-    "fontconfig"
-    "freetype"
-    "fribidi"
-    "gcc"
-    "gettext"
-    "giflib"
-    "glib"
-    "gmp"
-    "graphite2"
-    "harfbuzz"
-    "icu4c"
-    "isl"
-    "jpeg-turbo"
-    "libimagequant"
-    "liblinear"
-    "libmpc"
-    "libpng"
-    "libraqm"
-    "libssh2"
-    "libtiff"
-    "libx11"
-    "libxau"
-    "libxcb"
-    "libxdmcp"
-    "libxext"
-    "libxrender"
-    "libyaml"
-    "little-cms2"
-    "lua"
-    "lz4"
-    "lzo"
-    "mas"
-    "mpdecimal"
-    "mpfr"
-    "nmap"
-    "numpy"
-    "openblas"
-    "openjpeg"
-    "openssl@3"
-    "pcre2"
-    "pillow"
-    "pixman"
-    "pycparser"
-    "python@3.11"
-    "python@3.12"
-    "readline"
-    "scipy"
-    "sqlite"
-    "tcl-tk"
-    "webp"
-    "xorgproto"
-    "xsimd"
-    "xz"
-    "zstd"
+  (mkBrew "aider" null)
+  (mkBrew "awscli" null)
+  (mkBrew "ca-certificates" null)
+  (mkBrew "cairo" null)
+  (mkBrew "certifi" null)
+  (mkBrew "cffi" null)
+  (mkBrew "cryptography" null)
+  (mkBrew "fontconfig" null)
+  (mkBrew "freetype" null)
+  (mkBrew "fribidi" null)
+  (mkBrew "gcc" null)
+  (mkBrew "gettext" null)
+  (mkBrew "giflib" null)
+  (mkBrew "glib" null)
+  (mkBrew "gmp" null)
+  (mkBrew "graphite2" null)
+  (mkBrew "harfbuzz" null)
+  (mkBrew "icu4c" null)
+  (mkBrew "isl" null)
+  (mkBrew "jpeg-turbo" null)
+  (mkBrew "libimagequant" null)
+  (mkBrew "liblinear" null)
+  (mkBrew "libmpc" null)
+  (mkBrew "libpng" null)
+  (mkBrew "libraqm" null)
+  (mkBrew "libssh2" null)
+  (mkBrew "libtiff" null)
+  (mkBrew "libx11" null)
+  (mkBrew "libxau" null)
+  (mkBrew "libxcb" null)
+  (mkBrew "libxdmcp" null)
+  (mkBrew "libxext" null)
+  (mkBrew "libxrender" null)
+  (mkBrew "libyaml" null)
+  (mkBrew "little-cms2" null)
+  (mkBrew "lua" null)
+  (mkBrew "lz4" null)
+  (mkBrew "lzo" null)
+  (mkBrew "mas" null)
+  (mkBrew "mpdecimal" null)
+  (mkBrew "mpfr" null)
+  (mkBrew "nmap" null)
+  (mkBrew "numpy" null)
+  (mkBrew "openblas" null)
+  (mkBrew "openjpeg" null)
+  (mkBrew "openssl@3" null)
+  (mkBrew "pcre2" null)
+  (mkBrew "pillow" null)
+  (mkBrew "pixman" null)
+  (mkBrew "pycparser" null)
+  (mkBrew "python@3.11" null)
+  (mkBrew "python@3.12" null)
+  (mkBrew "python@3.13" null)
+  (mkBrew "readline" null)
+  (mkBrew "scipy" null)
+  (mkBrew "sqlite" null)
+  (mkBrew "tcl-tk" null)
+  (mkBrew "webp" null)
+  (mkBrew "xorgproto" null)
+  (mkBrew "xsimd" null)
+  (mkBrew "xz" null)
+  (mkBrew "yt-dlp" ["--HEAD"])
+  (mkBrew "zstd" null)
 ]
