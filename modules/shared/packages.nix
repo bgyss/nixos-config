@@ -58,6 +58,10 @@ with pkgs; [
   # Rust development tools
   rustup
 
+  # golang
+  go
+  gox
+
   # OCR
   tesseract
 

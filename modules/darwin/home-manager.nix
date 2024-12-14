@@ -86,7 +86,8 @@ in
     { path = "/Applications/Steam.app"; }
     { path = "/Applications/Warp.app/"; }
     { path = "/Applications/Notion.app/"; }
-    { path = "/Applications/ChatGPT.app/"; } 
+    { path = "/Applications/ChatGPT.app/"; }
+    { path = "/Applications/Claude.app"; }
     { path = "/Applications/VLC.app/"; }
     { path = "/Applications/1Password.app/"; }
     {
