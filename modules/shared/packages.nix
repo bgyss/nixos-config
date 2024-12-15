@@ -88,6 +88,7 @@ with pkgs; [
 
   # Media tools
   # disabling due to incompatibilities with youtube downloading
+  # using HEAD from Homebrew
   # yt-dlp
 
   # Python packages
