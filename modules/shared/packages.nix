@@ -15,6 +15,7 @@ with pkgs; [
   du-dust
   eza
   gcc
+  gh
   just
   killall
   neofetch
@@ -25,6 +26,7 @@ with pkgs; [
   uv
   wget
   zip
+  
 
   # Emulation
   dosbox-staging
