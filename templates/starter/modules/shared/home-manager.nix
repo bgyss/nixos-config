@@ -1,9 +1,25 @@
 { config, pkgs, lib, ... }:
 
-let name = "%NAME%";
-    user = "%USER%";
-    email = "%EMAIL%"; in
+let name = "Brian Gyss";
+    user = "briangyss";
+    email = "bgyss@hey.com"; in
 {
+  autojump = {
+    enable = true;
+    enableZshIntegration = true;
+  };
+  
+  direnv = {
+      enable = true;
+      enableZshIntegration = true;
+      config = { 
+        global = {
+          hide_env_diff = true;  
+        };
+      };
+      nix-direnv.enable = true;
+    };
+
   # Shared shell configuration
   zsh = {
     enable = true;
@@ -54,6 +70,14 @@ let name = "%NAME%";
 
       # Always color ls and group directories
       alias ls='ls --color=auto'
+
+      # brew completions
+      if type brew &>/dev/null; then
+        FPATH=$(brew --prefix)/share/zsh-completions:$FPATH
+
+        autoload -Uz compinit
+        compinit
+      fi
     '';
   };
 
@@ -313,6 +337,10 @@ let name = "%NAME%";
     escapeTime = 10;
     historyLimit = 50000;
     extraConfig = ''
+      
+      # Default shell
+      set-option -g default-shell /run/current-system/sw/bin/zsh
+
       # Remove Vim mode delays
       set -g focus-events on
 
