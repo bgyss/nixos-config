@@ -16,7 +16,6 @@ _:
 
   # backup / restore
   "backblaze"
-  "backblaze-downloader"
 
   # Virtualization
   "parallels"
