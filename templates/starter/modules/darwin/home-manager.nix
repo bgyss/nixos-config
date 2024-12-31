@@ -1,7 +1,7 @@
 { config, pkgs, lib, home-manager, ... }:
 
 let
-  user = "%USER%";
+  user = "briangyss";
   # Define the content of your file as a derivation
   myEmacsLauncher = pkgs.writeScript "emacs-launcher.command" ''
     #!/bin/sh
@@ -25,9 +25,11 @@ in
 
   homebrew = {
     enable = true;
+    onActivation.upgrade = true;
+    onActivation.cleanup = "uninstall";
     casks = pkgs.callPackage ./casks.nix {};
-    # onActivation.cleanup = "uninstall";
-
+    brews = pkgs.callPackage ./brews.nix {};
+    
     # These app IDs are from using the mas CLI app
     # mas = mac app store
     # https://github.com/mas-cli/mas
@@ -38,10 +40,11 @@ in
     # If you have previously added these apps to your Mac App Store profile (but not installed them on this system),
     # you may receive an error message "Redownload Unavailable with This Apple ID".
     # This message is safe to ignore. (https://github.com/dustinlyons/nixos-config/issues/83)
-    masApps = {
-      "1password" = 1333542190;
-      "wireguard" = 1451685025;
-    };
+    # masApps = {
+    #   "1password" = 1333542190;
+    #   "hidden-bar" = 1452453066;
+    #   "wireguard" = 1451685025;
+    # };
   };
 
   # Enable home-manager
@@ -70,29 +73,29 @@ in
   local.dock.enable = true;
   local.dock.entries = [
     { path = "/Applications/Slack.app/"; }
+    { path = "/Applications/Discord.app/"; }
+    { path = "/Applications/HEY.app/"; }
+    { path = "/Applications/Notion\ Calendar.app/"; }
+    { path = "/Applications/Arc.app/"; }
+    { path = "/Applications/Visual\ Studio\ Code.app/"; }
     { path = "/System/Applications/Messages.app/"; }
     { path = "/System/Applications/Facetime.app/"; }
-    { path = "${pkgs.alacritty}/Applications/Alacritty.app/"; }
-    { path = "/System/Applications/Music.app/"; }
+    { path = "/Applications/Nix Apps/Spotify.app/"; }
+    { path = "/Applications/Sonos.app/"; }
     { path = "/System/Applications/News.app/"; }
     { path = "/System/Applications/Photos.app/"; }
-    { path = "/System/Applications/Photo Booth.app/"; }
     { path = "/System/Applications/TV.app/"; }
-    { path = "/System/Applications/Home.app/"; }
+    { path = "/Applications/Steam.app"; }
+    { path = "/Applications/Warp.app/"; }
+    { path = "/Applications/Notion.app/"; }
+    { path = "/Applications/ChatGPT.app/"; }
+    { path = "/Applications/Claude.app"; }
+    { path = "/Applications/VLC.app/"; }
+    { path = "/Applications/1Password.app/"; }
     {
-      path = toString myEmacsLauncher;
+      path = "${config.users.users.${user}.home}/Downloads";
       section = "others";
-    }
-    {
-      path = "${config.users.users.${user}.home}/.local/share/";
-      section = "others";
-      options = "--sort name --view grid --display folder";
-    }
-    {
-      path = "${config.users.users.${user}.home}/.local/share/downloads";
-      section = "others";
-      options = "--sort name --view grid --display stack";
+      options = "--sort name --view fan --display stack --sort datemodified";
     }
   ];
-
 }
