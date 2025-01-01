@@ -26,7 +26,11 @@ in
   homebrew = {
     enable = true;
     onActivation.upgrade = true;
-    onActivation.cleanup = "uninstall";
+    # Prevent cleanup of taps
+    onActivation.cleanup = "none";
+
+    # Ensure cask tap is explicitly included
+    taps = [ "homebrew/cask" ];
     casks = pkgs.callPackage ./casks.nix {};
     brews = pkgs.callPackage ./brews.nix {};
     

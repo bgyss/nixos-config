@@ -12,8 +12,11 @@ _:
   "miniconda"
   "visual-studio-code"
   "rive"
+  
+  # Terminals
   "warp"
-
+  "ghostty"
+  
   # backup / restore
   "backblaze"
 
@@ -47,6 +50,7 @@ _:
  
   # Browsers
   "google-chrome"
+  "orion"
 
   # 3D Applications
   "blender"
