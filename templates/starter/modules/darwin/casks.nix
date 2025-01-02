@@ -39,6 +39,9 @@ _:
   "appcleaner"
   "syncthing"
 
+  # Encryption
+  "keybase"
+
   # Entertainment Tools
   "vlc"
   "sonos"
