@@ -64,6 +64,9 @@ with pkgs; [
   go
   gox
 
+  # odin
+  odin
+
   # OCR
   tesseract
 
