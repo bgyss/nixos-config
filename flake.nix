@@ -1,0 +1,177 @@
+{
+  description = "Starter Configuration for MacOS and NixOS";
+
+  inputs = {
+    nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
+    home-manager.url = "github:nix-community/home-manager";
+    darwin = {
+      url = "github:LnL7/nix-darwin/master";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    nix-homebrew = {
+      url = "github:zhaofengli-wip/nix-homebrew";
+    };
+    homebrew-bundle = {
+      url = "github:homebrew/homebrew-bundle";
+      flake = false;
+    };
+    homebrew-core = {
+      url = "github:homebrew/homebrew-core";
+      flake = false;
+    };
+    homebrew-cask = {
+      url = "github:homebrew/homebrew-cask";
+      flake = false;
+    };
+    dagger-tap = {
+      url = "github:dagger/homebrew-tap";
+      flake = false;
+    };
+    disko = {
+      url = "github:nix-community/disko";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+  };
+
+  outputs = { self, darwin, nix-homebrew, homebrew-bundle, homebrew-core, homebrew-cask, home-manager, nixpkgs, disko, dagger-tap } @inputs:
+    let
+      user = "briangyss";
+      linuxSystems = [ "x86_64-linux" "aarch64-linux" ];
+      darwinSystems = [ "aarch64-darwin" "x86_64-darwin" ];
+      forAllSystems = f: nixpkgs.lib.genAttrs (linuxSystems ++ darwinSystems) f;
+      devShell = system: let pkgs = nixpkgs.legacyPackages.${system}; in {
+        default = with pkgs; mkShell {
+          nativeBuildInputs = with pkgs; [ bashInteractive git ];
+          shellHook = with pkgs; ''
+            export EDITOR=vim
+          '';
+        };
+      };
+      mkApp = scriptName: system: {
+        type = "app";
+        program = "${(nixpkgs.legacyPackages.${system}.writeScriptBin scriptName ''
+          #!/usr/bin/env bash
+          PATH=${nixpkgs.legacyPackages.${system}.git}/bin:$PATH
+          echo "Running ${scriptName} for ${system}"
+          exec ${self}/apps/${system}/${scriptName}
+        '')}/bin/${scriptName}";
+      };
+      mkLinuxApps = system: {
+        "apply" = mkApp "apply" system;
+        "build-switch" = mkApp "build-switch" system;
+        "copy-keys" = mkApp "copy-keys" system;
+        "create-keys" = mkApp "create-keys" system;
+        "check-keys" = mkApp "check-keys" system;
+        "install" = mkApp "install" system;
+      };
+      mkDarwinApps = system: let
+        nixBin = nixpkgs.legacyPackages.${system}.nix;
+        script = name: contents:
+          (nixpkgs.legacyPackages.${system}.writeScriptBin name contents) + "/bin/" + name;
+      in {
+        "apply" = mkApp "apply" system;
+        "build" = mkApp "build" system;
+        # Make build-switch independent of current working directory by invoking
+        # darwin-rebuild from the nix-darwin input and pointing it at this flake.
+        "build-switch" = {
+          type = "app";
+          program = script "build-switch" ''
+            #!/usr/bin/env bash
+            set -euo pipefail
+            export PATH=${nixpkgs.legacyPackages.${system}.git}/bin:$PATH
+            echo "Running build-switch for ${system}"
+            exec sudo -H -- ${darwin.packages.${system}.darwin-rebuild}/bin/darwin-rebuild switch --flake ${self} "$@"
+          '';
+        };
+        "copy-keys" = mkApp "copy-keys" system;
+        "create-keys" = mkApp "create-keys" system;
+        "check-keys" = mkApp "check-keys" system;
+        "rollback" = mkApp "rollback" system;
+      };
+    in
+    {
+      devShells = forAllSystems devShell;
+      # Export ccusage package so users can `nix build .#ccusage`
+      packages = forAllSystems (system:
+        let
+          basePkgs = nixpkgs.legacyPackages.${system};
+          pkgs = basePkgs.extend (import ./overlays/30-ccusage.nix);
+        in {
+          ccusage = pkgs.ccusage;
+        });
+      apps = nixpkgs.lib.genAttrs linuxSystems mkLinuxApps // nixpkgs.lib.genAttrs darwinSystems mkDarwinApps;
+
+      darwinConfigurations = {
+        # Host-specific configuration for this Mac
+        garmonbozia = let
+          system = "aarch64-darwin";
+          user = "briangyss";
+        in darwin.lib.darwinSystem {
+          inherit system;
+          specialArgs = inputs;
+          modules = [
+            home-manager.darwinModules.home-manager
+            nix-homebrew.darwinModules.nix-homebrew
+            {
+              nix-homebrew = {
+                inherit user;
+                enable = true;
+                taps = {
+                  "homebrew/homebrew-core" = homebrew-core;
+                  "homebrew/homebrew-cask" = homebrew-cask;
+                  "homebrew/homebrew-bundle" = homebrew-bundle;
+                  "dagger/tap" = dagger-tap;
+                };
+                mutableTaps = false;
+                autoMigrate = true;
+              };
+            }
+            # Import your darwin Home Manager module which itself configures HM
+            ./modules/darwin/home-manager.nix
+            ./hosts/darwin
+          ];
+        };
+      };
+
+      nixosConfigurations = nixpkgs.lib.genAttrs linuxSystems (system: nixpkgs.lib.nixosSystem {
+        inherit system;
+        specialArgs = inputs;
+        modules = [
+          disko.nixosModules.disko
+          home-manager.nixosModules.home-manager {
+            home-manager = {
+              useGlobalPkgs = true;
+              useUserPackages = true;
+              users.${user} = import ./modules/nixos/home-manager.nix;
+            };
+          }
+          ./hosts/nixos
+        ];
+     });
+
+      nixpkgs = {
+        config.allowUnfree = true;
+        config.permittedInsecurePackages = [
+      "libtiff-4.0.3-opentoonz"
+    ];
+        overlays = [
+          (final: prev: {
+            nixpkgs-master = import (fetchTarball {
+              url = "https://github.com/NixOS/nixpkgs/archive/master.tar.gz";
+              sha256 = "11a81dps9vv0qmkdj0xaas4k3064xxbgk02n7jklxqdzafdnx6kz";
+            }) {
+              system = prev.system;
+              config.allowUnfree = true;
+            };
+          })
+          (final: prev: {
+            inherit (prev.nixpkgs-master) yt-dlp llama-cpp aegisub;
+          })
+          (import ./overlays/20-yt-dlp.nix)
+          (import ./overlays/30-ccusage.nix)
+          (import ./overlays/40-codex-openai.nix)
+          (import ./overlays/50-ollama.nix)
+        ];
+      };
+    };
+}
