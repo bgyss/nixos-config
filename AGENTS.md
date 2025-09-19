@@ -29,3 +29,7 @@
 - Reference related issues with `Refs: #123` in the message body and link them again in the PR description.
 - PRs should describe platform impact, affected hosts, and manual verification steps (commands run, screenshots for UI tweaks).
 - Draft PRs until `nix flake check` and the relevant `nix run` invocations succeed; include logs for failures when seeking review.
+
+## Version Control State
+- Repository initialized locally with `git init`; current branch is `main`.
+- No remotes configured yet—keep work local unless the user specifies otherwise.
