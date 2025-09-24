@@ -11,6 +11,7 @@ with pkgs; [
   bat
   btop
   coreutils
+  deno
   difftastic
   direnv
   du-dust
