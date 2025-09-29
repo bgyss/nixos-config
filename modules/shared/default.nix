@@ -1,16 +1,15 @@
-{ config, pkgs, ... }:
+{ config, pkgs, nixpkgs-master, emacs-overlay, ... }:
 
-let
-  emacsOverlaySha256 = "11p1c1l04zrn8dd5w8zyzlv172z05dwi9avbckav4d5fk043m754";
-in
 {
-
   nixpkgs = {
     config = {
       allowUnfree = true;
       allowBroken = true;
       allowInsecure = false;
       allowUnsupportedSystem = true;
+      permittedInsecurePackages = [
+        "libtiff-4.0.3-opentoonz"
+      ];
     };
 
     overlays =
@@ -21,9 +20,14 @@ in
                       pathExists (path + ("/" + n + "/default.nix")))
                   (attrNames (readDir path)))
 
-      ++ [(import (builtins.fetchTarball {
-               url = "https://github.com/dustinlyons/emacs-overlay/archive/refs/heads/master.tar.gz";
-               sha256 = emacsOverlaySha256;
-           }))];
+      # Add emacs overlay from flake input
+      ++ [ emacs-overlay.overlays.default ]
+
+      # Make nixpkgs-master packages available
+      ++ [
+        (final: prev: {
+          inherit (nixpkgs-master.legacyPackages.${prev.system}) llama-cpp aegisub;
+        })
+      ];
   };
 }

@@ -1,8 +1,5 @@
-{ config, pkgs, ... }:
+{ config, pkgs, user, ... }:
 
-let 
-  user = "briangyss";
-in
 {
   imports = [
     ../../modules/darwin/home-manager.nix
@@ -23,7 +20,7 @@ in
 
   environment.systemPackages = with pkgs; [
     emacs-unstable
-  ] ++ (import ../../modules/shared/packages.nix { inherit pkgs; });
+  ];
 
   launchd.user.agents.emacs.path = [ config.environment.systemPath ];
   launchd.user.agents.emacs.serviceConfig = {

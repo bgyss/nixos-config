@@ -3,7 +3,12 @@
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
+    nixpkgs-master.url = "github:NixOS/nixpkgs/master";
     home-manager.url = "github:nix-community/home-manager";
+    emacs-overlay = {
+      url = "github:dustinlyons/emacs-overlay/master";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
     darwin = {
       url = "github:LnL7/nix-darwin/master";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -33,7 +38,7 @@
     };
   };
 
-  outputs = { self, darwin, nix-homebrew, homebrew-bundle, homebrew-core, homebrew-cask, home-manager, nixpkgs, disko, dagger-tap } @inputs:
+  outputs = { self, darwin, nix-homebrew, homebrew-bundle, homebrew-core, homebrew-cask, home-manager, nixpkgs, nixpkgs-master, emacs-overlay, disko, dagger-tap } @inputs:
     let
       user = "briangyss";
       linuxSystems = [ "x86_64-linux" "aarch64-linux" ];
@@ -105,10 +110,9 @@
         # Host-specific configuration for this Mac
         garmonbozia = let
           system = "aarch64-darwin";
-          user = "briangyss";
         in darwin.lib.darwinSystem {
           inherit system;
-          specialArgs = inputs;
+          specialArgs = inputs // { inherit user; };
           modules = [
             home-manager.darwinModules.home-manager
             nix-homebrew.darwinModules.nix-homebrew
@@ -135,7 +139,7 @@
 
       nixosConfigurations = nixpkgs.lib.genAttrs linuxSystems (system: nixpkgs.lib.nixosSystem {
         inherit system;
-        specialArgs = inputs;
+        specialArgs = inputs // { inherit user; };
         modules = [
           disko.nixosModules.disko
           home-manager.nixosModules.home-manager {
@@ -148,30 +152,5 @@
           ./hosts/nixos
         ];
      });
-
-      nixpkgs = {
-        config.allowUnfree = true;
-        config.permittedInsecurePackages = [
-      "libtiff-4.0.3-opentoonz"
-    ];
-        overlays = [
-          (final: prev: {
-            nixpkgs-master = import (fetchTarball {
-              url = "https://github.com/NixOS/nixpkgs/archive/master.tar.gz";
-              sha256 = "11a81dps9vv0qmkdj0xaas4k3064xxbgk02n7jklxqdzafdnx6kz";
-            }) {
-              system = prev.system;
-              config.allowUnfree = true;
-            };
-          })
-          (final: prev: {
-            inherit (prev.nixpkgs-master) yt-dlp llama-cpp aegisub;
-          })
-          (import ./overlays/20-yt-dlp.nix)
-          (import ./overlays/30-ccusage.nix)
-          (import ./overlays/40-codex-openai.nix)
-          (import ./overlays/50-ollama.nix)
-        ];
-      };
     };
 }
