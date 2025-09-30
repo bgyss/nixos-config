@@ -180,6 +180,14 @@ If a package isn't getting the expected version from nixpkgs-unstable, check the
 - **macOS only**: Add to `modules/darwin/packages.nix` or `modules/darwin/casks.nix`
 - **NixOS only**: Add to `modules/nixos/packages.nix`
 
+### Updating Package Overlays
+When updating package versions in overlays (e.g., `20-yt-dlp.nix`, `35-uv.nix`):
+1. Fetch the new tarball hash: `nix-prefetch-url --unpack https://github.com/owner/repo/archive/refs/tags/VERSION.tar.gz`
+2. Convert to SRI format: `nix hash convert --to sri sha256:HASH`
+   - Note: `nix hash to-sri` is deprecated; use `nix hash convert --to sri` instead
+3. Update the version and hash in the overlay file
+4. Apply with `nix run .#build-switch`
+
 ### Configuration Files
 - Static files: Add to appropriate `files.nix`
 - Home Manager configs: Edit `home-manager.nix` files
