@@ -19,6 +19,7 @@
   environment.etc."nix/nix.conf".enable = false;
 
   environment.systemPackages = with pkgs; [
+    beads
     emacs-unstable
   ];
 

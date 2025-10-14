@@ -96,12 +96,16 @@
     in
     {
       devShells = forAllSystems devShell;
-      # Export ccusage package so users can `nix build .#ccusage`
+      # Export selected custom packages so users can `nix build .#<name>`
       packages = forAllSystems (system:
         let
           basePkgs = nixpkgs.legacyPackages.${system};
-          pkgs = basePkgs.extend (import ./overlays/30-ccusage.nix);
+          pkgs = basePkgs.extend (final: prev:
+            (import ./overlays/30-ccusage.nix final prev)
+            // (import ./overlays/60-beads.nix final prev)
+          );
         in {
+          beads = pkgs.beads;
           ccusage = pkgs.ccusage;
         });
       apps = nixpkgs.lib.genAttrs linuxSystems mkLinuxApps // nixpkgs.lib.genAttrs darwinSystems mkDarwinApps;

@@ -9,6 +9,7 @@ with pkgs; [
   autossh
   bash-completion
   bat
+  beads
   btop
   coreutils
   deno
@@ -22,6 +23,7 @@ with pkgs; [
   killall
   ncdu
   neofetch
+  nix-prefetch-git # should this be installed by default
   ngrok
   nix-direnv
   openssh
