@@ -1,18 +1,21 @@
-# uv overlay - override to version 0.8.22
+# uv overlay – try release tarball for aarch64-darwin while keeping source build elsewhere
 
 final: prev:
 
-{
-  uv = prev.uv.overrideAttrs (oldAttrs: rec {
-    version = "0.8.22";
+let
+  inherit (final) fetchFromGitHub fetchurl stdenvNoCC;
+  version = "0.9.2";
 
-    src = final.fetchFromGitHub {
+  uvSource = prev.uv.overrideAttrs (_old: rec {
+    inherit version;
+
+    src = fetchFromGitHub {
       owner = "astral-sh";
       repo = "uv";
       rev = version;
       hash = "sha256-7/WOjsyfkDTZLNJY0+rNdRUmMabJsSFvKi2yh/WqViQ=";
     };
-    
+
     cargoDeps = prev.rustPlatform.importCargoLock {
       lockFile = "${src}/Cargo.lock";
       outputHashes = {
@@ -23,4 +26,35 @@ final: prev:
       };
     };
   });
+
+  uvDarwinBinary = stdenvNoCC.mkDerivation rec {
+    pname = "uv";
+    inherit version;
+
+    src = fetchurl {
+      url = "https://github.com/astral-sh/uv/releases/download/${version}/uv-aarch64-apple-darwin.tar.gz";
+      sha256 = "sha256-kLHmnaPQR3JWXdVWro5yyGvbfahajfwsa1DEALDmqpc=";
+    };
+
+    sourceRoot = "uv-aarch64-apple-darwin";
+
+    dontConfigure = true;
+    dontBuild = true;
+    dontPatch = true;
+    dontStrip = true;
+
+    installPhase = ''
+      runHook preInstall
+      mkdir -p $out/bin
+      install -m755 uv $out/bin/uv
+      install -m755 uvx $out/bin/uvx
+      runHook postInstall
+    '';
+
+    meta = uvSource.meta // {
+      platforms = [ "aarch64-darwin" ];
+    };
+  };
+in {
+  uv = if prev.stdenv.hostPlatform.system == "aarch64-darwin" then uvDarwinBinary else uvSource;
 }

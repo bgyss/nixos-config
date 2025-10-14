@@ -1,14 +1,14 @@
-# Ollama v0.11.0 overlay
+# Ollama v0.12.5 overlay
 final: prev:
 
 {
   ollama = prev.ollama.overrideAttrs (old: rec {
-    version = "0.11.0";
+    version = "0.12.5";
     src = prev.fetchFromGitHub {
       owner = "ollama";
       repo = "ollama";
       rev = "v${version}";
-      hash = "sha256-po7BxJAj9eOpOaXsLDmw6/1RyjXPtXza0YUv0pVojZ0=";
+      hash = "sha256-X5xxM53DfN8EW29hfJiAeADKLvKdmdNYE2NBa05T82k=";
       fetchSubmodules = true;
     };
   });
