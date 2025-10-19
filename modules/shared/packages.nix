@@ -72,6 +72,7 @@ with pkgs; [
 
   # development tools
   cmake
+  ruff
 
   # Rust development tools
   rustup
