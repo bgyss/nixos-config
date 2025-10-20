@@ -1,11 +1,11 @@
 final: prev: {
-  yt-dlp = prev.yt-dlp.overridePythonAttrs (old: {
-    version = "2025.09.26";
+  yt-dlp = prev.yt-dlp.overridePythonAttrs (old: rec {
+    version = "2025.10.14";
     src = prev.fetchFromGitHub {
       owner = "yt-dlp";
       repo = "yt-dlp";
-      rev = "2025.09.26";
-      hash = "sha256-/uzs87Vw+aDNfIJVLOx3C8RyZvWLqjggmnjrOvUX1Eg=";
+      rev = version;
+      hash = "sha256-x7vpuXUihlC4jONwjmWnPECFZ7xiVAOFSDUgBNvl+aA=";
     };
   });
 } 

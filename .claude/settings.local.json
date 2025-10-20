@@ -24,7 +24,8 @@
       "Bash(pkill:*)",
       "Bash(nix store delete:*)",
       "Bash(nix store gc:*)",
-      "Bash(nix flake update:*)"
+      "Bash(nix flake update:*)",
+      "Bash(nix hash convert --to sri sha256:187rwpdh881m922h6m32pikqah1wlxjqww73ijw511i2fnwykfy7)"
     ],
     "deny": []
   }
