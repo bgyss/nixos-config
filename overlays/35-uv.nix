@@ -4,7 +4,7 @@ final: prev:
 
 let
   inherit (final) fetchFromGitHub fetchurl stdenvNoCC;
-  version = "0.9.2";
+  version = "0.9.4";
 
   uvSource = prev.uv.overrideAttrs (_old: rec {
     inherit version;
@@ -13,7 +13,7 @@ let
       owner = "astral-sh";
       repo = "uv";
       rev = version;
-      hash = "sha256-7/WOjsyfkDTZLNJY0+rNdRUmMabJsSFvKi2yh/WqViQ=";
+      hash = "sha256-EbLmE+Pwe/LASWIPDRlxvu7k1HCQyYfq5eAwrVoXSXQ=";
     };
 
     cargoDeps = prev.rustPlatform.importCargoLock {
@@ -33,7 +33,7 @@ let
 
     src = fetchurl {
       url = "https://github.com/astral-sh/uv/releases/download/${version}/uv-aarch64-apple-darwin.tar.gz";
-      sha256 = "sha256-kLHmnaPQR3JWXdVWro5yyGvbfahajfwsa1DEALDmqpc=";
+      sha256 = "sha256-Unk4IbE6x+Qk92xH9USxA6m90QVG8WWzJ+uiJdC6SZM=";
     };
 
     sourceRoot = "uv-aarch64-apple-darwin";

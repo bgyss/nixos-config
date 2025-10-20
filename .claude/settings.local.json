@@ -25,7 +25,9 @@
       "Bash(nix store delete:*)",
       "Bash(nix store gc:*)",
       "Bash(nix flake update:*)",
-      "Bash(nix hash convert --to sri sha256:187rwpdh881m922h6m32pikqah1wlxjqww73ijw511i2fnwykfy7)"
+      "Bash(nix hash convert --to sri sha256:187rwpdh881m922h6m32pikqah1wlxjqww73ijw511i2fnwykfy7)",
+      "Bash(nix hash convert --to sri sha256:0x292xdasc70wpm8gjchf3af9vmyf4chs3v2970g4yzhwc9ydchi)",
+      "Bash(nix hash convert --to sri sha256:14s9pb82b8pb4yrnbwa60p8vva83n52gaivcywjf9irsn4hkhyaj)"
     ],
     "deny": []
   }

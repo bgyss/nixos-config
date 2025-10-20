@@ -95,7 +95,6 @@ in
     { path = "/Applications/Notion\ Calendar.app/"; }
     { path = "/Applications/Notion.app/"; }
     { path = "/Applications/Dia.app/"; }
-    { path = "/Applications/Windsurf.app/"; }
     { path = "/Applications/ChatGPT.app/"; }
     { path = "/Applications/Claude.app/"; }
     { path = "/Applications/Docker.app/Contents/MacOS/Docker\ Desktop.app/"; }
