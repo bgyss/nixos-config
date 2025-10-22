@@ -92,22 +92,22 @@ in
     { path = "/Applications/Slack.app/"; }
     { path = "/Applications/Discord.app/"; }
     { path = "/Applications/HEY.app/"; }
-    { path = "/Applications/Notion\ Calendar.app/"; }
+    { path = "/Applications/Notion Calendar.app/"; }
     { path = "/Applications/Notion.app/"; }
-    { path = "/Applications/Dia.app/"; }
+    { path = "/Applications/ChatGPT Atlas.app/"; }
     { path = "/Applications/ChatGPT.app/"; }
     { path = "/Applications/Claude.app/"; }
-    { path = "/Applications/Docker.app/Contents/MacOS/Docker\ Desktop.app/"; }
+    { path = "/Applications/Docker.app/"; }
     { path = "/Applications/Microsoft Excel.app/"; }
     { path = "/System/Applications/Messages.app/"; }
     { path = "/System/Applications/FaceTime.app/"; }
-    { path = "/Applications/Nix Apps/Spotify.app/"; }
+    { path = "${pkgs.spotify}/Applications/Spotify.app"; }
     { path = "/Applications/Sonos.app/"; }
     { path = "/System/Applications/News.app/"; }
     { path = "/System/Applications/Photos.app/"; }
     { path = "/System/Applications/TV.app/"; }
     { path = "/Applications/Steam.app/"; }
-    { path = "/Applications/Nix Apps/IINA.app/"; }
+    { path = "${pkgs.iina}/Applications/IINA.app"; }
     { path = "/Applications/1Password.app/"; }
     {
       path = "${config.users.users.${user}.home}/Downloads";
