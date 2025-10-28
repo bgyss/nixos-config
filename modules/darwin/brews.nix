@@ -51,6 +51,7 @@ _: [
   "pixman"
   "pycparser"
   "readline"
+  "rom-tools"
   "scipy"
   "sqlite"
   "tcl-tk"
