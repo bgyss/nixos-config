@@ -3,14 +3,14 @@
 final: prev:
 
 let
-  inherit (final) stdenv lib fetchurl nodejs makeWrapper;
+  inherit (final) stdenvNoCC lib fetchurl nodejs makeWrapper;
   version = "17.1.3";
   src = fetchurl {
     url = "https://registry.npmjs.org/ccusage/-/ccusage-${version}.tgz";
     sha256 = "0p14h8qcj5y2n6n1knhfjxgq8b786daj97qbs0cg89q4ajrlkbn8";
   };
 in {
-  ccusage = stdenv.mkDerivation {
+  ccusage = stdenvNoCC.mkDerivation {
     pname = "ccusage";
     inherit version src;
 
