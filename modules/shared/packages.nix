@@ -1,6 +1,11 @@
 { pkgs }:
 
-with pkgs; [
+let
+  inherit (pkgs) stdenv;
+  inherit (pkgs.lib) optionals;
+in
+with pkgs;
+[
   # General packages for development and system management
   alacritty
   aspell
@@ -128,6 +133,8 @@ with pkgs; [
   codex-openai
   ccusage
 
-  # bittorent
+  # bittorrent
   transmission_4
+] ++ optionals (!stdenv.isDarwin) [
+  dolphin-emu
 ]
