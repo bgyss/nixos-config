@@ -78,6 +78,7 @@ _:
   "gog-galaxy"
   "steam"
   "epic-games"
+  "dolphin"
 
   # GIS
   "qgis"
