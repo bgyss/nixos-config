@@ -79,6 +79,7 @@ _:
   "steam"
   "epic-games"
   "dolphin"
+  "retroarch-metal"
 
   # GIS
   "qgis"
