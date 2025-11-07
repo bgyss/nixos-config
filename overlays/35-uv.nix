@@ -4,7 +4,7 @@ final: prev:
 
 let
   inherit (final) fetchFromGitHub fetchurl stdenvNoCC;
-  version = "0.8.23";
+  version = "0.9.7";
 
   uvSource = prev.uv.overrideAttrs (_old: rec {
     inherit version;
@@ -37,7 +37,7 @@ let
 
     src = fetchurl {
       url = "https://github.com/astral-sh/uv/releases/download/${version}/uv-aarch64-apple-darwin.tar.gz";
-      sha256 = "sha256-NVcrlhn8FNZ/wc1yWCw8/FycZtl/MQGS4E8m+z/pYAU=";
+      sha256 = "sha256-1rjf1089586y95y74c5gcbcsn6mgi6d7f2b1xz07jc4vampvaska";
     };
 
     sourceRoot = "uv-aarch64-apple-darwin";
