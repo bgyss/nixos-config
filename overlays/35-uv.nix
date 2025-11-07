@@ -4,7 +4,7 @@ final: prev:
 
 let
   inherit (final) fetchFromGitHub fetchurl stdenvNoCC;
-  version = "0.9.7";
+  version = "0.8.23";
 
   uvSource = prev.uv.overrideAttrs (_old: rec {
     inherit version;
@@ -25,6 +25,10 @@ let
         "tl-0.7.8" = "sha256-F06zVeSZA4adT6AzLzz1i9uxpI1b8P1h+05fFfjm3GQ=";
       };
     };
+
+    # Use the same build system as the original package
+    cargoRoot = "uv";
+    useNextest = true;
   });
 
   uvDarwinBinary = stdenvNoCC.mkDerivation rec {
