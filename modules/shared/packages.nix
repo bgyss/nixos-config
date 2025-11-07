@@ -20,7 +20,7 @@ with pkgs;
   deno
   difftastic
   direnv
-  du-dust
+  dust
   eza
   gcc
   gh
@@ -69,7 +69,7 @@ with pkgs;
   iina
   imagemagick
   noto-fonts
-  noto-fonts-emoji
+  noto-fonts-color-emoji
   meslo-lgs-nf
 
   # Node.js development tools
