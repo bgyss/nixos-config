@@ -26,7 +26,7 @@
       # Make nixpkgs-master packages available
       ++ [
         (final: prev: {
-          inherit (nixpkgs-master.legacyPackages.${prev.system}) llama-cpp aegisub;
+          inherit (nixpkgs-master.legacyPackages.${prev.stdenv.hostPlatform.system}) llama-cpp aegisub;
         })
       ];
   };
