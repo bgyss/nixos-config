@@ -65,6 +65,12 @@ let name = "Brian Gyss";
           nix-shell '<nixpkgs>' -A "$1"
       }
 
+      # Update flake lock then rebuild this host
+      nix-update-switch() {
+          nix flake update || return $?
+          nix run .#build-switch -- "$@"
+      }
+
       # ssh for warp
       ssh() { command ssh "$@"; }
 

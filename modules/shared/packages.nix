@@ -99,7 +99,7 @@ with pkgs;
   aegisub
   emacs-all-the-icons-fonts
   dejavu_fonts
-  ffmpeg_7
+  ffmpeg-full
   fd
   font-awesome
   hack-font
