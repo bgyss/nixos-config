@@ -80,6 +80,7 @@ _:
   "epic-games"
   "dolphin"
   "retroarch-metal"
+  "multipatch"
 
   # GIS
   "qgis"
