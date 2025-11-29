@@ -102,12 +102,14 @@
           basePkgs = nixpkgs.legacyPackages.${system};
           pkgs = basePkgs.extend (final: prev:
             (import ./overlays/30-ccusage.nix final prev)
+            // (import ./overlays/50-trailbase.nix final prev)
             // (import ./overlays/60-beads.nix final prev)
           );
+          trailbasePkg = nixpkgs.lib.optionalAttrs (pkgs ? trailbase) { trailbase = pkgs.trailbase; };
         in {
           beads = pkgs.beads;
           ccusage = pkgs.ccusage;
-        });
+        } // trailbasePkg);
       apps = nixpkgs.lib.genAttrs linuxSystems mkLinuxApps // nixpkgs.lib.genAttrs darwinSystems mkDarwinApps;
 
       darwinConfigurations = {

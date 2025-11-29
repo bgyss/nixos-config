@@ -69,6 +69,7 @@ with pkgs;
   ngrok
   nix-direnv
   openssh
+  pocketbase
   sqlite
   uv-custom
   wget
