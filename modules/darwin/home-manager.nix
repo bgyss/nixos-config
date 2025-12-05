@@ -66,6 +66,7 @@ in
   # Enable home-manager
   home-manager = {
     useGlobalPkgs = true;
+    sharedModules = [ ./hm-nix-darwin-fix.nix ];
     users.${user} = { pkgs, config, lib, ... }:{
       home = {
         enableNixpkgsReleaseCheck = false;
@@ -77,6 +78,8 @@ in
         ];
         stateVersion = "24.11";
       };
+      # Use Determinate Nix; avoid Home Manager's nix module to prevent nix.package access when nix.enable is false.
+      nix.enable = false;
       programs = { home-manager.enable = true; } // import ../shared/home-manager.nix { inherit config pkgs lib; };
 
       # Marked broken Oct 20, 2022 check later to remove this
