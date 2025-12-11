@@ -68,6 +68,20 @@ let name = "Brian Gyss";
       # Update flake lock then rebuild this host
       nix-update-switch() {
           nix flake update || return $?
+
+          if command -v git >/dev/null 2>&1; then
+            if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+              if ! git diff --cached --quiet; then
+                echo "Refusing to auto-commit flake.lock: you already have staged changes"
+              else
+                if [ -f flake.lock ] && ! git diff --quiet -- flake.lock; then
+                  git add flake.lock
+                  git commit -m "flake.lock: update" -- flake.lock || return $?
+                fi
+              fi
+            fi
+          fi
+
           nix run .#build-switch -- "$@"
       }
 
