@@ -67,22 +67,31 @@ let name = "Brian Gyss";
 
       # Update flake lock then rebuild this host
       nix-update-switch() {
-          nix flake update || return $?
-
+          local repo_root=""
           if command -v git >/dev/null 2>&1; then
             if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-              if ! git diff --cached --quiet; then
-                echo "Refusing to auto-commit flake.lock: you already have staged changes"
-              else
-                if [ -f flake.lock ] && ! git diff --quiet -- flake.lock; then
-                  git add flake.lock
-                  git commit -m "flake.lock: update" -- flake.lock || return $?
-                fi
-              fi
+              repo_root="$(git rev-parse --show-toplevel 2>/dev/null)" || return $?
             fi
           fi
 
-          nix run .#build-switch -- "$@"
+          if [ -n "$repo_root" ]; then
+            (cd "$repo_root" && nix flake update) || return $?
+
+            if ! git -C "$repo_root" diff --cached --quiet; then
+              echo "Refusing to auto-commit flake.lock: you already have staged changes"
+              return 1
+            fi
+
+            if [ -f "$repo_root/flake.lock" ] && ! git -C "$repo_root" diff --quiet -- flake.lock; then
+              git -C "$repo_root" add flake.lock || return $?
+              git -C "$repo_root" commit -m "flake.lock: update" -- flake.lock || return $?
+            fi
+
+            (cd "$repo_root" && nix run .#build-switch -- "$@")
+          else
+            nix flake update || return $?
+            nix run .#build-switch -- "$@"
+          fi
       }
 
       # ssh for warp
