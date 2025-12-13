@@ -75,21 +75,15 @@ let name = "Brian Gyss";
           fi
 
           if [ -n "$repo_root" ]; then
-            (cd "$repo_root" && nix flake update) || return $?
-
             if ! git -C "$repo_root" diff --cached --quiet; then
               echo "Refusing to auto-commit flake.lock: you already have staged changes"
               return 1
             fi
 
-            if [ -f "$repo_root/flake.lock" ] && ! git -C "$repo_root" diff --quiet -- flake.lock; then
-              git -C "$repo_root" add flake.lock || return $?
-              git -C "$repo_root" commit -m "flake.lock: update" -- flake.lock || return $?
-            fi
-
+            (cd "$repo_root" && nix flake update --commit-lock-file) || return $?
             (cd "$repo_root" && nix run .#build-switch -- "$@")
           else
-            nix flake update || return $?
+            nix flake update --commit-lock-file|| return $?
             nix run .#build-switch -- "$@"
           fi
       }
