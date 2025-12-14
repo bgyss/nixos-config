@@ -66,6 +66,7 @@ in
   # Enable home-manager
   home-manager = {
     useGlobalPkgs = true;
+    backupFileExtension = "hm-bak";
     sharedModules = [ ./hm-nix-darwin-fix.nix ];
     users.${user} = { pkgs, config, lib, ... }:{
       home = {

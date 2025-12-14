@@ -43,6 +43,11 @@ let name = "Brian Gyss";
         . /nix/var/nix/profiles/default/etc/profile.d/nix.sh
       fi
 
+      # Homebrew (only for interactive shells)
+      if [[ -o interactive ]] && [[ -x /opt/homebrew/bin/brew ]]; then
+        eval "$(/opt/homebrew/bin/brew shellenv 2>/dev/null)"
+      fi
+
       # Define variables for directories
       export PATH=$HOME/.pnpm-packages/bin:$HOME/.pnpm-packages:$PATH
       export PATH=$HOME/.npm-packages/bin:$HOME/bin:$PATH

@@ -6,6 +6,15 @@ let
   xdg_stateHome  = "${config.users.users.${user}.home}/.local/state"; in
 {
 
+  ".zprofile" = {
+    text = ''
+      # Homebrew (only for interactive shells)
+      if [[ -o interactive ]] && [[ -x /opt/homebrew/bin/brew ]]; then
+        eval "$(/opt/homebrew/bin/brew shellenv 2>/dev/null)"
+      fi
+    '';
+  };
+
   # Raycast script so that "Run Emacs" is available and uses Emacs daemon
   "${xdg_dataHome}/bin/emacsclient" = {
     executable = true;

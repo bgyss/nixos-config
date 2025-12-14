@@ -35,6 +35,13 @@
     StandardOutPath = "/tmp/emacs.out.log";
   };
 
+  # use TouchID for sudo authentication
+  
+  security.pam.services.sudo_local = {
+    touchIdAuth = true;
+    reattach = true;
+  };
+
   # Temporarily disabled due to test failures on macOS 26.0
   # launchd.user.agents.ollama.serviceConfig = {
   #   KeepAlive = true;
