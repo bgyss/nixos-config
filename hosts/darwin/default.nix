@@ -18,6 +18,10 @@
   system.checks.verifyNixPath = false;
   environment.etc."nix/nix.conf".enable = false;
 
+  security.sudo.extraConfig = ''
+    briangyss ALL=(root) NOPASSWD: /run/current-system/sw/bin/darwin-rebuild
+  '';
+
   environment.systemPackages = with pkgs; [
     beads
     emacs-unstable
@@ -33,13 +37,6 @@
     ];
     StandardErrorPath = "/tmp/emacs.err.log";
     StandardOutPath = "/tmp/emacs.out.log";
-  };
-
-  # use TouchID for sudo authentication
-  
-  security.pam.services.sudo_local = {
-    touchIdAuth = true;
-    reattach = true;
   };
 
   # Temporarily disabled due to test failures on macOS 26.0
