@@ -54,6 +54,7 @@ with pkgs;
   beads
   btop
   coreutils
+  e2fsprogs
   deno
   difftastic
   direnv
@@ -76,6 +77,7 @@ with pkgs;
   zip
   
   # Emulation
+  qemu
   dosbox-staging
   mesen
   scummvm
