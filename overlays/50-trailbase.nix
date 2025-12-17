@@ -5,19 +5,19 @@ final: prev:
 let
   inherit (prev) autoPatchelfHook fetchurl lib stdenv stdenvNoCC unzip;
 
-  version = "0.21.6";
+  version = "0.22.3";
   sources = {
     "aarch64-darwin" = {
       url = "https://github.com/trailbaseio/trailbase/releases/download/v${version}/trailbase_v${version}_arm64_apple_darwin.zip";
-      hash = "sha256-g9e2ELGJZqFAWeyO7nBXcSfMLgmizpo4pyuLEUKo/OY=";
+      hash = "sha256-3KNJ5vrQTF7YJNI9Uo+a80kJBPKGq96vb5Ymf5UunTg=";
     };
     "x86_64-darwin" = {
       url = "https://github.com/trailbaseio/trailbase/releases/download/v${version}/trailbase_v${version}_x86_64_apple_darwin.zip";
-      hash = "sha256-bN8gwFTHQVZ8Dl+pUanZMAlSe2mFjJWh73xv/agtsnU=";
+      hash = "sha256-sl6YXcFEpP5aPMtfSTOmz8ofVbrMQbUsfZ+KrTm/5LI=";
     };
     "x86_64-linux" = {
-      url = "https://github.com/trailbaseio/trailbase/releases/download/v${version}/trailbase_v${version}_x86_64_linux_glibc.zip";
-      hash = "sha256-NawYZYDJTATcCQ9LcRUCfEOGEg/XIKa7jxCJGzkQcTc=";
+      url = "https://github.com/trailbaseio/trailbase/releases/download/v${version}/trailbase_v${version}_x86_64_linux.zip";
+      hash = "sha256-irJATAC5qpZTIO7VKziaKYGcVDd345PZji1jPP66grk=";
     };
   };
 
