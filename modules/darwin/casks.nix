@@ -47,7 +47,6 @@ _:
 
   # Entertainment Tools
   "vlc"
-  "sonos"
   "yacreader"
   "simple-comic"
 
