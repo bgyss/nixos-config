@@ -92,27 +92,28 @@ in
   # Fully declarative dock using the latest from Nix Store
   local.dock.enable = true;
   local.dock.entries = [
+    { path = "/System/Applications/Messages.app/"; }
     { path = "/Applications/Warp.app/"; }
     { path = "/Applications/Slack.app/"; }
     { path = "/Applications/Discord.app/"; }
     { path = "/Applications/HEY.app/"; }
     { path = "/Applications/Notion Calendar.app/"; }
     { path = "/Applications/Notion.app/"; }
+    { path = "/Applications/Windsurf.app/";}
     { path = "/Applications/ChatGPT Atlas.app/"; }
     { path = "/Applications/ChatGPT.app/"; }
     { path = "/Applications/Claude.app/"; }
     { path = "/Applications/Docker.app/"; }
     { path = "/Applications/Microsoft Excel.app/"; }
-    { path = "/System/Applications/Messages.app/"; }
     { path = "/System/Applications/FaceTime.app/"; }
     { path = "${pkgs.spotify}/Applications/Spotify.app"; }
     { path = "/Applications/Sonos.app/"; }
     { path = "/System/Applications/News.app/"; }
     { path = "/System/Applications/Photos.app/"; }
-    { path = "/System/Applications/TV.app/"; }
     { path = "/Applications/Steam.app/"; }
     { path = "${pkgs.iina}/Applications/IINA.app"; }
     { path = "/Applications/1Password.app/"; }
+    { path = "/Applications/Utilities/Adobe Creative Cloud/ACC/Creative Cloud.app";}
     {
       path = "${config.users.users.${user}.home}/Downloads";
       section = "others";
