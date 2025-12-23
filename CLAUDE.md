@@ -40,7 +40,7 @@ This configuration uses a modular approach with shared components between macOS 
 
 - **Shared packages**: Common development tools, CLI utilities, media tools
 - **Platform-specific packages**: macOS homebrew casks, NixOS packages
-- **AI/ML tools**: ollama, llama-cpp, claude-code, koboldcpp
+- **AI/ML tools**: llama-cpp, claude-code, koboldcpp
 
 ### Development Environment
 
@@ -52,7 +52,6 @@ This configuration uses a modular approach with shared components between macOS 
 ### System Services (macOS)
 
 - **Emacs daemon**: Auto-starting Emacs server
-- **Ollama server**: Local AI model serving
 - **Llama server**: (Commented out) Local language model server
 
 ### Package Categories
@@ -77,7 +76,6 @@ This configuration uses a modular approach with shared components between macOS 
 
 #### AI & Machine Learning
 
-- `ollama` - Local LLM serving
 - `llama-cpp` - CPU-optimized LLM inference
 - `claude-code` - Claude Code CLI
 - `koboldcpp` - Alternative LLM backend

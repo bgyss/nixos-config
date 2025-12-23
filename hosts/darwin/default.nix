@@ -39,22 +39,6 @@
     StandardOutPath = "/tmp/emacs.out.log";
   };
 
-  # Temporarily disabled due to test failures on macOS 26.0
-  # launchd.user.agents.ollama.serviceConfig = {
-  #   KeepAlive = true;
-  #   RunAtLoad = true;
-  #   ProgramArguments = [
-  #     "/bin/sh"
-  #     "-c"
-  #     "/bin/wait4path ${pkgs.ollama}/bin/ollama && exec ${pkgs.ollama}/bin/ollama serve"
-  #   ];
-  #   StandardErrorPath = "/tmp/ollama.err.log";
-  #   StandardOutPath = "/tmp/ollama.out.log";
-  #   EnvironmentVariables = {
-  #     PATH = config.environment.systemPath;
-  #   };
-  # };
-
   # disabling to test Cline in vscode with deepseek r1
   # launchd.user.agents.llama-server.serviceConfig = {
   #   KeepAlive = true;
