@@ -89,6 +89,7 @@ _:
   "chatgpt"
   "claude"
   "upscayl"
+  "llamabarn"
 
   # Bittorrent
   "transmission"
