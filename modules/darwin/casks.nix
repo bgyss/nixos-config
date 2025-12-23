@@ -29,6 +29,7 @@ _:
   # Productivity Tools
   "figma"
   "notion-calendar" 
+  "jordanbaird-ice"
 
   # Communication Tools
   "discord"
