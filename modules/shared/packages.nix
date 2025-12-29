@@ -54,14 +54,12 @@ with pkgs;
   beads
   btop
   coreutils
-  e2fsprogs
   deno
   difftastic
   direnv
   dust
   eza
   gcc
-  gnupatch
   gh
   just
   killall
@@ -77,6 +75,12 @@ with pkgs;
   wget
   zip
   
+  # buildroot stuff
+  gnupatch
+  findutils
+  e2fsprogs
+  flock
+
   # Emulation
   qemu
   dosbox-staging
