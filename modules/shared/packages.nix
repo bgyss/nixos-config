@@ -61,6 +61,7 @@ with pkgs;
   dust
   eza
   gcc
+  gnupatch
   gh
   just
   killall
