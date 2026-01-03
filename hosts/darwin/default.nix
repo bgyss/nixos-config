@@ -25,6 +25,7 @@
   environment.systemPackages = with pkgs; [
     beads
     emacs-unstable
+    svg-term-cli
   ];
 
   launchd.user.agents.emacs.path = [ config.environment.systemPath ];
