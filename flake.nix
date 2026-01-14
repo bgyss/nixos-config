@@ -102,6 +102,7 @@
           basePkgs = nixpkgs.legacyPackages.${system};
           pkgs = basePkgs.extend (final: prev:
             (import ./overlays/30-ccusage.nix final prev)
+            // (import ./overlays/40-codex-openai.nix final prev)
             // (import ./overlays/50-trailbase.nix final prev)
             // (import ./overlays/60-beads.nix final prev)
             // (import ./overlays/90-svg-term-cli.nix final prev)
@@ -110,6 +111,7 @@
         in {
           beads = pkgs.beads;
           ccusage = pkgs.ccusage;
+          codex-openai = pkgs.codex-openai;
           svg-term-cli = pkgs.svg-term-cli;
         } // trailbasePkg);
       apps = nixpkgs.lib.genAttrs linuxSystems mkLinuxApps // nixpkgs.lib.genAttrs darwinSystems mkDarwinApps;
