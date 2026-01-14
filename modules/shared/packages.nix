@@ -164,12 +164,17 @@ with pkgs;
   asciinema-agg
 
   # Python packages
-  python312
-  python312Packages.huggingface-hub # huggingface cli 
-  python312Packages.llm             # llm cli util from datasette
-  python312Packages.openai          # openai cli
-  python312Packages.virtualenv      # globally install virtualenv
-  python312Packages.git-filter-repo # git filter repo
+  python313
+  python313Packages.huggingface-hub # huggingface cli 
+  python313Packages.llm             # llm cli util from datasette
+  python313Packages.anthropic       # anthropic
+  python313Packages.openai          # openai cli
+  python313Packages.virtualenv      # globally install virtualenv
+  python313Packages.git-filter-repo # git filter repo
+  python313Packages.tiktoken        # tiktoken
+
+  # svg-term
+  svg-term-cli
 
   # AI / machine learning packages
   koboldcpp
