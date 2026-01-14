@@ -39,6 +39,7 @@ _: [
   "lz4"
   "lzo"
   "mas"
+  "mole"
   "mpdecimal"
   "mpfr"
   "nmap"
