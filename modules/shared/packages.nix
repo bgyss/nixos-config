@@ -49,6 +49,7 @@ with pkgs;
   aspellDicts.en
   autojump
   autossh
+  bash
   bash-completion
   bat
   beads
@@ -122,6 +123,7 @@ with pkgs;
 
   # development tools
   cmake
+  devenv
   ruff
 
   # Rust development tools
