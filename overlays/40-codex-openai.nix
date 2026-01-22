@@ -1,11 +1,11 @@
 final: prev: {
   codex-openai = prev.stdenvNoCC.mkDerivation rec {
     pname = "codex-openai";
-    version = "0.88.0";
+    version = "0.89.0";
 
     src = prev.fetchurl {
       url = "https://github.com/openai/codex/releases/download/rust-v${version}/codex-aarch64-apple-darwin.tar.gz";
-      sha256 = "13mplcsndyay399b8akv8idgzz8j65sllygd7p7ixc6m1bk2q664";
+      sha256 = "1qyrq91w6hr8jjdf9xlgk9kq9brgm5amm87dlqkjv98nfp1mm146";
     };
 
     # It's a prebuilt binary tarball
