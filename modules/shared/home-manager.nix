@@ -96,9 +96,6 @@ let name = "Brian Gyss";
       # ssh for warp
       ssh() { command ssh "$@"; }
 
-      # claude
-      alias claude="/Users/briangyss/.claude/local/claude"
-
       # Use difftastic, syntax-aware diffing
       alias diff=difft
 
