@@ -1,10 +1,28 @@
 final: prev: {
-  claude-code = prev.claude-code.overrideAttrs (oldAttrs: rec {
+  claude-code = prev.stdenvNoCC.mkDerivation rec {
+    pname = "claude-code";
     version = "2.1.15";
+
     src = prev.fetchurl {
-      url = "https://registry.npmjs.org/@anthropic-ai/claude-code/-/claude-code-${version}.tgz";
-      hash = "sha256-6B3q0Z2AXqD8UCvuCjyx90LxYrjZDgfa7y6htBicqL4=";
+      url = "https://storage.googleapis.com/claude-code-dist-86c565f3-f756-42ad-8dfa-d59b1c096819/claude-code-releases/${version}/darwin-arm64/claude";
+      hash = "sha256-zGJ8DvWuGSwF0ALyc+Y32GdpIJC9I+/9XvUgaQ25XnE=";
     };
-    npmDepsHash = "";
-  });
+
+    dontUnpack = true;
+    dontConfigure = true;
+    dontBuild = true;
+
+    installPhase = ''
+      mkdir -p "$out/bin"
+      install -m755 "$src" "$out/bin/claude"
+    '';
+
+    meta = with prev.lib; {
+      description = "Claude Code - agentic coding tool (native binary)";
+      homepage = "https://github.com/anthropics/claude-code";
+      license = licenses.unfree;
+      platforms = [ "aarch64-darwin" ];
+      mainProgram = "claude";
+    };
+  };
 }
