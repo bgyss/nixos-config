@@ -182,6 +182,8 @@ with pkgs;
   koboldcpp
   llama-cpp
   lmstudio
+  claude-code
+  claude-monitor
   codex-openai
   ccusage
 
