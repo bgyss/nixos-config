@@ -6,7 +6,6 @@ _:
   "windsurf"
   "zed"
   "docker-desktop"
-  "claude"
   "insomnia"
   "tableplus"
   "ngrok"
