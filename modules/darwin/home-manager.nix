@@ -102,6 +102,7 @@ in
     { path = "/Applications/Windsurf.app/";}
     { path = "/Applications/ChatGPT Atlas.app/"; }
     { path = "/Applications/ChatGPT.app/"; }
+    { path = "/Applications/Claude.app/";}
     { path = "/Applications/Docker.app/"; }
     { path = "/Applications/Microsoft Excel.app/"; }
     { path = "/System/Applications/FaceTime.app/"; }
