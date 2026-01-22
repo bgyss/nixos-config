@@ -185,7 +185,6 @@ with pkgs;
   claude-code
   claude-monitor
   codex-openai
-  ccusage
 
   # bittorrent
   transmission_4
