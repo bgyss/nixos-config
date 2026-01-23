@@ -2,6 +2,40 @@
 
 A unified configuration for macOS (Darwin) and NixOS systems using Nix Flakes and Home Manager.
 
+## Repository Guidelines
+
+### Project Structure & Module Organization
+
+- `flake.nix` defines inputs, overlays, and exposes `devShells`, `packages`, and system apps.
+- `hosts/darwin` and `hosts/nixos` hold host-level modules; keep host-specific secrets out of git.
+- `modules/` is split into `shared`, `darwin`, and `nixos` directories; prefer extending shared modules before diverging per platform.
+- `apps/<system>/` contains shell wrappers invoked via `nix run .#<system>.<command>`; update both Darwin and Linux variants when adding a workflow.
+- `overlays/` provides package customizations such as `30-ccusage.nix`; changes here affect every system build.
+
+### Coding Style & Naming Conventions
+
+- Format Nix files with `nix fmt` (uses the repository's pinned formatter); commits should never contain mixed indentation.
+- Use two-space indentation and align attribute sets; keep inputs and module lists alphabetized when practical.
+- Attribute names and filenames follow kebab-case (e.g., `create-keys.nix`); host directories mirror architecture strings.
+
+### Testing Guidelines
+
+- Extend tests in `flakes check` by adding `nixosTests` modules when new services are introduced.
+- When modifying activation scripts, run the relevant `nix run .#<system>.apply` to exercise them without switching.
+- Capture configuration diffs with `nix store diff-closures $(nix path-info ...)` when debugging large rebuilds.
+
+### Commit & Pull Request Guidelines
+
+- Existing commits use a concise, imperative subject (e.g., `modules: enable ghostty profile`) followed by optional detail in the body; mirror that voice.
+- Reference related issues with `Refs: #123` in the message body and link them again in the PR description.
+- PRs should describe platform impact, affected hosts, and manual verification steps (commands run, screenshots for UI tweaks).
+- Draft PRs until `nix flake check` and the relevant `nix run` invocations succeed; include logs for failures when seeking review.
+
+### Version Control State
+
+- Repository initialized locally with `git init`; current branch is `main`.
+- No remotes configured yet—keep work local unless the user specifies otherwise.
+
 ## Quick Start
 
 ### Build and Switch
@@ -77,7 +111,7 @@ This configuration uses a modular approach with shared components between macOS 
 #### AI & Machine Learning
 
 - `llama-cpp` - CPU-optimized LLM inference
-- `claude-code` - Claude Code CLI
+- `claude-code` - Claude Code CLI (native binary via overlay)
 - `koboldcpp` - Alternative LLM backend
 - `ccusage` - Claude Code usage analytics
 
@@ -233,6 +267,17 @@ Add launchd services (macOS) or systemd services (NixOS) in the respective host 
 - YubiKey support via `age-plugin-yubikey` and `libfido2`
 - Trusted public keys configured for binary caches
 - Regular garbage collection configured (weekly, 30-day retention)
+
+## Known Workarounds
+
+### Claude Code Native Binary
+
+The `claude-code` package in `overlays/41-claude-code.nix` is a native binary that self-identifies as a "native" install. It requires:
+
+1. `~/.local/bin` in PATH (configured in `modules/shared/home-manager.nix`)
+2. A symlink at `~/.local/bin/claude` pointing to the Nix binary: `ln -sf $(which claude) ~/.local/bin/claude`
+
+Without these, the binary emits warnings about missing native installation or PATH issues.
 
 ## Memories
 
