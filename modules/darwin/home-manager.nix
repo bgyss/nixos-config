@@ -106,7 +106,7 @@ in
     { path = "/Applications/Docker.app/"; }
     { path = "/Applications/Microsoft Excel.app/"; }
     { path = "/System/Applications/FaceTime.app/"; }
-    { path = "${pkgs.spotify}/Applications/Spotify.app"; }
+    { path = "/Applications/Spotify.app/"; }
     { path = "/Applications/Sonos.app/"; }
     { path = "/System/Applications/News.app/"; }
     { path = "/System/Applications/Photos.app/"; }

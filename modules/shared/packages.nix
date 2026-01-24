@@ -186,8 +186,8 @@ with pkgs;
   claude-monitor
   codex-openai
 
-  # bittorrent
-  transmission_4
-] ++ optionals (!stdenv.isDarwin) [
+  ] ++ optionals (!stdenv.isDarwin) [
   dolphin-emu
+  # bittorrent (use Homebrew cask on Darwin)
+  transmission_4
 ]

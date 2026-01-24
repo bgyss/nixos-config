@@ -45,6 +45,7 @@ _:
   "keybase"
 
   # Entertainment Tools
+  "spotify"
   "vlc"
   "yacreader"
   "simple-comic"
