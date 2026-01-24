@@ -47,6 +47,8 @@ _:
   # Entertainment Tools
   "spotify"
   "vlc"
+  "iina"
+  "mesen"
   "yacreader"
   "simple-comic"
 

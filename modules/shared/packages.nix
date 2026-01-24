@@ -85,7 +85,7 @@ with pkgs;
   # Emulation
   qemu
   dosbox-staging
-  mesen
+  # mesen  # disabled: depends on dotnet which depends on Swift (build failure)
   scummvm
 
   # Encryption and security tools
@@ -156,7 +156,7 @@ with pkgs;
   glances
 
   # Media players
-  mpv
+  # mpv  # disabled: depends on Swift which fails to build on aarch64-darwin
   spotify
 
   # Media tools
@@ -186,7 +186,11 @@ with pkgs;
   claude-monitor
   codex-openai
 
-  ] ++ optionals (!stdenv.isDarwin) [
+] ++ optionals stdenv.isDarwin [
+  # macOS-specific libraries needed for Rust builds (ring crate, etc.)
+  libiconv
+  # Note: darwin.apple_sdk.frameworks removed in nixpkgs; frameworks now provided via stdenv
+] ++ optionals (!stdenv.isDarwin) [
   dolphin-emu
   # bittorrent (use Homebrew cask on Darwin)
   transmission_4

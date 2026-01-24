@@ -1,5 +1,6 @@
 _: [
   "aider"
+  "dockutil"
   "awscli"
   "ca-certificates"
   "cairo"

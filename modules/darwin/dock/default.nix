@@ -5,7 +5,9 @@
 with lib;
 let
   cfg = config.local.dock;
-  inherit (pkgs) stdenv dockutil;
+  inherit (pkgs) stdenv;
+  # Use Homebrew dockutil to avoid building Swift from source
+  dockutil = "/opt/homebrew/bin/dockutil";
 in
 {
   options = {
@@ -49,7 +51,7 @@ in
             (entry: "${entryURI entry.path}\n")
             cfg.entries;
           createEntries = concatMapStrings
-            (entry: "${dockutil}/bin/dockutil --no-restart --add '${normalize entry.path}' --section ${entry.section} ${entry.options}\n")
+            (entry: "${dockutil} --no-restart --add '${normalize entry.path}' --section ${entry.section} ${entry.options}\n")
             cfg.entries;
         in
         {
@@ -58,7 +60,7 @@ in
             # Switch to the primary user before running dock commands
             sudo -u ${config.system.primaryUser} bash -c '
               echo >&2 "Removing all existing Dock items."
-              ${dockutil}/bin/dockutil --no-restart --remove all || true
+              ${dockutil} --no-restart --remove all || true
               echo >&2 "Adding configured Dock entries."
               ${createEntries}
               echo >&2 "Restarting Dock."
