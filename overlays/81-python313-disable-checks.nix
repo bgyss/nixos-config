@@ -10,6 +10,9 @@ final: prev: {
       bump2version = pyPrev.bump2version.overridePythonAttrs (_old: {
         doCheck = false;
       });
+      twisted = pyPrev.twisted.overridePythonAttrs (_old: {
+        doCheck = false;
+      });
     }
   );
 }
