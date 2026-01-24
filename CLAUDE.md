@@ -246,8 +246,8 @@ If a package isn't getting the expected version from nixpkgs-unstable, check the
 When updating package versions in overlays (e.g., `20-yt-dlp.nix`, `35-uv.nix`):
 
 1. Fetch the new tarball hash: `nix-prefetch-url --unpack https://github.com/owner/repo/archive/refs/tags/VERSION.tar.gz`
-2. Convert to SRI format: `nix hash convert --to sri sha256:HASH`
-   - Note: `nix hash to-sri` is deprecated; use `nix hash convert --to sri` instead
+2. Convert to SRI format: `nix hash convert --hash-algo sha256 --to sri HASH`
+   - **Always use `nix hash convert`** — the old `nix hash to-sri` subcommand is deprecated
 3. Update the version and hash in the overlay file
 4. Apply with `nix run .#build-switch`
 
