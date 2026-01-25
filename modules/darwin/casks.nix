@@ -48,7 +48,6 @@ _:
   "spotify"
   "vlc"
   "iina"
-  "mesen"
   "yacreader"
   "simple-comic"
 
