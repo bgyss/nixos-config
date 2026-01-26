@@ -161,6 +161,7 @@ with pkgs;
 
   # Media tools
   yt-dlp
+  gallery-dl
   mediainfo
   asciinema
   asciinema-agg
