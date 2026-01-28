@@ -4,12 +4,12 @@ final: prev:
 
 let
   inherit (final) buildGoModule fetchFromGitHub lib sqlite;
-  version = "0.30.2";
+  version = "0.49.1";
   src = fetchFromGitHub {
     owner = "steveyegge";
     repo = "beads";
     rev = "v${version}";
-    hash = "sha256-ltzLDSkW1Qtxqy6LwLKPn20o6LzWEJ0Nvp9wP3VKp8Q=";
+    hash = "sha256-roOyTMy9nKxH2Bk8MnP4h2CDjStwK6z0ThQhFcM64QI=";
   };
 in {
   beads = buildGoModule {
@@ -18,7 +18,7 @@ in {
 
     subPackages = [ "cmd/bd" ];
     modRoot = ".";
-    vendorHash = "sha256-ha3sFcbr3fGrHVtSnbrDut/DAnCEy3uGtrcQAozAFJs=";
+    vendorHash = "sha256-YU+bRLVlWtHzJ1QPzcKJ70f+ynp8lMoIeFlm+29BNPE=";
 
     buildInputs = [ sqlite ];
     preBuild = ''
