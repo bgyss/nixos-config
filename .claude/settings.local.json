@@ -71,7 +71,8 @@
       "Bash(/nix/store/jpvgzmp5yjx4zy6ngxivvqb5rjgjl613-dockutil-3.1.3/bin/dockutil:*)",
       "Bash(killall:*)",
       "Bash(git add:*)",
-      "Bash(git commit -m \"$(cat <<''EOF''\nchore: update dock paths and expand Claude Code auto-approvals\n\n- Fix escaped paths for Notion Calendar and Docker\n- Replace Dia.app with ChatGPT Atlas.app in dock\n- Use nix package references for Spotify and IINA instead of hardcoded paths\n- Expand Claude Code auto-approved commands for dock utilities and system inspection\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")"
+      "Bash(git commit -m \"$(cat <<''EOF''\nchore: update dock paths and expand Claude Code auto-approvals\n\n- Fix escaped paths for Notion Calendar and Docker\n- Replace Dia.app with ChatGPT Atlas.app in dock\n- Use nix package references for Spotify and IINA instead of hardcoded paths\n- Expand Claude Code auto-approved commands for dock utilities and system inspection\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
+      "Bash(nix hash convert:*)"
     ],
     "deny": []
   }
