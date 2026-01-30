@@ -69,6 +69,7 @@ with pkgs;
   nix-prefetch-git # should this be installed by default
   ngrok
   nix-direnv
+  mise
   openssh
   pocketbase
   sqlite
