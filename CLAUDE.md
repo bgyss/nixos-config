@@ -249,7 +249,8 @@ When updating package versions in overlays (e.g., `20-yt-dlp.nix`, `35-uv.nix`):
 2. Convert to SRI format: `nix hash convert --hash-algo sha256 --to sri HASH`
    - **Always use `nix hash convert`** — the old `nix hash to-sri` subcommand is deprecated
 3. Update the version and hash in the overlay file
-4. Apply with `nix run .#build-switch`
+4. **Rust/Cargo packages**: set `cargoHash = "";`, run a build to get the expected hash, then replace it with the printed `sha256-...` value.
+5. Apply with `nix run .#build-switch`
 
 ### Configuration Files
 
