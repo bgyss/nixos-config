@@ -77,11 +77,22 @@ let name = "Brian Gyss";
 
       # Update flake lock then rebuild this host
       nix-update-switch() {
+          emulate -L zsh
           local repo_root=""
+          local flake_ref="''${NIXOS_CONFIG_FLAKE:-nixos-config}"
           if command -v git >/dev/null 2>&1; then
             if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
               repo_root="$(git rev-parse --show-toplevel 2>/dev/null)" || return $?
+              if [ -f "$repo_root/flake.nix" ]; then
+                flake_ref="$repo_root"
+              else
+                repo_root=""
+              fi
             fi
+          fi
+
+          if [ -n "''${NIX_UPDATE_SWITCH_DEBUG:-}" ]; then
+            set -x
           fi
 
           if [ -n "$repo_root" ]; then
@@ -89,13 +100,14 @@ let name = "Brian Gyss";
               echo "Refusing to auto-commit flake.lock: you already have staged changes"
               return 1
             fi
-
-            (cd "$repo_root" && nix flake update --commit-lock-file) || return $?
-            (cd "$repo_root" && nix run .#build-switch -- "$@")
-          else
-            nix flake update --commit-lock-file|| return $?
-            nix run .#build-switch -- "$@"
+            if [ -n "$(git -C "$repo_root" status --porcelain)" ]; then
+              echo "Refusing to auto-commit flake.lock: git tree is dirty"
+              return 1
+            fi
           fi
+
+          nix flake update --commit-lock-file "$flake_ref" || return $?
+          nix run "$flake_ref"#build-switch -- "$@"
       }
 
       # ssh for warp
