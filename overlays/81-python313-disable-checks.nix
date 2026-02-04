@@ -13,6 +13,9 @@ final: prev: {
       twisted = pyPrev.twisted.overridePythonAttrs (_old: {
         doCheck = false;
       });
+      ffmpeg-python = pyPrev.ffmpeg-python.overridePythonAttrs (_old: {
+        doCheck = false;
+      });
     }
   );
 }
