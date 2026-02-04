@@ -63,10 +63,13 @@ with pkgs;
   gcc
   gh
   just
+  jujutsu
+  jjui
   killall
   ncdu
   neofetch
   nix-prefetch-git # should this be installed by default
+  nix-prefetch-github
   ngrok
   nix-direnv
   mise
