@@ -12,7 +12,7 @@ let
 
       src = pkgs.fetchurl {
         url = "https://github.com/astral-sh/uv/releases/download/${version}/uv-aarch64-apple-darwin.tar.gz";
-        sha256 = "sha256-plRF3+owsGGWuMy7hRDCuwekHO8xUFMii7mCINq6X3M=";
+        sha256 = "sha256-Bynd1cAt8zZpsDYnql2ax83kQhZX+AjVRYXjzalEu1U=";
       };
 
       sourceRoot = "uv-aarch64-apple-darwin";
