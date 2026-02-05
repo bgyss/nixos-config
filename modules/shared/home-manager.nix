@@ -106,7 +106,7 @@ let name = "Brian Gyss";
             fi
           fi
 
-          nix flake update --commit-lock-file "$flake_ref" || return $?
+          nix flake update --flake "$flake_ref" --commit-lock-file || return $?
           nix run "$flake_ref"#build-switch -- "$@"
       }
 
