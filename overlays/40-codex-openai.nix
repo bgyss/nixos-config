@@ -5,7 +5,7 @@ final: prev: {
 
     src = prev.fetchurl {
       url = "https://github.com/openai/codex/releases/download/rust-v${version}/codex-aarch64-apple-darwin.tar.gz";
-      hash = "sha256-Nb9MqOUlxcG7qoBqzKw+tj2sHM88tr+mjy5kQjmF5hs=";
+      hash = "sha256-PMdXcogDruDEyZTFaCENmQCrxs7GC+Aj57LApuMBglU=";
     };
 
     # It's a prebuilt binary tarball
