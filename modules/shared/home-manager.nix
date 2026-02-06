@@ -148,11 +148,21 @@ let name = "Brian Gyss";
       };
       init.defaultBranch = "main";
       core = {
-	editor = "vim";
+        editor = "vim";
         autocrlf = "input";
       };
       pull.rebase = true;
       rebase.autoStash = true;
+    };
+  };
+
+  programs.jujutsu = {                                                                                                                                                                                   
+    enable = true;                                                                                                                                                                                       
+    settings = {                                                                                                                                                                                         
+      user = {                                                    
+        name = "Brian Gyss";
+        email = "bgyss@hey.com";
+      };
     };
   };
 
