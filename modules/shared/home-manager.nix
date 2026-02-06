@@ -156,10 +156,10 @@ let name = "Brian Gyss";
     };
   };
 
-  programs.jujutsu = {                                                                                                                                                                                   
-    enable = true;                                                                                                                                                                                       
-    settings = {                                                                                                                                                                                         
-      user = {                                                    
+  jujutsu = {
+    enable = true;
+    settings = {
+      user = {
         name = "Brian Gyss";
         email = "bgyss@hey.com";
       };
