@@ -132,6 +132,11 @@ let name = "Brian Gyss";
       # OpenAI API Key (this needs to be made more secure)
       export OPENAI_API_KEY="***REDACTED-SECRET***"
 
+      # Activate mise for interactive shells
+      if [[ -o interactive ]] && command -v mise &>/dev/null; then
+        eval "$(mise activate zsh)"
+      fi
+
     '';
   };
 
