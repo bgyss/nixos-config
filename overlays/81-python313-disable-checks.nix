@@ -18,6 +18,8 @@ final: prev: {
       });
       paramiko = pyPrev.paramiko.overridePythonAttrs (_old: {
         doCheck = false;
+        pythonRuntimeDepsCheck = "disabled";
+        dontCheckRuntimeDeps = true;
       });
     }
   );
