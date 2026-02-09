@@ -16,6 +16,9 @@ final: prev: {
       ffmpeg-python = pyPrev.ffmpeg-python.overridePythonAttrs (_old: {
         doCheck = false;
       });
+      paramiko = pyPrev.paramiko.overridePythonAttrs (_old: {
+        doCheck = false;
+      });
     }
   );
 }
