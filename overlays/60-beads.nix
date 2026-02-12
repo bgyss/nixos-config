@@ -3,7 +3,7 @@
 final: prev:
 
 let
-  inherit (final) buildGoModule fetchFromGitHub lib sqlite go;
+  inherit (final) buildGoModule fetchFromGitHub lib sqlite go icu;
   version = "0.49.6";
   src = fetchFromGitHub {
     owner = "steveyegge";
@@ -20,7 +20,7 @@ in {
     modRoot = ".";
     vendorHash = "sha256-RyOxrW0C+2E+ULhGeF2RbUhaUFt58sux7neHPei5QJI=";
 
-    buildInputs = [ sqlite ];
+    buildInputs = [ sqlite icu ];
     preBuild = ''
       export CGO_ENABLED=1
     '';
