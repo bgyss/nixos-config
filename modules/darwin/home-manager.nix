@@ -40,7 +40,6 @@ in
     
     global = {
       brewfile = true;
-      lockfiles = true;
     };
 
     casks = pkgs.callPackage ./casks.nix {};
