@@ -135,6 +135,7 @@ with pkgs;
   rustup
 
   # golang
+  c4
   go
   gox
 
