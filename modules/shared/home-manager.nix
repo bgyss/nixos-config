@@ -369,6 +369,10 @@ let name = "Brian Gyss";
           )
         ];
       };
+      "blacklodge" = {
+        user = "bgyss";
+        port = 24;
+      };
     };
   };
 
