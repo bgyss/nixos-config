@@ -17,6 +17,9 @@ final: prev: {
         doCheck = false;
         dontCheckRuntimeDeps = true;
       };
+      twisted = pyPrev.twisted.overridePythonAttrs {
+        doCheck = false;
+      };
     }
   );
 }
