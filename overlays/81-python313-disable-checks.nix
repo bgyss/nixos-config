@@ -21,6 +21,9 @@ let
     twisted = pyPrev.twisted.overridePythonAttrs {
       doCheck = false;
     };
+    jeepney = pyPrev.jeepney.overridePythonAttrs {
+      doCheck = false;
+    };
   };
   python313-patched = prev.python313.override {
     packageOverrides = pyOverrides;
