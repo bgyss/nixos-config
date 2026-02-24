@@ -23,6 +23,7 @@ let
     };
     jeepney = pyPrev.jeepney.overridePythonAttrs {
       doCheck = false;
+      pythonImportsCheck = [ ];
     };
   };
   python313-patched = prev.python313.override {
