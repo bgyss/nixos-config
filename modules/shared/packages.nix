@@ -4,15 +4,15 @@ let
   inherit (pkgs) stdenv;
   inherit (pkgs.lib) optionals;
 
-  # Custom uv 0.10.2 for aarch64-darwin
+  # Custom uv 0.10.5 for aarch64-darwin
   uv-custom = if stdenv.hostPlatform.system == "aarch64-darwin" then
     pkgs.stdenvNoCC.mkDerivation rec {
       pname = "uv";
-      version = "0.10.2";
+      version = "0.10.5";
 
       src = pkgs.fetchurl {
         url = "https://github.com/astral-sh/uv/releases/download/${version}/uv-aarch64-apple-darwin.tar.gz";
-        sha256 = "sha256-OCiy3hlmh/YOnRma6otQQplikwCDHuoJNf8/4zmQPQo=";
+        sha256 = "sha256-YVwQQ0KY3HeSHLfDRn7r7NpUwMc0Oo14nlrA4geLqsE=";
       };
 
       sourceRoot = "uv-aarch64-apple-darwin";

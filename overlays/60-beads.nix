@@ -4,12 +4,12 @@ final: prev:
 
 let
   inherit (final) buildGoModule fetchFromGitHub lib sqlite go icu;
-  version = "0.52.0";
+  version = "0.56.1";
   src = fetchFromGitHub {
     owner = "steveyegge";
     repo = "beads";
     rev = "v${version}";
-    hash = "sha256-y0DBCmcHUK96VJkOI1WaenEnALUK9J4L4aTzJEfn73Y=";
+    hash = "sha256-hp+mKVCSzxxxUtOqspXuTbOJpeC8K9+UmmXSDr5Xa0k=";
   };
 in {
   beads = buildGoModule {
@@ -18,7 +18,7 @@ in {
 
     subPackages = [ "cmd/bd" ];
     modRoot = ".";
-    vendorHash = "sha256-s9ELOxDHHk+RyImrPxm9DPos7Wb4AFWaNKsrgU4soow=";
+    vendorHash = "sha256-DlEnIVNLHWetwQxTmUNOAuDbHGZ9mmLdITwDdviphPs=";
 
     buildInputs = [ sqlite icu ];
     preBuild = ''
