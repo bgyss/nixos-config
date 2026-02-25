@@ -25,6 +25,9 @@ let
       doCheck = false;
       pythonImportsCheck = [ ];
     };
+    aiohappyeyeballs = pyPrev.aiohappyeyeballs.overridePythonAttrs {
+      doCheck = false;
+    };
   };
   python313-patched = prev.python313.override {
     packageOverrides = pyOverrides;
