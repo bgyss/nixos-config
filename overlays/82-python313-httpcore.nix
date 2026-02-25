@@ -1,8 +1,3 @@
-# Disable httpcore tests on Python 3.13 - upstream test failures with async cancellation
-final: prev: {
-  python313Packages = prev.python313Packages.overrideScope (pfinal: pprev: {
-    httpcore = pprev.httpcore.overrideAttrs (old: {
-      doCheck = false;
-    });
-  });
-}
+# httpcore doCheck override is now handled by 81-python313-disable-checks.nix
+# (consolidated into packageOverrides to avoid conflicts with overrideScope).
+final: prev: { }
