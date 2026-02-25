@@ -163,7 +163,7 @@ with pkgs;
 
   # Media players
   # mpv  # disabled: depends on Swift which fails to build on aarch64-darwin
-  spotify
+  # spotify  # disabled: upstream download rate-limited (429), re-enable later
 
   # Media tools
   yt-dlp
