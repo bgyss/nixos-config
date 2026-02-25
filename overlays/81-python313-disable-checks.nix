@@ -59,7 +59,10 @@ let
     # ── misc commonly-flaky in sandbox ──
     elasticsearch    = noCheck pyPrev.elasticsearch;
     elastic-transport = noCheck pyPrev.elastic-transport;
-    inline-snapshot  = noCheck pyPrev.inline-snapshot;
+    inline-snapshot = pyPrev.inline-snapshot.overridePythonAttrs {
+      doCheck = false;
+      dontCheckRuntimeDeps = true;  # pytest is a runtime dep but not propagated
+    };
   };
 
   python313-patched = prev.python313.override {
