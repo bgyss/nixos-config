@@ -136,9 +136,24 @@ Located in `apps/`, these provide convenient commands:
 
 Custom package definitions and patches in `overlays/`:
 
-- `30-ccusage.nix`: Custom ccusage package from npm registry
-- `20-yt-dlp.nix`: yt-dlp customizations
-- Package version overrides from nixpkgs-master
+- `10-feather-font.nix`: Custom feather font (fixed version, no bumps)
+- `20-ngrok.nix`: ngrok prebuilt binaries (stable CDN URLs at `bin.equinox.io`)
+- `30-mise.nix`: mise from source (Rust/Cargo, uses `fetchCargoVendor`)
+- `40-codex-openai.nix`: codex-openai prebuilt binary
+- `41-claude-code.nix`: claude-code prebuilt binary
+- `50-trailbase.nix`: trailbase prebuilt binaries (multi-platform)
+- `55-go.nix`: Go version override (pinned to 1.25.x)
+- `56-c4.nix`: c4 from git commit (no tagged releases)
+- `60-beads.nix`: beads from source (Go, uses `buildGoModule`)
+- `70-igir.nix`: igir prebuilt binaries (multi-platform)
+- `80-llm.nix`: Disables checks for python312 llm
+- `81-python313-disable-checks.nix`: **Consolidated** doCheck overrides for flaky Python 3.13 packages (see Troubleshooting)
+- `82-python313-httpcore.nix`: Neutralized (now handled by `81-*`)
+- `82-fmt.nix`: Disables checks for fmt
+- `83-deno.nix`: Disables checks for deno
+- `90-svg-term-cli.nix`: svg-term-cli from npm
+
+Overlays are **auto-loaded** from `overlays/` by `modules/shared/default.nix` (glob scan for `*.nix` files). No need to register them in `flake.nix`.
 
 ### System Defaults (macOS)
 
@@ -227,6 +242,56 @@ If a package isn't getting the expected version from nixpkgs-unstable, check the
 - Verify flake.lock is up to date: `nix flake update`
 - Review error logs: `nix log /nix/store/[derivation-hash]`
 
+### Python 3.13 Test Failures in Nix Sandbox
+
+After `nix flake update`, Python 3.13 packages frequently fail to build because their test suites are incompatible with the Nix build sandbox (no network, no dbus, no real timers). The fix is **not** to pin nixpkgs — instead, disable checks for the offending package.
+
+**How it works**: `overlays/81-python313-disable-checks.nix` uses `python313.override { packageOverrides = ...; }` to propagate `doCheck = false` through the interpreter's own scope. This is critical — `overrideScope` alone does NOT propagate to `python313.withPackages` consumers.
+
+**Diagnosing which phase failed**:
+
+| Error message | Failing phase | Fix |
+| --- | --- | --- |
+| `FAILED tests/...` or `X failed, Y passed` | `checkPhase` (tests) | `doCheck = false` |
+| `- <pkg> not installed` | `pythonRuntimeDepsCheck` | `dontCheckRuntimeDeps = true` |
+| `ModuleNotFoundError` during import check | `pythonImportsCheck` | `pythonImportsCheck = [ ]` |
+
+**Categories of known-flaky packages** (already covered in overlay):
+
+- **Async/networking** (timing assertions fail in sandbox): `aiohappyeyeballs`, `aiohttp`, `aiosignal`, `httpcore`, `httpx`, `anyio`, `uvloop`
+- **D-Bus/system services** (no `dbus-daemon`): `jeepney` (also needs `pythonImportsCheck = []`), `secretstorage`, `keyring`
+- **Crypto/SSH** (need agents or hardware): `paramiko` (also needs `dontCheckRuntimeDeps`), `cryptography`
+- **Sandbox-incompatible test suites**: `twisted`, `ffmpeg-python`, `black`, `tornado`
+- **AI/ML ecosystem** (network-dependent tests): `openai`, `anthropic`, `tiktoken`, `tokenizers`, `datasets`, `huggingface-hub`, `llm`, `fsspec`
+- **Misc**: `elasticsearch`, `elastic-transport`, `inline-snapshot` (needs `dontCheckRuntimeDeps` for pytest)
+
+**To add a new package**, edit `overlays/81-python313-disable-checks.nix` and add to the `pyOverrides` set:
+
+```nix
+# Simple case (flaky tests):
+mypackage = noCheck pyPrev.mypackage;
+
+# Runtime dep check failure:
+mypackage = pyPrev.mypackage.overridePythonAttrs {
+  doCheck = false;
+  dontCheckRuntimeDeps = true;
+};
+
+# Import check failure:
+mypackage = pyPrev.mypackage.overridePythonAttrs {
+  doCheck = false;
+  pythonImportsCheck = [ ];
+};
+```
+
+### Upstream Hash Mismatches
+
+When a prebuilt binary is re-published under the same version (e.g., `uv`), the build fails with `hash mismatch in fixed-output derivation`. The error message provides the correct hash on the `got:` line — just update the `sha256` attribute in the relevant file (overlay or `modules/shared/packages.nix`).
+
+### Upstream Download Failures (HTTP 429 / 404)
+
+When upstream servers rate-limit or remove downloads (e.g., Spotify), temporarily comment out the package in `modules/shared/packages.nix` if it's also available via Homebrew cask on macOS. Re-enable later when the download stabilizes.
+
 ### macOS Specific
 
 - Ensure nix-darwin is properly installed
@@ -243,14 +308,17 @@ If a package isn't getting the expected version from nixpkgs-unstable, check the
 
 ### Updating Package Overlays
 
-When updating package versions in overlays (e.g., `20-yt-dlp.nix`, `35-uv.nix`):
+When updating package versions in overlays:
 
 1. Fetch the new tarball hash: `nix-prefetch-url --unpack https://github.com/owner/repo/archive/refs/tags/VERSION.tar.gz`
 2. Convert to SRI format: `nix hash convert --hash-algo sha256 --to sri HASH`
    - **Always use `nix hash convert`** — the old `nix hash to-sri` subcommand is deprecated
 3. Update the version and hash in the overlay file
-4. **Rust/Cargo packages**: set `cargoHash = "";`, run a build to get the expected hash, then replace it with the printed `sha256-...` value.
-5. Apply with `nix run .#build-switch`
+4. **Rust/Cargo packages** (e.g., `30-mise.nix`): set `cargoHash = "";`, run a build to get the expected hash from the error output, then replace it with the printed `sha256-...` value
+5. **Go packages** (e.g., `60-beads.nix`): set `vendorHash = "";`, same process as Rust — build, grab hash from error, replace
+6. **Prebuilt binary overlays** (e.g., `20-ngrok.nix`, `41-claude-code.nix`, `50-trailbase.nix`, `70-igir.nix`): prefetch each platform's URL individually with `nix-prefetch-url` and convert to SRI
+7. Test individual overlays without a full rebuild: `nix build --impure --expr 'let pkgs = import <nixpkgs> { overlays = [ (import ./overlays/FOO.nix) ]; }; in pkgs.PACKAGE'`
+8. Apply with `nix run .#build-switch`
 
 ### Configuration Files
 
