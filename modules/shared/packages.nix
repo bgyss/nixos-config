@@ -63,6 +63,7 @@ with pkgs;
   gcc
   gh
   ghidra
+  hcloud
   just
   jujutsu
   jjui
