@@ -2,7 +2,9 @@
   description = "Starter Configuration for MacOS and NixOS";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
+    # PINNED: 26eaeac has patch OOM bug in xar-minimal (breaks Darwin stdenv)
+    # TODO: unpin once nixpkgs-unstable moves past the broken commit
+    nixpkgs.url = "github:NixOS/nixpkgs/ea7f1f0";
     nixpkgs-master.url = "github:NixOS/nixpkgs/master";
     home-manager.url = "github:nix-community/home-manager";
     emacs-overlay = {
