@@ -3,43 +3,6 @@
 let
   inherit (pkgs) stdenv;
   inherit (pkgs.lib) optionals;
-
-  # Custom uv 0.10.5 for aarch64-darwin
-  uv-custom = if stdenv.hostPlatform.system == "aarch64-darwin" then
-    pkgs.stdenvNoCC.mkDerivation rec {
-      pname = "uv";
-      version = "0.10.5";
-
-      src = pkgs.fetchurl {
-        url = "https://github.com/astral-sh/uv/releases/download/${version}/uv-aarch64-apple-darwin.tar.gz";
-        sha256 = "sha256-eWwtJkxquj4ReSSUOKn6L+ZBQHSPDltmgeOCGKtiOPE=";
-      };
-
-      sourceRoot = "uv-aarch64-apple-darwin";
-
-      dontConfigure = true;
-      dontBuild = true;
-      dontPatch = true;
-      dontStrip = true;
-
-      installPhase = ''
-        runHook preInstall
-        mkdir -p $out/bin
-        install -m755 uv $out/bin/uv
-        install -m755 uvx $out/bin/uvx
-        runHook postInstall
-      '';
-
-      meta = {
-        description = "An extremely fast Python package installer and resolver, written in Rust";
-        homepage = "https://github.com/astral-sh/uv";
-        license = with pkgs.lib.licenses; [ pkgs.lib.licenses.mit pkgs.lib.licenses.asl20 ];
-        platforms = [ "aarch64-darwin" ];
-        mainProgram = "uv";
-      };
-    }
-  else
-    pkgs.uv;
 in
 with pkgs;
 [
@@ -78,7 +41,7 @@ with pkgs;
   openssh
   pocketbase
   sqlite
-  uv-custom
+  uv
   wget
   zip
   
