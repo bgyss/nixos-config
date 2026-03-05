@@ -95,9 +95,6 @@ with pkgs;
   devenv
   ruff
 
-  # Rust development tools
-  rustup
-
   # golang
   c4
   go
@@ -159,7 +156,7 @@ with pkgs;
 
 ] ++ optionals stdenv.isDarwin [
   # macOS-specific libraries needed for Rust builds (ring crate, etc.)
-  libiconv
+  # libiconv  # disabled: Rust now managed by mise, not Nix
   # Note: darwin.apple_sdk.frameworks removed in nixpkgs; frameworks now provided via stdenv
 ] ++ optionals (!stdenv.isDarwin) [
   dolphin-emu
