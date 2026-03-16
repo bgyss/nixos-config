@@ -94,6 +94,7 @@ with pkgs;
   cmake
   devenv
   ruff
+  rustup
 
   # golang
   c4
