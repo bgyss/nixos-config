@@ -53,11 +53,10 @@ let name = "Brian Gyss";
       export PATH=$HOME/.npm-packages/bin:$HOME/bin:$PATH
       export PATH=$HOME/.local/bin:$HOME/.local/share/bin:$PATH
 
-      # macOS: Set LIBRARY_PATH for Rust builds (ring crate needs libiconv)
-      # Disabled: Rust now managed by mise, not Nix
-      # if [[ "$(uname)" == "Darwin" ]]; then
-      #   export LIBRARY_PATH="''${LIBRARY_PATH:+$LIBRARY_PATH:}/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/lib"
-      # fi
+      # macOS: Set LIBRARY_PATH for Nix + Rust builds (ring crate needs libiconv)
+      if [[ "$(uname)" == "Darwin" ]]; then
+        export LIBRARY_PATH="$(xcrun --show-sdk-path)/usr/lib''${LIBRARY_PATH:+:$LIBRARY_PATH}"
+      fi
 
       # Remove history data we don't want to see
       export HISTIGNORE="pwd:ls:cd"
