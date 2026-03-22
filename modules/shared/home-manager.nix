@@ -143,6 +143,7 @@ let name = "Brian Gyss";
   git = {
     enable = true;
     ignores = [ "*.swp" ];
+    signing.format = "openpgp";
     lfs = {
       enable = true;
     };
