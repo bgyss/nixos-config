@@ -32,7 +32,7 @@ with pkgs;
   jjui
   killall
   ncdu
-  neofetch
+  fastfetch
   nix-prefetch-git # should this be installed by default
   nix-prefetch-github
   ngrok
