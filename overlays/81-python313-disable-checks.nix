@@ -24,6 +24,7 @@ let
     httpx             = noCheck pyPrev.httpx;
     anyio             = noCheck pyPrev.anyio;
     uvloop            = noCheck pyPrev.uvloop;
+    watchfiles        = noCheck pyPrev.watchfiles;  # pytest-timeout in sandbox
 
     # ── dbus / system-service tests (no dbus-daemon in sandbox) ──
     jeepney = pyPrev.jeepney.overridePythonAttrs {
