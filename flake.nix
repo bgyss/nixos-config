@@ -2,10 +2,10 @@
   description = "Starter Configuration for MacOS and NixOS";
 
   inputs = {
-    # Pinned to commit with cached Darwin stdenv - xar-minimal OOM bug in latest
-    # See: patch utility in bootstrap runs out of memory on 36KB test patch
-    # TODO: Unpin when upstream fixes the xar-minimal OOM issue
-    nixpkgs.url = "github:NixOS/nixpkgs/defd69de6b48d064223bae49c7ec026d743127ef";
+    # Pinned to commit before libxml2 CVE patches that cause OOM in patch utility
+    # See: CVE-2026-0989/0990/0992 patches cause patch to run out of memory
+    # TODO: Unpin when upstream fixes the patch OOM issue
+    nixpkgs.url = "github:NixOS/nixpkgs/af45a5c7362bcf6585aff1ffd1de09663cce80c8";
     nixpkgs-master.url = "github:NixOS/nixpkgs/master";
     home-manager.url = "github:nix-community/home-manager";
     emacs-overlay = {
