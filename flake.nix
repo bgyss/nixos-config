@@ -2,7 +2,10 @@
   description = "Starter Configuration for MacOS and NixOS";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
+    # Pinned to commit with cached Darwin stdenv - xar-minimal OOM bug in latest
+    # See: patch utility in bootstrap runs out of memory on 36KB test patch
+    # TODO: Unpin when upstream fixes the xar-minimal OOM issue
+    nixpkgs.url = "github:NixOS/nixpkgs/defd69de6b48d064223bae49c7ec026d743127ef";
     nixpkgs-master.url = "github:NixOS/nixpkgs/master";
     home-manager.url = "github:nix-community/home-manager";
     emacs-overlay = {
