@@ -6,7 +6,7 @@ final: prev: let
     src = prev.fetchPypi {
       pname = "yt_dlp_ejs";
       inherit version;
-      hash = "sha256-aSB8MAPAoWGb/WP25cNZjmgCEFuaX0uWEllGaRHg61g=";
+      hash = "sha256-1foWOfY7XEr42TJJX2BonVNw8aCVeCyUT39iowPrEE4=";
     };
   });
 in {
