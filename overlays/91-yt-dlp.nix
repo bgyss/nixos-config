@@ -18,8 +18,8 @@ in {
       tag = version;
       hash = "sha256-A4LUCuKCjpVAOJ8jNoYaC3mRCiKH0/wtcsle0YfZyTA=";
     };
-    # Add yt-dlp-ejs 0.8.0 as a dependency for YouTube challenge solving
-    dependencies = (old.dependencies or []) ++ [ yt-dlp-ejs ];
+    # Replace yt-dlp-ejs 0.3.2 with 0.8.0 for YouTube challenge solving
+    dependencies = builtins.filter (dep: (dep.pname or "") != "yt-dlp-ejs") (old.dependencies or []) ++ [ yt-dlp-ejs ];
     # Update postPatch for new curl_cffi version check pattern (0, 15) instead of (0, 14)
     postPatch = ''
       substituteInPlace yt_dlp/version.py \
