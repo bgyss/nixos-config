@@ -18,7 +18,7 @@ in {
     pname = old.pname or "mise";
     inherit version src;
     name = "${pname}-${version}";
-    cargoHash = ""; # TODO: build to get correct hash
+    cargoHash = "sha256-ShfY9x5I6NTHYwlMVI7+Heo2T53p2IldCXUBcTjRX8U=";
     cargoDeps = fetchCargoVendor {
       inherit src pname version;
       hash = cargoHash;
