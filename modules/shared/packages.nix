@@ -108,6 +108,9 @@ with pkgs;
   tesseract
 
   # Text and terminal utilities
+  pandoc
+  tectonic
+  typst
   zsh
   htop
   hunspell
