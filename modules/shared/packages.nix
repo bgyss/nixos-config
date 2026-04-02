@@ -157,6 +157,7 @@ with pkgs;
   claude-code
   claude-monitor
   codex-openai
+  oh-my-codex
 
 ] ++ optionals stdenv.isDarwin [
   # macOS-specific libraries needed for Rust builds (ring crate, etc.)
