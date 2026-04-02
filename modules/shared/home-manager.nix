@@ -121,10 +121,6 @@ let name = "Brian Gyss";
 
       alias ll="eza -la --sort=newest -I '.DS_Store'"
 
-      # oh-my-codex hardcodes ALLOWED_SHELLS to standard paths; our Nix-managed
-      # zsh (/run/current-system/sw/bin/zsh) isn't recognised, so omx falls back
-      # to /bin/sh which can't parse .zshrc — crashing the tmux session leader.
-      alias omx='SHELL=/bin/zsh omx'
 
       # brew completions
       if type brew &>/dev/null; then
