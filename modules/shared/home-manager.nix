@@ -121,6 +121,8 @@ let name = "Brian Gyss";
 
       alias ll="eza -la --sort=newest -I '.DS_Store'"
 
+      alias omx='SHELL=/bin/zsh omx'
+
       # brew completions
       if type brew &>/dev/null; then
         FPATH=$(brew --prefix)/share/zsh-completions:$FPATH
