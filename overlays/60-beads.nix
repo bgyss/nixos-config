@@ -1,15 +1,15 @@
-# beads overlay – package bd CLI from steveyegge/beads
+# beads overlay – package bd CLI from gastownhall/beads
 
 final: prev:
 
 let
   inherit (final) buildGoModule fetchFromGitHub lib sqlite go icu;
-  version = "0.63.3";
+  version = "1.0.0";
   src = fetchFromGitHub {
-    owner = "steveyegge";
+    owner = "gastownhall";
     repo = "beads";
     rev = "v${version}";
-    hash = "sha256-1AcsSDQXLcPLwIvV3dJ2DXYpeR2PAQCgUodclDMwg/s=";
+    hash = "sha256-D2jShGpkOWKx9aRmRvV5bmV8t0/Y2eAE8q0m54QrRN0=";
   };
 in {
   beads = buildGoModule {
@@ -18,7 +18,7 @@ in {
 
     subPackages = [ "cmd/bd" ];
     modRoot = ".";
-    vendorHash = "sha256-GYPfvsI8eNJbdzrbO7YnMkN2Yt6KZNB7w/2SJD2WdFY=";
+    vendorHash = "sha256-7DJgqJX2HDa9gcGD8fLNHLIXvGAEivYeDYx3snCUyCE=";
 
     buildInputs = [ sqlite icu ];
     preBuild = ''
@@ -36,7 +36,7 @@ in {
 
     meta = with lib; {
       description = "Dependency-aware issue tracker CLI";
-      homepage = "https://github.com/steveyegge/beads";
+      homepage = "https://github.com/gastownhall/beads";
       license = licenses.asl20;
       mainProgram = "bd";
       platforms = platforms.unix;

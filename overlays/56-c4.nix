@@ -1,16 +1,16 @@
 final: prev: {
   c4 = prev.buildGoModule rec {
     pname = "c4";
-    version = "0-unstable-2025-07-30";
+    version = "0-unstable-2026-03-26";
 
     src = prev.fetchFromGitHub {
       owner = "Avalanche-io";
       repo = "c4";
-      rev = "c6c5e435354f685d66631d6e15ac5369bb992b1c";
-      hash = "sha256-ePXhkmuZ2xERvZfLHWKjB+W/VtpqHrSpUK/NcB9wXkw=";
+      rev = "2b9e7edde6828b38da15c3985e0b97bdd74b73d2";
+      hash = "sha256-K4CBGM9AjEktkJgdp9q/c37Ep5bCQBzSj8FlO2BLa4M=";
     };
 
-    vendorHash = "sha256-afTmUzfzaln7CmYseKBZpBO1zw0hkUpqQz9TB/ZdOpE=";
+    vendorHash = null;
 
     subPackages = [ "cmd/c4" ];
 
