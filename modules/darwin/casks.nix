@@ -27,7 +27,8 @@ _:
 
   # Productivity Tools
   "figma"
-  "notion-calendar" 
+  "notion-calendar"
+  "obsidian"
 
   # Communication Tools
   "discord"
