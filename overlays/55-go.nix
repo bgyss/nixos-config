@@ -1,28 +1,28 @@
-# go overlay – bump to 1.25.8 until nixpkgs catches up
+# go overlay – bump to 1.25.9 until nixpkgs catches up
 
 final: prev:
 
 let
   inherit (prev) fetchurl lib stdenv;
 
-  version = "1.25.8";
+  version = "1.25.9";
 
   sources = {
     "aarch64-darwin" = {
       url = "https://go.dev/dl/go${version}.darwin-arm64.tar.gz";
-      hash = "sha256-xlR5WfXb6EQL89qXK9ZbqQAWjeXnqwFGT73HrIN1whw=";
+      hash = "sha256-lSi+cym5dwYxpr0Jyi86c+1zMr7AHYdDXnXpLY8TA2M=";
     };
     "x86_64-darwin" = {
       url = "https://go.dev/dl/go${version}.darwin-amd64.tar.gz";
-      hash = "sha256-oLgTZZi68ZKvQABRzuJIH/tAf0wROoH/QAiW4my86eQ=";
+      hash = "sha256-kst4+6R5biGMGsyw6gohTvIJTDggSaJErWUFUF0BX74=";
     };
     "x86_64-linux" = {
       url = "https://go.dev/dl/go${version}.linux-amd64.tar.gz";
-      hash = "sha256-zrXgQbvDiThGvRYU12y0aByR2t7leUJs8hpj8tfgO+Y=";
+      hash = "sha256-AIWde9be/ov4TZ255XuaRGeyiHwYzZOudGDnE9t3S8E=";
     };
     "aarch64-linux" = {
       url = "https://go.dev/dl/go${version}.linux-arm64.tar.gz";
-      hash = "sha256-fRN/WfZruT9AprKxHnE63CqdDI2a5YFxjj+tGeUpXcc=";
+      hash = "sha256-7DQuc4m39IlWTtVGPGOxbPgEACPavHhhJWZ3FlqMDis=";
     };
   };
 

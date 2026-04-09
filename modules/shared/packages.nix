@@ -91,6 +91,7 @@ with pkgs;
   nodejs_24
 
   # development tools
+  clang-tools
   cmake
   devenv
   ruff
