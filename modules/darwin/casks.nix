@@ -84,7 +84,7 @@ _:
   "multipatch"
 
   # GIS
-  "qgis"
+  # "qgis" # temporarily disabled – upstream re-published DMG, Homebrew checksum mismatch
 
   # AI
   "diffusionbee"
