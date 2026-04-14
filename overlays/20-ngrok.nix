@@ -1,4 +1,4 @@
-# ngrok overlay – bump to 3.37.3 until nixpkgs catches up
+# ngrok overlay – bump to 3.37.6 until nixpkgs catches up
 
 final: prev:
 
@@ -7,34 +7,34 @@ let
 
   versions = {
     "linux-386" = {
-      version = "3.37.3";
+      version = "3.37.6";
       url = "https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-linux-386.tgz";
-      sha256 = "sha256-FFtHMzoCYTetS11F5RrfiNbRyL9UwAnbC75mxWcPsDs=";
+      sha256 = "sha256-iZ2lIj4xedE+Wt8SLb0lTWdDTYvBAyahAWOWKIWqOQ0=";
     };
     "linux-amd64" = {
-      version = "3.37.3";
+      version = "3.37.6";
       url = "https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-linux-amd64.tgz";
-      sha256 = "sha256-9x2/BkztJX+Yc81fbxqSy3+WkLiQJgzopc9OdgDpMtA=";
+      sha256 = "sha256-ywCl0wiW9G2tc3dsqDpO+AIuimfvY7ODOicaH2N57rA=";
     };
     "linux-arm" = {
-      version = "3.37.3";
+      version = "3.37.6";
       url = "https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-linux-arm.tgz";
-      sha256 = "sha256-3i3FehgyOhxrVlZnKUKEmeokB2OA9RjAYf+dXuadc5Y=";
+      sha256 = "sha256-i/Ifcot6cibO85Cg7lIT614cqFF2FLbJ+1UiRiIJt6A=";
     };
     "linux-arm64" = {
-      version = "3.37.3";
+      version = "3.37.6";
       url = "https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-linux-arm64.tgz";
-      sha256 = "sha256-F6BuTxKAs5XBLvVuYC2nWh16fH3cIfn9JuIEbK1iwco=";
+      sha256 = "sha256-+es4qDYCRjKPbFdU+hQ1BjKIotyZ/pqbAWNU4BIIm7Q=";
     };
     "darwin-amd64" = {
-      version = "3.37.3";
+      version = "3.37.6";
       url = "https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-darwin-amd64.zip";
-      sha256 = "sha256-K/PKul8UFwoJr0IscHuK4sb4oLLsx+KX77dgwbcRHoQ=";
+      sha256 = "sha256-CSvrtEErq5L2z0BzmaBV2B0NaM+CUEZWqjeVRvMqEOc=";
     };
     "darwin-arm64" = {
-      version = "3.37.3";
+      version = "3.37.6";
       url = "https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-darwin-arm64.zip";
-      sha256 = "sha256-qclaJjKL/Dux/sdj73z56t+fEpzke+dkjUpSaRYSBXc=";
+      sha256 = "sha256-K7XXP8stGrFvH4eZZYhj9hKYSb1NzhTPW6MqByjmXuA=";
     };
   };
 
