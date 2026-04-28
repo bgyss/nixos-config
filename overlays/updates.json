@@ -1,0 +1,153 @@
+{
+  "packages": [
+    {
+      "name": "claude-code",
+      "overlay": "overlays/41-claude-code.nix",
+      "current_version": "2.1.119",
+      "check": { "method": "github-release", "repo": "anthropics/claude-code" },
+      "update_type": "prebuilt-binary",
+      "platforms": {
+        "aarch64-darwin": {
+          "url_template": "https://storage.googleapis.com/claude-code-dist-86c565f3-f756-42ad-8dfa-d59b1c096819/claude-code-releases/{version}/darwin-arm64/claude"
+        }
+      },
+      "notes": "Single binary (not an archive). Use nix-prefetch-url without --unpack."
+    },
+    {
+      "name": "codex-openai",
+      "overlay": "overlays/40-codex-openai.nix",
+      "current_version": "0.125.0",
+      "check": { "method": "github-release", "repo": "openai/codex", "tag_prefix": "rust-v" },
+      "update_type": "prebuilt-binary",
+      "platforms": {
+        "aarch64-darwin": {
+          "url_template": "https://github.com/openai/codex/releases/download/rust-v{version}/codex-aarch64-apple-darwin.tar.gz"
+        }
+      }
+    },
+    {
+      "name": "trailbase",
+      "overlay": "overlays/50-trailbase.nix",
+      "current_version": "0.26.6",
+      "check": { "method": "github-release", "repo": "trailbaseio/trailbase" },
+      "update_type": "prebuilt-binary-multiplatform",
+      "platforms": {
+        "aarch64-darwin": {
+          "url_template": "https://github.com/trailbaseio/trailbase/releases/download/v{version}/trailbase_v{version}_arm64_apple_darwin.zip"
+        },
+        "x86_64-darwin": {
+          "url_template": "https://github.com/trailbaseio/trailbase/releases/download/v{version}/trailbase_v{version}_x86_64_apple_darwin.zip"
+        },
+        "x86_64-linux": {
+          "url_template": "https://github.com/trailbaseio/trailbase/releases/download/v{version}/trailbase_v{version}_x86_64_linux.zip"
+        }
+      }
+    },
+    {
+      "name": "igir",
+      "overlay": "overlays/70-igir.nix",
+      "current_version": "5.0.1",
+      "check": { "method": "github-release", "repo": "emmercm/igir" },
+      "update_type": "prebuilt-binary-multiplatform",
+      "platforms": {
+        "aarch64-darwin": {
+          "url_template": "https://github.com/emmercm/igir/releases/download/v{version}/igir-{version}-macOS-arm64.tar.gz"
+        },
+        "x86_64-darwin": {
+          "url_template": "https://github.com/emmercm/igir/releases/download/v{version}/igir-{version}-macOS-x64.tar.gz"
+        },
+        "aarch64-linux": {
+          "url_template": "https://github.com/emmercm/igir/releases/download/v{version}/igir-{version}-Linux-arm64v8.tar.gz"
+        },
+        "x86_64-linux": {
+          "url_template": "https://github.com/emmercm/igir/releases/download/v{version}/igir-{version}-Linux-amd64.tar.gz"
+        }
+      }
+    },
+    {
+      "name": "uv",
+      "overlay": "overlays/25-uv.nix",
+      "current_version": "0.11.7",
+      "check": { "method": "github-release", "repo": "astral-sh/uv" },
+      "update_type": "prebuilt-binary",
+      "platforms": {
+        "aarch64-darwin": {
+          "url_template": "https://github.com/astral-sh/uv/releases/download/{version}/uv-aarch64-apple-darwin.tar.gz"
+        }
+      }
+    },
+    {
+      "name": "mise",
+      "overlay": "overlays/30-mise.nix",
+      "current_version": "2026.4.22",
+      "check": { "method": "github-release", "repo": "jdx/mise" },
+      "update_type": "cargo-source",
+      "notes": "Requires ~15 min Rust build. Step 1: update version + source hash (nix-prefetch-url --unpack on GitHub archive). Step 2: set cargoHash to empty string. Step 3: run nix build to get the expected hash from error output. Step 4: update cargoHash. Do not wait for the full build — commit and let the user build manually."
+    },
+    {
+      "name": "beads",
+      "overlay": "overlays/60-beads.nix",
+      "current_version": "1.0.3",
+      "check": { "method": "github-release", "repo": "gastownhall/beads" },
+      "update_type": "go-source",
+      "notes": "Step 1: update version + src hash. Step 2: set vendorHash to empty string. Step 3: run nix build to get expected hash. Step 4: update vendorHash."
+    },
+    {
+      "name": "go",
+      "overlay": "overlays/55-go.nix",
+      "current_version": "1.26.2",
+      "check": { "method": "go-dev" },
+      "update_type": "prebuilt-binary-multiplatform",
+      "platforms": {
+        "aarch64-darwin": { "url_template": "https://go.dev/dl/go{version}.darwin-arm64.tar.gz" },
+        "x86_64-darwin":  { "url_template": "https://go.dev/dl/go{version}.darwin-amd64.tar.gz" },
+        "x86_64-linux":   { "url_template": "https://go.dev/dl/go{version}.linux-amd64.tar.gz" },
+        "aarch64-linux":  { "url_template": "https://go.dev/dl/go{version}.linux-arm64.tar.gz" }
+      },
+      "notes": "When the minor version bumps (e.g. 1.26→1.27), also rename the go_1_26 attribute to go_1_27 in the overlay."
+    },
+    {
+      "name": "yt-dlp",
+      "overlay": "overlays/91-yt-dlp.nix",
+      "current_version": "2026.03.17",
+      "check": { "method": "github-release", "repo": "yt-dlp/yt-dlp" },
+      "update_type": "python-override",
+      "notes": "Complex overlay. Also check yt-dlp-ejs on PyPI (package: yt_dlp_ejs). Review the postPatch section manually — curl_cffi version bounds may need adjustment on each yt-dlp release."
+    },
+    {
+      "name": "yt-dlp-ejs",
+      "overlay": "overlays/91-yt-dlp.nix",
+      "current_version": "0.8.0",
+      "check": { "method": "pypi", "package": "yt_dlp_ejs" },
+      "update_type": "python-override",
+      "notes": "Bundled inside 91-yt-dlp.nix. Update the yt-dlp-ejs version/hash in that file."
+    },
+    {
+      "name": "ngrok",
+      "overlay": "overlays/20-ngrok.nix",
+      "current_version": "3.38.0",
+      "check": { "method": "manual", "hint": "https://github.com/nicowillis/ngrok-changelog or check ngrok website" },
+      "update_type": "prebuilt-binary-multiplatform",
+      "notes": "Uses stable CDN URLs from bin.equinox.io — no versioned GitHub releases page. Must manually verify the new version and update all six platform hashes."
+    },
+    {
+      "name": "c4",
+      "overlay": "overlays/56-c4.nix",
+      "current_version": "0-unstable-2026-03-26",
+      "check": { "method": "manual", "hint": "https://github.com/Avalanche-io/c4/commits/master — no tags, check for new commits manually" },
+      "update_type": "go-source",
+      "notes": "No tagged releases. Check for new commits on master. Update rev to new commit SHA, update version date string (0-unstable-YYYY-MM-DD), update src hash, then blank vendorHash to get new hash."
+    }
+  ],
+  "skip": [
+    { "file": "10-feather-font.nix",            "reason": "intentionally pinned to v1.0 — do not bump" },
+    { "file": "80-llm.nix",                      "reason": "build fix (doCheck=false), not version-pinned" },
+    { "file": "81-python313-disable-checks.nix", "reason": "sandbox test-suppression overlay, not version-pinned" },
+    { "file": "82-python313-httpcore.nix",        "reason": "neutralized stub — logic moved to 81-*" },
+    { "file": "82-fmt.nix",                       "reason": "build fix (doCheck=false)" },
+    { "file": "83-deno.nix",                      "reason": "build fix (doCheck=false)" },
+    { "file": "90-svg-term-cli.nix",              "reason": "npm package with vendored package-lock.json — update manually" },
+    { "file": "92-lmstudio.nix",                  "reason": "macOS codesign workaround, not version-pinned" },
+    { "file": "93-direnv.nix",                    "reason": "CGO build fix, not version-pinned" }
+  ]
+}
