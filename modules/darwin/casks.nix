@@ -62,6 +62,7 @@ _:
   # 3D Applications
   "blender"
   "touchdesigner"
+  "freecad"
 
   # Microsoft Applications
   "microsoft-auto-update"
