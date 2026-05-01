@@ -23,5 +23,7 @@ in {
       inherit src pname version;
       hash = cargoHash;
     };
+    # git clone test requires git-upload-pack, unavailable in Nix sandbox
+    doCheck = false;
   });
 }
