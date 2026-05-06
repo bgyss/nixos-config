@@ -7,7 +7,9 @@
     # TODO: Unpin when upstream fixes the patch OOM issue
     nixpkgs.url = "github:NixOS/nixpkgs/af45a5c7362bcf6585aff1ffd1de09663cce80c8";
     nixpkgs-master.url = "github:NixOS/nixpkgs/master";
-    home-manager.url = "github:nix-community/home-manager";
+    # Pinned to last commit before services-modular added lib/services/lib.nix
+    # dependency that doesn't exist in the pinned nixpkgs (af45a5c)
+    home-manager.url = "github:nix-community/home-manager/9ce9f7f";
     emacs-overlay = {
       url = "github:dustinlyons/emacs-overlay/master";
       inputs.nixpkgs.follows = "nixpkgs";
