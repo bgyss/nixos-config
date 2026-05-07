@@ -315,7 +315,7 @@ When updating package versions in overlays:
    - **Always use `nix hash convert`** — the old `nix hash to-sri` subcommand is deprecated
 3. Update the version and hash in the overlay file
 4. **Rust/Cargo packages** (e.g., `30-mise.nix`): set `cargoHash = "";`, run a build to get the expected hash from the error output, then replace it with the printed `sha256-...` value
-   - **Note**: Building mise from source is time-consuming (~15+ min). When updating mise, just update the version/hashes and let the user build it manually at the command line — don't wait for the full build during testing
+   - **Note**: Building mise from source is time-consuming (~15+ min), but always resolve the `cargoHash` as part of the update — run `nix build --impure --expr 'let pkgs = import <nixpkgs> { overlays = [ (import ./overlays/30-mise.nix) ]; }; in pkgs.mise' 2>&1 | grep 'got:'` to get the hash from the error output, then fill it in before finishing. Never leave `cargoHash = ""` in the file.
 5. **Go packages** (e.g., `60-beads.nix`): set `vendorHash = "";`, same process as Rust — build, grab hash from error, replace
 6. **Prebuilt binary overlays** (e.g., `20-ngrok.nix`, `41-claude-code.nix`, `50-trailbase.nix`, `70-igir.nix`): prefetch each platform's URL individually with `nix-prefetch-url` and convert to SRI
 7. Test individual overlays without a full rebuild: `nix build --impure --expr 'let pkgs = import <nixpkgs> { overlays = [ (import ./overlays/FOO.nix) ]; }; in pkgs.PACKAGE'`

@@ -1,23 +1,23 @@
-# trailbase overlay – ship upstream release binaries (v0.27.0)
+# trailbase overlay – ship upstream release binaries (v0.27.1)
 
 final: prev:
 
 let
   inherit (prev) autoPatchelfHook fetchurl lib stdenv stdenvNoCC unzip;
 
-  version = "0.27.0";
+  version = "0.27.1";
   sources = {
     "aarch64-darwin" = {
       url = "https://github.com/trailbaseio/trailbase/releases/download/v${version}/trailbase_v${version}_arm64_apple_darwin.zip";
-      hash = "sha256-U86jvjOfiyfyLu1oXhp5GLImp+ODGbx0F9YTUk1ov6Y=";
+      hash = "sha256-JQ0wShqckcIm7W7goppFYpMQDAUyVAqM/e3htT6t4aI=";
     };
     "x86_64-darwin" = {
       url = "https://github.com/trailbaseio/trailbase/releases/download/v${version}/trailbase_v${version}_x86_64_apple_darwin.zip";
-      hash = "sha256-Y2Ou9QaSaMwFki6cvcoHFHG4TZzY5UguRXZ3lrcTS64=";
+      hash = "sha256-hlg0inxqMYPN+17Nes1zRKfG/6mVZ5H11/bVj9p2g94=";
     };
     "x86_64-linux" = {
       url = "https://github.com/trailbaseio/trailbase/releases/download/v${version}/trailbase_v${version}_x86_64_linux.zip";
-      hash = "sha256-BIR5cDYJA5ZfZfMIghM0W+8DWieavdogg/KaYceG5ew=";
+      hash = "sha256-zZtHAc1JLNwa89MZRqHzaITAI9HyB98by2P7TZrMnB4=";
     };
   };
 
