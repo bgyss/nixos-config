@@ -10,7 +10,7 @@ let
   sources = {
     "aarch64-darwin" = {
       url = "https://go.dev/dl/go${version}.darwin-arm64.tar.gz";
-      hash = "sha256-DlC/SLQju9nx7yuUAeZB9oWx1Yj+j/c3xm9haN7w9bU=";
+      hash = "sha256-h1z1ShUxHu4smbndZ8aMSkk1HUiatiK/LP0oyPIHjTw=";
     };
     "x86_64-darwin" = {
       url = "https://go.dev/dl/go${version}.darwin-amd64.tar.gz";
