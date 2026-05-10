@@ -170,6 +170,10 @@ let name = "Brian Gyss";
         name = "Brian Gyss";
         email = "bgyss@hey.com";
       };
+
+      git = {
+        colocate = true;
+      };
     };
   };
 
