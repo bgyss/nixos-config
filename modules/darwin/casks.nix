@@ -59,10 +59,11 @@ _:
   "google-chrome"
   "orion"
 
-  # 3D Applications
+  # 3D / CAD / EDA
   "blender"
   "touchdesigner"
   "freecad"
+  "kicad"
 
   # Microsoft Applications
   "microsoft-auto-update"
