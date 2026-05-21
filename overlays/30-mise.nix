@@ -6,19 +6,19 @@ let
   inherit (prev) fetchFromGitHub lib;
   inherit (prev.rustPlatform) fetchCargoVendor;
 
-  version = "2026.5.11";
+  version = "2026.5.13";
   src = fetchFromGitHub {
     owner = "jdx";
     repo = "mise";
     rev = "v${version}";
-    hash = "sha256-AgcigTrYdBze9mAxBG9YeSrKVV/NEoCHdK8QeyrOc08=";
+    hash = "sha256-TPQkY439W01QRnEmJzSKG8t7/YWdps5l6FpRcnaVBRE=";
   };
 in {
   mise = prev.mise.overrideAttrs (old: rec {
     pname = old.pname or "mise";
     inherit version src;
     name = "${pname}-${version}";
-    cargoHash = "sha256-qdV7WiaBq+u28pkKi+3L7QMVBu1lDJmxGNGuSg4a0n0=";
+    cargoHash = "sha256-9+qCU3djh5iugLV57Veyq3P8cQY4N6spopbU3Ufrk4E=";
     cargoDeps = fetchCargoVendor {
       inherit src pname version;
       hash = cargoHash;
