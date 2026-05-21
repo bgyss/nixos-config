@@ -62,6 +62,7 @@ with pkgs;
   age-plugin-yubikey
   gnupg
   libfido2
+  semgrep
 
   # Cloud-related tools and SDKs
   kubectl
