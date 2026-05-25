@@ -138,6 +138,7 @@ Custom package definitions and patches in `overlays/`:
 
 - `10-feather-font.nix`: Custom feather font (fixed version, no bumps)
 - `20-ngrok.nix`: ngrok prebuilt binaries (stable CDN URLs at `bin.equinox.io`)
+- `25-uv.nix`: uv prebuilt binary (aarch64-darwin only; nixpkgs elsewhere)
 - `30-mise.nix`: mise from source (Rust/Cargo, uses `fetchCargoVendor`)
 - `40-codex-openai.nix`: codex-openai prebuilt binary
 - `41-claude-code.nix`: claude-code prebuilt binary
@@ -287,6 +288,37 @@ mypackage = pyPrev.mypackage.overridePythonAttrs {
 ### Upstream Hash Mismatches
 
 When a prebuilt binary is re-published under the same version (e.g., `uv`), the build fails with `hash mismatch in fixed-output derivation`. The error message provides the correct hash on the `got:` line — just update the `sha256` attribute in the relevant file (overlay or `modules/shared/packages.nix`).
+
+**Standard fix procedure** (takes ~30 seconds):
+
+1. Read the error output — it contains both lines:
+   ```
+   specified: sha256-<old-hash>=
+      got:    sha256-<new-hash>=
+   ```
+2. Find the overlay that holds the stale hash:
+   ```bash
+   grep -r "<old-hash>" overlays/ --include="*.nix" -l
+   ```
+3. Replace the `sha256` value with the `got:` hash in that file.
+4. Re-run `nix run .#build-switch`.
+
+**Overlays with pinned hashes** (check these after every `nix flake update` if the build fails):
+
+| Overlay | Package | Note |
+| --- | --- | --- |
+| `20-ngrok.nix` | ngrok | aarch64-darwin binary |
+| `25-uv.nix` | uv | aarch64-darwin binary; nixpkgs used on other platforms |
+| `40-codex-openai.nix` | codex-openai | prebuilt binary |
+| `41-claude-code.nix` | claude-code | prebuilt binary |
+| `50-trailbase.nix` | trailbase | multi-platform prebuilt |
+| `70-igir.nix` | igir | multi-platform prebuilt |
+
+**Proactive check after `nix flake update`**: if the bump commit message says a prebuilt-binary overlay was bumped (e.g., `overlays: bump uv to X.Y.Z`), verify the hash in that overlay matches the newly released artifact before running build-switch. You can prefetch to confirm:
+```bash
+nix-prefetch-url --unpack https://github.com/astral-sh/uv/releases/download/X.Y.Z/uv-aarch64-apple-darwin.tar.gz
+# then: nix hash convert --hash-algo sha256 --to sri <printed hash>
+```
 
 ### Upstream Download Failures (HTTP 429 / 404)
 
