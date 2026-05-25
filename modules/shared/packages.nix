@@ -150,6 +150,12 @@ with pkgs;
   python313Packages.tiktoken        # tiktoken
   python313Packages.reportlab       # PDF generation library
 
+  # Qt6 development
+  qt6.qtbase
+  qt6.qttools
+  qt6.qtdeclarative
+  qt6.qmake
+
   # PDF tools
   poppler
 
