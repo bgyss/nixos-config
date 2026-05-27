@@ -97,6 +97,8 @@
         "create-keys" = mkApp "create-keys" system;
         "check-keys" = mkApp "check-keys" system;
         "rollback" = mkApp "rollback" system;
+        "fix-hashes" = mkApp "fix-hashes" system;
+        "update" = mkApp "update" system;
       };
     in
     {

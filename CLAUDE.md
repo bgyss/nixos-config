@@ -49,7 +49,30 @@ nix run .#build-switch
 ```bash
 nix run .#apply      # Apply configuration changes
 nix run .#rollback   # Rollback to previous generation (macOS)
+nix run .#fix-hashes # Verify and patch stale hashes in prebuilt-binary overlays
+nix run .#update     # Full update: flake update → fix-hashes → build-switch
 ```
+
+### Update Workflow (IMPORTANT)
+
+Prebuilt-binary overlays (codex-openai, claude-code, uv, trailbase, igir, ngrok) pin
+`sha256` hashes that can become stale whenever a publisher re-uploads a release artifact.
+**Always run `fix-hashes` after `nix flake update` and before `build-switch`.**
+
+Preferred all-in-one command:
+```bash
+nix run .#update
+```
+
+Or step-by-step:
+```bash
+nix flake update
+nix run .#fix-hashes   # downloads each artifact and patches any stale hashes in overlays/
+nix run .#build-switch
+```
+
+If you see a `hash mismatch in fixed-output derivation` error during `build-switch`, run
+`nix run .#fix-hashes` first — it will auto-patch the affected overlay(s).
 
 ## Architecture
 
@@ -384,3 +407,5 @@ Without these, the binary emits warnings about missing native installation or PA
 ## Memories
 
 - Always use "nix run .#build-switch" to rebuild the nix config
+- After `nix flake update`, always run `nix run .#fix-hashes` before `build-switch` to pre-emptively patch stale sha256 hashes in prebuilt-binary overlays. Use `nix run .#update` to do all three steps in one command.
+- When a `hash mismatch in fixed-output derivation` error occurs during build-switch, run `nix run .#fix-hashes` — it auto-patches the affected overlay file(s) in place.

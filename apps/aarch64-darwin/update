@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+# Full update workflow: update flake inputs, fix prebuilt-binary hashes, build-switch.
+set -euo pipefail
+
+FLAKE_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
+
+echo "==> nix flake update"
+nix flake update --flake "$FLAKE_DIR"
+
+echo ""
+echo "==> fix-hashes"
+"$FLAKE_DIR/apps/aarch64-darwin/fix-hashes"
+
+echo ""
+echo "==> build-switch"
+exec sudo -H -- /run/current-system/sw/bin/darwin-rebuild switch --flake "$FLAKE_DIR" "$@"
