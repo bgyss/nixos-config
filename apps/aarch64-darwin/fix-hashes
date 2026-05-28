@@ -8,7 +8,18 @@ YELLOW='\033[1;33m'
 RED='\033[0;31m'
 NC='\033[0m'
 
-FLAKE_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
+# The script runs from a read-only Nix store path, so we must find the actual
+# mutable repo. Try the nix registry first (set up by this config), then git.
+FLAKE_DIR=""
+if FLAKE_DIR=$(nix registry list 2>/dev/null | awk '/flake:nixos-config/ {gsub(/^path:/, "", $3); print $3; exit}') && [[ -n "$FLAKE_DIR" ]]; then
+  : # found via registry
+elif FLAKE_DIR=$(git rev-parse --show-toplevel 2>/dev/null) && [[ -f "$FLAKE_DIR/flake.nix" ]]; then
+  : # found via git
+else
+  echo "Error: cannot locate nixos-config repo. Register it with:" >&2
+  echo "  nix registry add nixos-config path:/path/to/nixos-config" >&2
+  exit 1
+fi
 OVERLAYS_DIR="$FLAKE_DIR/overlays"
 
 total=0

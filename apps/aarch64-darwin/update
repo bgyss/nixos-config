@@ -2,7 +2,16 @@
 # Full update workflow: update flake inputs, fix prebuilt-binary hashes, build-switch.
 set -euo pipefail
 
-FLAKE_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
+FLAKE_DIR=""
+if FLAKE_DIR=$(nix registry list 2>/dev/null | awk '/flake:nixos-config/ {gsub(/^path:/, "", $3); print $3; exit}') && [[ -n "$FLAKE_DIR" ]]; then
+  :
+elif FLAKE_DIR=$(git rev-parse --show-toplevel 2>/dev/null) && [[ -f "$FLAKE_DIR/flake.nix" ]]; then
+  :
+else
+  echo "Error: cannot locate nixos-config repo. Register it with:" >&2
+  echo "  nix registry add nixos-config path:/path/to/nixos-config" >&2
+  exit 1
+fi
 
 echo "==> nix flake update"
 nix flake update --flake "$FLAKE_DIR"
