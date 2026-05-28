@@ -28,13 +28,20 @@ errors=0
 
 # Extract (url, hash) pairs from a nix overlay file.
 # Handles both `hash = "sha256-..."` and `sha256 = "sha256-..."` attribute names.
+# Substitutes the `version` Nix variable into URLs (e.g. ${version} -> "1.2.3").
 extract_pairs() {
   python3 - "$1" <<'PYEOF'
 import re, sys
 text = open(sys.argv[1]).read()
+
+# Resolve the `version` variable so URLs like ${version} become concrete.
+version_match = re.search(r'\bversion\s*=\s*"([^"]+)"', text)
+version = version_match.group(1) if version_match else ""
+
 urls   = re.findall(r'url\s*=\s*"([^"]+)"', text)
 hashes = re.findall(r'(?:hash|sha256)\s*=\s*"(sha256-[^\s"]+)"', text)
 for u, h in zip(urls, hashes):
+    u = u.replace("${version}", version)
     print(u + "\t" + h)
 PYEOF
 }
