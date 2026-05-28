@@ -21,5 +21,17 @@ echo "==> fix-hashes"
 "$FLAKE_DIR/apps/aarch64-darwin/fix-hashes"
 
 echo ""
+echo "==> commit changes"
+cd "$FLAKE_DIR"
+if ! git diff --quiet; then
+  git add flake.lock overlays/
+  git commit -m "flake.lock: Update" \
+    --author="$(git config user.name) <$(git config user.email)>"
+  echo "Committed flake.lock and overlay hash updates."
+else
+  echo "No changes to commit."
+fi
+
+echo ""
 echo "==> build-switch"
 exec sudo -H -- /run/current-system/sw/bin/darwin-rebuild switch --flake "$FLAKE_DIR" "$@"
