@@ -8,19 +8,19 @@ let
   sources = {
     aarch64-darwin = {
       url = "https://github.com/emmercm/igir/releases/download/v${version}/igir-${version}-macOS-arm64.tar.gz";
-      hash = "sha256-2efu12sKyMcxLCJA3xP8cbC4vzAltqJHdoUvH7esIVM=";
+      hash = "sha256-Ury6CkXU2cbit6PEIIe+S52W9o2eF82Fl/ScJreaSJI=";
     };
     x86_64-darwin = {
       url = "https://github.com/emmercm/igir/releases/download/v${version}/igir-${version}-macOS-x64.tar.gz";
-      hash = "sha256-48ldHZknOoSGTfc4XDol3AEec2yfeaPkuv7kMjo6uwI=";
+      hash = "sha256-tP2vYLYhGule/SKH1LXXN6ybbrQYC8Ao7WLYfFsDfhY=";
     };
     aarch64-linux = {
       url = "https://github.com/emmercm/igir/releases/download/v${version}/igir-${version}-Linux-arm64v8.tar.gz";
-      hash = "sha256-ISccqWVLJVVWRjG1YxLXdZiDqA4x23jk7H8yv4x740E=";
+      hash = "sha256-fh2in1H1Gd6WO6MTJQ0iGNgPC46AGzu7A+UnhvaQ33Y=";
     };
     x86_64-linux = {
       url = "https://github.com/emmercm/igir/releases/download/v${version}/igir-${version}-Linux-amd64.tar.gz";
-      hash = "sha256-6eUdSvDnHrOCDZGiyMb/VZ+o6uOfYO/Z+D0oY7iKhv4=";
+      hash = "sha256-Z5EodRWQNqLzgYBqb78QqUHzDYWclnwXclZvNc8RDQ0=";
     };
   };
 

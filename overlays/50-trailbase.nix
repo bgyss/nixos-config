@@ -9,15 +9,15 @@ let
   sources = {
     "aarch64-darwin" = {
       url = "https://github.com/trailbaseio/trailbase/releases/download/v${version}/trailbase_v${version}_arm64_apple_darwin.zip";
-      hash = "sha256-jKvmCM9eO7IH8jsp1ra9kBextJaaaaB6xeDUvxYXvks=";
+      hash = "sha256-Gi/eTGOhkv+Iyhesamx+CR2yXxO4GyDcQc718/dBamA=";
     };
     "x86_64-darwin" = {
       url = "https://github.com/trailbaseio/trailbase/releases/download/v${version}/trailbase_v${version}_x86_64_apple_darwin.zip";
-      hash = "sha256-UB9bKeVM+LqvCviAV5fIVQxbIQeqlL3ZUn/q2RXj9Kc=";
+      hash = "sha256-2LOWtxdIqZ2CVBct8qkxv+y2MKYMZmSNTrQT6YGfxMA=";
     };
     "x86_64-linux" = {
       url = "https://github.com/trailbaseio/trailbase/releases/download/v${version}/trailbase_v${version}_x86_64_linux.zip";
-      hash = "sha256-+tDeFQQbCpl++H0jHTwY9AkqtMtkukOZiIF3YggogRU=";
+      hash = "sha256-+miG2n2lorj2Q3cz1GkS7DZ4JXuNn9QIpSbTmocqe5E=";
     };
   };
 
