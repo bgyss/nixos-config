@@ -151,7 +151,6 @@ with pkgs;
   python313Packages.git-filter-repo # git filter repo
   python313Packages.tiktoken        # tiktoken
   python313Packages.reportlab       # PDF generation library
-  python313Packages.cocotb          # coroutine cosimulation testbench for HDL
 
   # Qt6 development
   qt6.qtbase
@@ -178,6 +177,8 @@ with pkgs;
   # libiconv  # disabled: Rust now managed by mise, not Nix
   # Note: darwin.apple_sdk.frameworks removed in nixpkgs; frameworks now provided via stdenv
 ] ++ optionals (!stdenv.isDarwin) [
+  # cocotb is marked broken on Darwin upstream (pulls ghdl -> gnat, no aarch64-darwin support)
+  python313Packages.cocotb          # coroutine cosimulation testbench for HDL
   dolphin-emu
   # bittorrent (use Homebrew cask on Darwin)
   transmission_4
