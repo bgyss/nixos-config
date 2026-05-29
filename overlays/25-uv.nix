@@ -9,7 +9,7 @@ if prev.stdenv.hostPlatform.system == "aarch64-darwin" then {
 
     src = prev.fetchurl {
       url = "https://github.com/astral-sh/uv/releases/download/${version}/uv-aarch64-apple-darwin.tar.gz";
-      sha256 = "sha256-7lIbFkiKzz7pkl7/dXlugU+I4923kAsqOi2W3og0Vhg=";
+      sha256 = "sha256-KhYva5D/NpGi+crhYi4GajzlkuEQ9mZwzcyEEySygiY=";
     };
 
     sourceRoot = "uv-aarch64-apple-darwin";
