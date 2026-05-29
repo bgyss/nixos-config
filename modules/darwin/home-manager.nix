@@ -108,7 +108,6 @@ in
     { path = "/Applications/Microsoft Excel.app/"; }
     { path = "/System/Applications/FaceTime.app/"; }
     { path = "/Applications/Spotify.app/"; }
-    { path = "/Applications/Sonos.app/"; }
     { path = "/System/Applications/News.app/"; }
     { path = "/System/Applications/Photos.app/"; }
     { path = "/Applications/Steam.app/"; }

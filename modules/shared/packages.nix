@@ -97,6 +97,7 @@ with pkgs;
   devenv
   ruff
   rustup
+  verilator
 
   # golang
   c4
