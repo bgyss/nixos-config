@@ -55,7 +55,7 @@ in
             cfg.entries;
         in
         {
-          system.activationScripts.dock.text = ''
+          system.activationScripts.postActivation.text = ''
             echo >&2 "Setting up the Dock (declarative reset)..."
             # Switch to the primary user before running dock commands
             sudo -u ${config.system.primaryUser} bash -c '
