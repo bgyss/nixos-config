@@ -98,6 +98,7 @@ with pkgs;
   ruff
   rustup
   verilator
+  iverilog
 
   # golang
   c4
@@ -150,6 +151,7 @@ with pkgs;
   python313Packages.git-filter-repo # git filter repo
   python313Packages.tiktoken        # tiktoken
   python313Packages.reportlab       # PDF generation library
+  python313Packages.cocotb          # coroutine cosimulation testbench for HDL
 
   # Qt6 development
   qt6.qtbase
