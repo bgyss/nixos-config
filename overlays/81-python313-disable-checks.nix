@@ -64,6 +64,21 @@ let
       doCheck = false;
       dontCheckRuntimeDeps = true;  # pytest is a runtime dep but not propagated
     };
+    # ── cocotb on Darwin ──
+    # Upstream marks cocotb broken on Darwin because its test suite pulls ghdl,
+    # and ghdl has no aarch64-darwin support (mcode backend is x86-only). cocotb
+    # itself builds fine on Apple Silicon, so on Darwin we unset `broken` and
+    # skip the ghdl-dependent check phase; elsewhere we pass it through. The key
+    # is always defined (value guarded) to avoid overlay key-set recursion.
+    cocotb =
+      if prev.stdenv.hostPlatform.isDarwin then
+        pyPrev.cocotb.overridePythonAttrs (old: {
+          doCheck = false;
+          nativeCheckInputs = [ ];
+          meta = old.meta // { broken = false; };
+        })
+      else
+        pyPrev.cocotb;
   };
 
   python313-patched = prev.python313.override {
