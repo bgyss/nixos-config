@@ -3,7 +3,7 @@
     {
       "name": "claude-code",
       "overlay": "overlays/41-claude-code.nix",
-      "current_version": "2.1.158",
+      "current_version": "2.1.159",
       "check": { "method": "github-release", "repo": "anthropics/claude-code" },
       "update_type": "prebuilt-binary",
       "platforms": {
@@ -16,7 +16,7 @@
     {
       "name": "codex-openai",
       "overlay": "overlays/40-codex-openai.nix",
-      "current_version": "0.135.0",
+      "current_version": "0.136.0",
       "check": { "method": "github-release", "repo": "openai/codex", "tag_prefix": "rust-v" },
       "update_type": "prebuilt-binary",
       "platforms": {
@@ -79,7 +79,7 @@
     {
       "name": "mise",
       "overlay": "overlays/30-mise.nix",
-      "current_version": "2026.5.16",
+      "current_version": "2026.5.18",
       "check": { "method": "github-release", "repo": "jdx/mise" },
       "update_type": "cargo-source",
       "notes": "Requires ~15 min Rust build. Step 1: update version + source hash (nix-prefetch-url --unpack on GitHub archive). Step 2: set cargoHash to empty string. Step 3: run nix build to get the expected hash from error output. Step 4: update cargoHash. Do not wait for the full build — commit and let the user build manually."
@@ -125,7 +125,7 @@
     {
       "name": "ngrok",
       "overlay": "overlays/20-ngrok.nix",
-      "current_version": "3.39.3",
+      "current_version": "3.39.5",
       "check": { "method": "manual", "hint": "https://github.com/nicowillis/ngrok-changelog or check ngrok website" },
       "update_type": "prebuilt-binary-multiplatform",
       "notes": "Uses stable CDN URLs from bin.equinox.io — no versioned GitHub releases page. Must manually verify the new version and update all six platform hashes."
