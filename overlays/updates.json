@@ -3,7 +3,7 @@
     {
       "name": "claude-code",
       "overlay": "overlays/41-claude-code.nix",
-      "current_version": "2.1.159",
+      "current_version": "2.1.160",
       "check": { "method": "github-release", "repo": "anthropics/claude-code" },
       "update_type": "prebuilt-binary",
       "platforms": {
@@ -28,7 +28,7 @@
     {
       "name": "trailbase",
       "overlay": "overlays/50-trailbase.nix",
-      "current_version": "0.28.0",
+      "current_version": "0.28.1",
       "check": { "method": "github-release", "repo": "trailbaseio/trailbase" },
       "update_type": "prebuilt-binary-multiplatform",
       "platforms": {
@@ -67,7 +67,7 @@
     {
       "name": "uv",
       "overlay": "overlays/25-uv.nix",
-      "current_version": "0.11.17",
+      "current_version": "0.11.18",
       "check": { "method": "github-release", "repo": "astral-sh/uv" },
       "update_type": "prebuilt-binary",
       "platforms": {
@@ -95,7 +95,7 @@
     {
       "name": "go",
       "overlay": "overlays/55-go.nix",
-      "current_version": "1.26.3",
+      "current_version": "1.26.4",
       "check": { "method": "go-dev" },
       "update_type": "prebuilt-binary-multiplatform",
       "platforms": {
