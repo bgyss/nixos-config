@@ -95,6 +95,7 @@ with pkgs;
   clang-tools
   cmake
   devenv
+  nixd
   ruff
   rustup
   verilator
