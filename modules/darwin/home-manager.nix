@@ -98,7 +98,7 @@ in
     { path = "/Applications/HEY.app/"; }
     { path = "/Applications/Notion Calendar.app/"; }
     { path = "/Applications/Notion.app/"; }
-    { path = "/Applications/Windsurf.app/"; }
+    { path = "/Applications/Devin.app/"; }
     { path = "/Applications/Codex.app/"; }
     { path = "/Applications/ChatGPT Atlas.app/"; }
     { path = "/Applications/Google Chrome.app/"; }
