@@ -166,7 +166,7 @@ Custom package definitions and patches in `overlays/`:
 - `40-codex-openai.nix`: codex-openai prebuilt binary
 - `41-claude-code.nix`: claude-code prebuilt binary
 - `50-trailbase.nix`: trailbase prebuilt binaries (multi-platform)
-- `55-go.nix`: Go version override (pinned to 1.25.x)
+- `55-go.nix`: Go version override (bumped to 1.26.x, ahead of nixpkgs)
 - `56-c4.nix`: c4 from git commit (no tagged releases)
 - `60-beads.nix`: beads from source (Go, uses `buildGoModule`)
 - `70-igir.nix`: igir prebuilt binaries (multi-platform)
