@@ -50,22 +50,23 @@ in
           wantURIs = concatMapStrings
             (entry: "${entryURI entry.path}\n")
             cfg.entries;
+          # Run each dockutil call directly under `sudo -u` (the activation
+          # script already runs as root). Do NOT wrap these in `bash -c '...'`:
+          # each `--add '<path>'` contains its own single quotes, which would
+          # prematurely close the wrapper quote and mangle every entry.
           createEntries = concatMapStrings
-            (entry: "${dockutil} --no-restart --add '${normalize entry.path}' --section ${entry.section} ${entry.options}\n")
+            (entry: "sudo -u ${config.system.primaryUser} ${dockutil} --no-restart --add '${normalize entry.path}' --section ${entry.section} ${entry.options}\n")
             cfg.entries;
         in
         {
           system.activationScripts.postActivation.text = ''
             echo >&2 "Setting up the Dock (declarative reset)..."
-            # Switch to the primary user before running dock commands
-            sudo -u ${config.system.primaryUser} bash -c '
-              echo >&2 "Removing all existing Dock items."
-              ${dockutil} --no-restart --remove all || true
-              echo >&2 "Adding configured Dock entries."
-              ${createEntries}
-              echo >&2 "Restarting Dock."
-              killall Dock || true
-            '
+            echo >&2 "Removing all existing Dock items."
+            sudo -u ${config.system.primaryUser} ${dockutil} --no-restart --remove all || true
+            echo >&2 "Adding configured Dock entries."
+            ${createEntries}
+            echo >&2 "Restarting Dock."
+            sudo -u ${config.system.primaryUser} killall Dock || true
           '';
         }
       );
