@@ -1,4 +1,4 @@
-# mise overlay – bump to v2026.5.18 until nixpkgs catches up
+# mise overlay – bump to v2026.6.0 until nixpkgs catches up
 
 final: prev:
 
@@ -6,12 +6,12 @@ let
   inherit (prev) fetchFromGitHub lib;
   inherit (prev.rustPlatform) fetchCargoVendor;
 
-  version = "2026.5.18";
+  version = "2026.6.0";
   src = fetchFromGitHub {
     owner = "jdx";
     repo = "mise";
     rev = "v${version}";
-    hash = "sha256-tV+Oc0c7A/ML6MIUvkSivib3EJheu/Xp4xLNWYiM3r0=";
+    hash = "sha256-UE+Mo6AtNiVgKOfLS7khAoVNJGyomL5Vb/pfcCke5fI=";
   };
 in {
   mise = prev.mise.overrideAttrs (old: rec {

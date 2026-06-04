@@ -90,6 +90,7 @@ with pkgs;
 
   # Node.js development tools
   nodejs_24
+  bun
 
   # development tools
   clang-tools
