@@ -93,6 +93,7 @@ check_overlay() {
 PINNED_OVERLAYS=(
   "20-ngrok.nix"
   "25-uv.nix"
+  "30-mise.nix"
   "40-codex-openai.nix"
   "41-claude-code.nix"
   "50-trailbase.nix"

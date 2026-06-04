@@ -162,7 +162,7 @@ Custom package definitions and patches in `overlays/`:
 - `10-feather-font.nix`: Custom feather font (fixed version, no bumps)
 - `20-ngrok.nix`: ngrok prebuilt binaries (stable CDN URLs at `bin.equinox.io`)
 - `25-uv.nix`: uv prebuilt binary (aarch64-darwin only; nixpkgs elsewhere)
-- `30-mise.nix`: mise from source (Rust/Cargo, uses `fetchCargoVendor`)
+- `30-mise.nix`: mise prebuilt binaries (multi-platform; was source-built via `fetchCargoVendor` until crates.io began 403ing the default `python-requests` User-Agent)
 - `40-codex-openai.nix`: codex-openai prebuilt binary
 - `41-claude-code.nix`: claude-code prebuilt binary
 - `50-trailbase.nix`: trailbase prebuilt binaries (multi-platform)
@@ -332,6 +332,7 @@ When a prebuilt binary is re-published under the same version (e.g., `uv`), the 
 | --- | --- | --- |
 | `20-ngrok.nix` | ngrok | aarch64-darwin binary |
 | `25-uv.nix` | uv | aarch64-darwin binary; nixpkgs used on other platforms |
+| `30-mise.nix` | mise | multi-platform prebuilt |
 | `40-codex-openai.nix` | codex-openai | prebuilt binary |
 | `41-claude-code.nix` | claude-code | prebuilt binary |
 | `50-trailbase.nix` | trailbase | multi-platform prebuilt |
@@ -369,10 +370,9 @@ When updating package versions in overlays:
 2. Convert to SRI format: `nix hash convert --hash-algo sha256 --to sri HASH`
    - **Always use `nix hash convert`** — the old `nix hash to-sri` subcommand is deprecated
 3. Update the version and hash in the overlay file
-4. **Rust/Cargo packages** (e.g., `30-mise.nix`): set `cargoHash = "";`, run a build to get the expected hash from the error output, then replace it with the printed `sha256-...` value
-   - **Note**: Building mise from source is time-consuming (~15+ min), but always resolve the `cargoHash` as part of the update — run `nix build --impure --expr 'let pkgs = import <nixpkgs> { overlays = [ (import ./overlays/30-mise.nix) ]; }; in pkgs.mise' 2>&1 | grep 'got:'` to get the hash from the error output, then fill it in before finishing. Never leave `cargoHash = ""` in the file.
+4. **Rust/Cargo packages** (source-built via `fetchCargoVendor`): set `cargoHash = "";`, run a build to get the expected hash from the error output, then replace it with the printed `sha256-...` value. Note: crates.io now returns HTTP 403 for the default `python-requests` User-Agent used by nixpkgs' `fetch-cargo-vendor-util`, so source-building Rust crates may fail at the vendor step — prefer a prebuilt-binary overlay when the publisher ships one (this is why `30-mise.nix` was converted).
 5. **Go packages** (e.g., `60-beads.nix`): set `vendorHash = "";`, same process as Rust — build, grab hash from error, replace
-6. **Prebuilt binary overlays** (e.g., `20-ngrok.nix`, `41-claude-code.nix`, `50-trailbase.nix`, `70-igir.nix`): prefetch each platform's URL individually with `nix-prefetch-url` and convert to SRI
+6. **Prebuilt binary overlays** (e.g., `20-ngrok.nix`, `30-mise.nix`, `41-claude-code.nix`, `50-trailbase.nix`, `70-igir.nix`): prefetch each platform's URL individually with `nix-prefetch-url` (raw file hash, **not** `--unpack`, since they use `fetchurl`) and convert to SRI
 7. Test individual overlays without a full rebuild: `nix build --impure --expr 'let pkgs = import <nixpkgs> { overlays = [ (import ./overlays/FOO.nix) ]; }; in pkgs.PACKAGE'`
 8. Apply with `nix run .#build-switch`
 
