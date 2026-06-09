@@ -14,8 +14,11 @@
       url = "github:dustinlyons/emacs-overlay/master";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    # Pinned to the release branch matching the pinned nixpkgs (26.05).
+    # nix-darwin master rolled over to 26.11 and enforces a branch/nixpkgs
+    # release match, so `master` no longer works with the 26.05 nixpkgs pin.
     darwin = {
-      url = "github:LnL7/nix-darwin/master";
+      url = "github:LnL7/nix-darwin/nix-darwin-26.05";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     nix-homebrew = {
