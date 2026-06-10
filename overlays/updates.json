@@ -16,7 +16,7 @@
     {
       "name": "codex-openai",
       "overlay": "overlays/40-codex-openai.nix",
-      "current_version": "0.138.0",
+      "current_version": "0.139.0",
       "check": { "method": "github-release", "repo": "openai/codex", "tag_prefix": "rust-v" },
       "update_type": "prebuilt-binary",
       "platforms": {
@@ -67,7 +67,7 @@
     {
       "name": "uv",
       "overlay": "overlays/25-uv.nix",
-      "current_version": "0.11.19",
+      "current_version": "0.11.20",
       "check": { "method": "github-release", "repo": "astral-sh/uv" },
       "update_type": "prebuilt-binary",
       "platforms": {
@@ -109,7 +109,7 @@
     {
       "name": "yt-dlp",
       "overlay": "overlays/91-yt-dlp.nix",
-      "current_version": "2026.03.17",
+      "current_version": "2026.06.09",
       "check": { "method": "github-release", "repo": "yt-dlp/yt-dlp" },
       "update_type": "python-override",
       "notes": "Complex overlay. Also check yt-dlp-ejs on PyPI (package: yt_dlp_ejs). Review the postPatch section manually — curl_cffi version bounds may need adjustment on each yt-dlp release."
