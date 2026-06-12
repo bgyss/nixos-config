@@ -3,7 +3,7 @@
     {
       "name": "claude-code",
       "overlay": "overlays/41-claude-code.nix",
-      "current_version": "2.1.170",
+      "current_version": "2.1.173",
       "check": { "method": "github-release", "repo": "anthropics/claude-code" },
       "update_type": "prebuilt-binary",
       "platforms": {
@@ -46,7 +46,7 @@
     {
       "name": "igir",
       "overlay": "overlays/70-igir.nix",
-      "current_version": "5.1.0",
+      "current_version": "5.1.1",
       "check": { "method": "github-release", "repo": "emmercm/igir" },
       "update_type": "prebuilt-binary-multiplatform",
       "platforms": {
@@ -67,7 +67,7 @@
     {
       "name": "uv",
       "overlay": "overlays/25-uv.nix",
-      "current_version": "0.11.20",
+      "current_version": "0.11.21",
       "check": { "method": "github-release", "repo": "astral-sh/uv" },
       "update_type": "prebuilt-binary",
       "platforms": {
@@ -79,7 +79,7 @@
     {
       "name": "mise",
       "overlay": "overlays/30-mise.nix",
-      "current_version": "2026.6.1",
+      "current_version": "2026.6.3",
       "check": { "method": "github-release", "repo": "jdx/mise" },
       "update_type": "cargo-source",
       "notes": "Requires ~15 min Rust build. Step 1: update version + source hash (nix-prefetch-url --unpack on GitHub archive). Step 2: set cargoHash to empty string. Step 3: run nix build to get the expected hash from error output. Step 4: update cargoHash. Do not wait for the full build — commit and let the user build manually."
@@ -137,6 +137,14 @@
       "check": { "method": "manual", "hint": "https://github.com/Avalanche-io/c4/commits/master — no tags, check for new commits manually" },
       "update_type": "go-source",
       "notes": "No tagged releases. Check for new commits on master. Update rev to new commit SHA, update version date string (0-unstable-YYYY-MM-DD), update src hash, then blank vendorHash to get new hash."
+    },
+    {
+      "name": "hey-cli",
+      "overlay": "overlays/94-hey-cli.nix",
+      "current_version": "0-unstable-2026-06-10",
+      "check": { "method": "manual", "hint": "https://github.com/basecamp/hey-cli/commits/main — no tags, check for new commits manually" },
+      "update_type": "go-source",
+      "notes": "No tagged releases. Update rev to new commit SHA, update version date string (0-unstable-YYYY-MM-DD), update src hash, then blank vendorHash to get new hash."
     }
   ],
   "skip": [
