@@ -3,7 +3,7 @@
     {
       "name": "claude-code",
       "overlay": "overlays/41-claude-code.nix",
-      "current_version": "2.1.173",
+      "current_version": "2.1.177",
       "check": { "method": "github-release", "repo": "anthropics/claude-code" },
       "update_type": "prebuilt-binary",
       "platforms": {
@@ -28,7 +28,7 @@
     {
       "name": "trailbase",
       "overlay": "overlays/50-trailbase.nix",
-      "current_version": "0.28.4",
+      "current_version": "0.28.5",
       "check": { "method": "github-release", "repo": "trailbaseio/trailbase" },
       "update_type": "prebuilt-binary-multiplatform",
       "platforms": {
@@ -79,7 +79,7 @@
     {
       "name": "mise",
       "overlay": "overlays/30-mise.nix",
-      "current_version": "2026.6.3",
+      "current_version": "2026.6.10",
       "check": { "method": "github-release", "repo": "jdx/mise" },
       "update_type": "cargo-source",
       "notes": "Requires ~15 min Rust build. Step 1: update version + source hash (nix-prefetch-url --unpack on GitHub archive). Step 2: set cargoHash to empty string. Step 3: run nix build to get the expected hash from error output. Step 4: update cargoHash. Do not wait for the full build — commit and let the user build manually."
