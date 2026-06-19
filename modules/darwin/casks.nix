@@ -3,7 +3,7 @@ _:
 [
   # Development Tools
   "cursor"
-  "windsurf"
+  "devin-desktop" # formerly "windsurf"; renamed upstream
   "zed"
   "docker-desktop"
   "insomnia"

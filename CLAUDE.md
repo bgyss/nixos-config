@@ -102,7 +102,7 @@ This configuration uses a modular approach with shared components between macOS 
 ### Development Environment
 
 - **Languages**: Python 3.12, Node.js 24, Rust, Go, Odin
-- **Editors**: Emacs (with daemon), VS Code, Cursor, Windsurf
+- **Editors**: Emacs (with daemon), VS Code, Cursor, Devin (formerly Windsurf)
 - **Terminals**: Alacritty, Warp, Ghostty
 - **Version control**: Git with advanced tools
 
