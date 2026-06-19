@@ -23,11 +23,27 @@
       # Add emacs overlay from flake input
       ++ [ emacs-overlay.overlays.default ]
 
-      # Make nixpkgs-master packages available
+      # Make nixpkgs-master packages available.
+      # Import master with the nodejs check-skip overlay so llama-cpp's
+      # build-time nodejs_26 dependency doesn't fail on sandbox-incompatible
+      # network tests (see overlays/84-nodejs-skip-flaky-tests.nix).
       ++ [
-        (final: prev: {
-          inherit (nixpkgs-master.legacyPackages.${prev.stdenv.hostPlatform.system}) llama-cpp aegisub;
-        })
+        (final: prev:
+          let
+            masterPkgs = import nixpkgs-master {
+              inherit (prev.stdenv.hostPlatform) system;
+              config = {
+                allowUnfree = true;
+                allowBroken = true;
+                allowInsecure = false;
+                allowUnsupportedSystem = true;
+              };
+              overlays = [ (import ../../overlays/84-nodejs-skip-flaky-tests.nix) ];
+            };
+          in
+          {
+            inherit (masterPkgs) llama-cpp aegisub;
+          })
       ];
   };
 }
