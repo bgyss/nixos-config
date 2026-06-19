@@ -3,7 +3,7 @@
     {
       "name": "claude-code",
       "overlay": "overlays/41-claude-code.nix",
-      "current_version": "2.1.177",
+      "current_version": "2.1.183",
       "check": { "method": "github-release", "repo": "anthropics/claude-code" },
       "update_type": "prebuilt-binary",
       "platforms": {
@@ -16,7 +16,7 @@
     {
       "name": "codex-openai",
       "overlay": "overlays/40-codex-openai.nix",
-      "current_version": "0.139.0",
+      "current_version": "0.141.0",
       "check": { "method": "github-release", "repo": "openai/codex", "tag_prefix": "rust-v" },
       "update_type": "prebuilt-binary",
       "platforms": {
@@ -28,7 +28,7 @@
     {
       "name": "trailbase",
       "overlay": "overlays/50-trailbase.nix",
-      "current_version": "0.28.5",
+      "current_version": "0.28.6",
       "check": { "method": "github-release", "repo": "trailbaseio/trailbase" },
       "update_type": "prebuilt-binary-multiplatform",
       "platforms": {
@@ -46,7 +46,7 @@
     {
       "name": "igir",
       "overlay": "overlays/70-igir.nix",
-      "current_version": "5.1.1",
+      "current_version": "5.1.2",
       "check": { "method": "github-release", "repo": "emmercm/igir" },
       "update_type": "prebuilt-binary-multiplatform",
       "platforms": {
@@ -67,7 +67,7 @@
     {
       "name": "uv",
       "overlay": "overlays/25-uv.nix",
-      "current_version": "0.11.21",
+      "current_version": "0.11.22",
       "check": { "method": "github-release", "repo": "astral-sh/uv" },
       "update_type": "prebuilt-binary",
       "platforms": {
@@ -79,7 +79,7 @@
     {
       "name": "mise",
       "overlay": "overlays/30-mise.nix",
-      "current_version": "2026.6.10",
+      "current_version": "2026.6.11",
       "check": { "method": "github-release", "repo": "jdx/mise" },
       "update_type": "cargo-source",
       "notes": "Requires ~15 min Rust build. Step 1: update version + source hash (nix-prefetch-url --unpack on GitHub archive). Step 2: set cargoHash to empty string. Step 3: run nix build to get the expected hash from error output. Step 4: update cargoHash. Do not wait for the full build — commit and let the user build manually."

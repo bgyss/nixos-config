@@ -5,19 +5,19 @@ final: prev:
 let
   inherit (prev) autoPatchelfHook fetchurl lib stdenv stdenvNoCC unzip;
 
-  version = "0.28.5";
+  version = "0.28.6";
   sources = {
     "aarch64-darwin" = {
       url = "https://github.com/trailbaseio/trailbase/releases/download/v${version}/trailbase_v${version}_arm64_apple_darwin.zip";
-      hash = "sha256-4Fy8DA03BOYTWDyTXdh3zsXcN82Pr4kSZ4dY00u6W+U=";
+      hash = "sha256-eoQ7rYX5KSVyua5JAmdlkPRSwKWP2FNaWleqVQDB8pM=";
     };
     "x86_64-darwin" = {
       url = "https://github.com/trailbaseio/trailbase/releases/download/v${version}/trailbase_v${version}_x86_64_apple_darwin.zip";
-      hash = "sha256-voRf1SySD2I1Bp0Mol8ZA6ADnFsFtwFmNLo3DeY/sww=";
+      hash = "sha256-0L/k8ift8v/zmcDfxi324tUkbwQyyEqecH57PEecdvo=";
     };
     "x86_64-linux" = {
       url = "https://github.com/trailbaseio/trailbase/releases/download/v${version}/trailbase_v${version}_x86_64_linux.zip";
-      hash = "sha256-J8Oig1EDFAxAZWA7EhPx4E7nSOCk0h/7i8fPGvU+dn8=";
+      hash = "sha256-HxVIEsiOQinRuMUm0o6Z737ehagVicKB77GHTXHRMGE=";
     };
   };
 
