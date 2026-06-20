@@ -67,7 +67,7 @@
     {
       "name": "uv",
       "overlay": "overlays/25-uv.nix",
-      "current_version": "0.11.22",
+      "current_version": "0.11.23",
       "check": { "method": "github-release", "repo": "astral-sh/uv" },
       "update_type": "prebuilt-binary",
       "platforms": {
