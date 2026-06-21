@@ -3,7 +3,7 @@
     {
       "name": "claude-code",
       "overlay": "overlays/41-claude-code.nix",
-      "current_version": "2.1.183",
+      "current_version": "2.1.185",
       "check": { "method": "github-release", "repo": "anthropics/claude-code" },
       "update_type": "prebuilt-binary",
       "platforms": {
