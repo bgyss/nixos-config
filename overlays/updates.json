@@ -46,7 +46,7 @@
     {
       "name": "igir",
       "overlay": "overlays/70-igir.nix",
-      "current_version": "5.1.2",
+      "current_version": "5.2.0",
       "check": { "method": "github-release", "repo": "emmercm/igir" },
       "update_type": "prebuilt-binary-multiplatform",
       "platforms": {
@@ -79,7 +79,7 @@
     {
       "name": "mise",
       "overlay": "overlays/30-mise.nix",
-      "current_version": "2026.6.11",
+      "current_version": "2026.6.12",
       "check": { "method": "github-release", "repo": "jdx/mise" },
       "update_type": "cargo-source",
       "notes": "Requires ~15 min Rust build. Step 1: update version + source hash (nix-prefetch-url --unpack on GitHub archive). Step 2: set cargoHash to empty string. Step 3: run nix build to get the expected hash from error output. Step 4: update cargoHash. Do not wait for the full build — commit and let the user build manually."

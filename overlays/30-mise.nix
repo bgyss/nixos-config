@@ -10,23 +10,23 @@ final: prev:
 let
   inherit (prev) autoPatchelfHook fetchurl gzip lib stdenv stdenvNoCC;
 
-  version = "2026.6.11";
+  version = "2026.6.12";
   sources = {
     "aarch64-darwin" = {
       url = "https://github.com/jdx/mise/releases/download/v${version}/mise-v${version}-macos-arm64.tar.gz";
-      hash = "sha256-CEw1KpxdGhm9Mf74S6lpKVKqBOjS4/5maUjbNd7fr5U=";
+      hash = "sha256-0SwH8OJw08xlwluk63x4n9fuU4CWWz+jFCa+HQud7tk=";
     };
     "x86_64-darwin" = {
       url = "https://github.com/jdx/mise/releases/download/v${version}/mise-v${version}-macos-x64.tar.gz";
-      hash = "sha256-H6ByN836b3z31WkUUBovoQuPiaXwrCA2lI78puEd6Ns=";
+      hash = "sha256-fdgKkHNA+jGc5Rw1G2fG5NK6QBe/WMoNu+wg44r2Fgc=";
     };
     "aarch64-linux" = {
       url = "https://github.com/jdx/mise/releases/download/v${version}/mise-v${version}-linux-arm64.tar.gz";
-      hash = "sha256-Axj5D8z4utZUetayGRdkIzMJzrO2zs6UxIRU84XwkfU=";
+      hash = "sha256-bO90Ag+YsGpi1vklwRYjW2KbS62xl7IKMyF7/5bWDw8=";
     };
     "x86_64-linux" = {
       url = "https://github.com/jdx/mise/releases/download/v${version}/mise-v${version}-linux-x64.tar.gz";
-      hash = "sha256-iciOQHxuOhn1+Gryy7+Ixu9hR9VacJjITaErNvRPH/M=";
+      hash = "sha256-zJtbyWumFtiNDuUVGWvsaHGjPWTOx3SST7+qJxepIf0=";
     };
   };
 
