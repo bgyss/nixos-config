@@ -406,6 +406,7 @@ Without these, the binary emits warnings about missing native installation or PA
 
 ## Memories
 
+- Always commit any changes made to this configuration in Claude Code (commit each change, with a concise imperative subject, after making it).
 - Always use "nix run .#build-switch" to rebuild the nix config
 - After `nix flake update`, always run `nix run .#fix-hashes` before `build-switch` to pre-emptively patch stale sha256 hashes in prebuilt-binary overlays. Use `nix run .#update` to do all three steps in one command.
 - When a `hash mismatch in fixed-output derivation` error occurs during build-switch, run `nix run .#fix-hashes` — it auto-patches the affected overlay file(s) in place.
