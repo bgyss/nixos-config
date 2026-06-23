@@ -3,7 +3,7 @@
     {
       "name": "claude-code",
       "overlay": "overlays/41-claude-code.nix",
-      "current_version": "2.1.185",
+      "current_version": "2.1.186",
       "check": { "method": "github-release", "repo": "anthropics/claude-code" },
       "update_type": "prebuilt-binary",
       "platforms": {
@@ -16,7 +16,7 @@
     {
       "name": "codex-openai",
       "overlay": "overlays/40-codex-openai.nix",
-      "current_version": "0.141.0",
+      "current_version": "0.142.0",
       "check": { "method": "github-release", "repo": "openai/codex", "tag_prefix": "rust-v" },
       "update_type": "prebuilt-binary",
       "platforms": {
