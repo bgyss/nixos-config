@@ -65,6 +65,7 @@ with pkgs;
   semgrep
 
   # Cloud-related tools and SDKs
+  aws-cdk-cli
   kubectl
   rclone
 
