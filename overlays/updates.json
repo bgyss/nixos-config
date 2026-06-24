@@ -3,7 +3,7 @@
     {
       "name": "claude-code",
       "overlay": "overlays/41-claude-code.nix",
-      "current_version": "2.1.186",
+      "current_version": "2.1.187",
       "check": { "method": "github-release", "repo": "anthropics/claude-code" },
       "update_type": "prebuilt-binary",
       "platforms": {
@@ -28,7 +28,7 @@
     {
       "name": "trailbase",
       "overlay": "overlays/50-trailbase.nix",
-      "current_version": "0.28.6",
+      "current_version": "0.29.0",
       "check": { "method": "github-release", "repo": "trailbaseio/trailbase" },
       "update_type": "prebuilt-binary-multiplatform",
       "platforms": {
@@ -67,7 +67,7 @@
     {
       "name": "uv",
       "overlay": "overlays/25-uv.nix",
-      "current_version": "0.11.23",
+      "current_version": "0.11.24",
       "check": { "method": "github-release", "repo": "astral-sh/uv" },
       "update_type": "prebuilt-binary",
       "platforms": {
@@ -79,10 +79,16 @@
     {
       "name": "mise",
       "overlay": "overlays/30-mise.nix",
-      "current_version": "2026.6.12",
+      "current_version": "2026.6.13",
       "check": { "method": "github-release", "repo": "jdx/mise" },
-      "update_type": "cargo-source",
-      "notes": "Requires ~15 min Rust build. Step 1: update version + source hash (nix-prefetch-url --unpack on GitHub archive). Step 2: set cargoHash to empty string. Step 3: run nix build to get the expected hash from error output. Step 4: update cargoHash. Do not wait for the full build — commit and let the user build manually."
+      "update_type": "prebuilt-binary-multiplatform",
+      "platforms": {
+        "aarch64-darwin": { "url_template": "https://github.com/jdx/mise/releases/download/v{version}/mise-v{version}-macos-arm64.tar.gz" },
+        "x86_64-darwin":  { "url_template": "https://github.com/jdx/mise/releases/download/v{version}/mise-v{version}-macos-x64.tar.gz" },
+        "aarch64-linux":  { "url_template": "https://github.com/jdx/mise/releases/download/v{version}/mise-v{version}-linux-arm64.tar.gz" },
+        "x86_64-linux":   { "url_template": "https://github.com/jdx/mise/releases/download/v{version}/mise-v{version}-linux-x64.tar.gz" }
+      },
+      "notes": "Now ships prebuilt binaries (converted from cargo-source). Prefetch each platform's tarball with nix-prefetch-url (raw hash, not --unpack) and convert to SRI."
     },
     {
       "name": "beads",
