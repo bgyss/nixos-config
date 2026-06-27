@@ -131,7 +131,7 @@
     {
       "name": "ngrok",
       "overlay": "overlays/20-ngrok.nix",
-      "current_version": "3.39.7",
+      "current_version": "3.39.8",
       "check": { "method": "manual", "hint": "https://github.com/nicowillis/ngrok-changelog or check ngrok website" },
       "update_type": "prebuilt-binary-multiplatform",
       "notes": "Uses stable CDN URLs from bin.equinox.io — no versioned GitHub releases page. Must manually verify the new version and update all six platform hashes."

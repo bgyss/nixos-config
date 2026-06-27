@@ -1,4 +1,4 @@
-# ngrok overlay – bump to 3.39.7 until nixpkgs catches up
+# ngrok overlay – bump to 3.39.8 until nixpkgs catches up
 
 final: prev:
 
@@ -7,32 +7,32 @@ let
 
   versions = {
     "linux-386" = {
-      version = "3.39.7";
+      version = "3.39.8";
       url = "https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-linux-386.tgz";
       sha256 = "sha256-m20X7hKNx29moiYkyattCX+MCHtOkL1rhYNBDi1THnw=";
     };
     "linux-amd64" = {
-      version = "3.39.7";
+      version = "3.39.8";
       url = "https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-linux-amd64.tgz";
       sha256 = "sha256-5dMSHreLl6IOwt7xep1x1XQF2xsKFPohJSN4SMByQ2w=";
     };
     "linux-arm" = {
-      version = "3.39.7";
+      version = "3.39.8";
       url = "https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-linux-arm.tgz";
       sha256 = "sha256-8alX2chFoB4dGZbBKb2FhX8vhiJl+E7oZTfIa8JdHIc=";
     };
     "linux-arm64" = {
-      version = "3.39.7";
+      version = "3.39.8";
       url = "https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-linux-arm64.tgz";
       sha256 = "sha256-NJ6/viAKBMPhJlFGzRXIh7cs40Y7g4HRCsy3r4uuoPw=";
     };
     "darwin-amd64" = {
-      version = "3.39.7";
+      version = "3.39.8";
       url = "https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-darwin-amd64.zip";
       sha256 = "sha256-DIXoPo45Y5f/xoGmTVwl/PzwQkYk29+KTBXN7Ve6W4w=";
     };
     "darwin-arm64" = {
-      version = "3.39.7";
+      version = "3.39.8";
       url = "https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-darwin-arm64.zip";
       sha256 = "sha256-h/Zvh1bYzhUsr3q8zbnIwHnTv/W1o4UHjIjW+UydpR0=";
     };
