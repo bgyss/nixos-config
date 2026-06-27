@@ -31,6 +31,7 @@ with pkgs;
   jujutsu
   jjui
   killall
+  lean4
   ncdu
   fastfetch
   nix-prefetch-git # should this be installed by default
