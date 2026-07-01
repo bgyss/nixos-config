@@ -16,7 +16,7 @@
     {
       "name": "codex-openai",
       "overlay": "overlays/40-codex-openai.nix",
-      "current_version": "0.142.4",
+      "current_version": "0.142.5",
       "check": { "method": "github-release", "repo": "openai/codex", "tag_prefix": "rust-v" },
       "update_type": "prebuilt-binary",
       "platforms": {
