@@ -40,6 +40,7 @@ with pkgs;
   nix-direnv
   mise
   openssh
+  pixi
   pocketbase
   sqlite
   uv
