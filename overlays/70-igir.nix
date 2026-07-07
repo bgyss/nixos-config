@@ -3,24 +3,24 @@ final: prev:
 let
   inherit (final) lib stdenvNoCC fetchurl;
 
-  version = "5.3.0";
+  version = "5.3.1";
 
   sources = {
     aarch64-darwin = {
       url = "https://github.com/emmercm/igir/releases/download/v${version}/igir-${version}-macOS-arm64.tar.gz";
-      hash = "sha256-yEowT3oCwhQjMP9TUe9VhWM5AXNMwzyd8iMKTagWCP8=";
+      hash = "sha256-jYIBAnRoOtFElsPGwyK9gtoSvMzpAOovkAj3xAGnZa0=";
     };
     x86_64-darwin = {
       url = "https://github.com/emmercm/igir/releases/download/v${version}/igir-${version}-macOS-x64.tar.gz";
-      hash = "sha256-b7jiMJQQCvR/flp0m7MtkcNzetbckkUg8R7S2tXtJ+s=";
+      hash = "sha256-dszdLBtpC+ezUYn5MXQ6a7bKj2bTFu+hlPYvI9acfGU=";
     };
     aarch64-linux = {
       url = "https://github.com/emmercm/igir/releases/download/v${version}/igir-${version}-Linux-arm64v8.tar.gz";
-      hash = "sha256-6AxPNDS4HwnM1dbm/R7e7ZlRcCcGaWvtYwsMtktN1Bw=";
+      hash = "sha256-INIvUgDUjt2/DxA9PlyMY+d6C+/Io+T7BZ5WpuY4hwA=";
     };
     x86_64-linux = {
       url = "https://github.com/emmercm/igir/releases/download/v${version}/igir-${version}-Linux-amd64.tar.gz";
-      hash = "sha256-rCaU+yPlJs+2JRK5I1ncppFrkWej+6uJ+N+StU6le5s=";
+      hash = "sha256-+cVQE4GdPVHpfTSX4d8Cyxk8nobCX700NnVmR83IoNs=";
     };
   };
 
