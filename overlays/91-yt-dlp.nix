@@ -11,12 +11,12 @@ final: prev: let
   });
 in {
   yt-dlp = prev.yt-dlp.overridePythonAttrs (old: rec {
-    version = "2026.06.09";
+    version = "2026.07.04";
     src = prev.fetchFromGitHub {
       owner = "yt-dlp";
       repo = "yt-dlp";
       tag = version;
-      hash = "sha256-ykqTDPzKKIWRGSQmw2esCRKyYqDZKXRYDeba888tkDU=";
+      hash = "sha256-+oHcVylLXFJTRR6jXF6IXvgntXJz0tRdtnwTruRPkoc=";
     };
     # Replace yt-dlp-ejs 0.3.2 with 0.8.0 for YouTube challenge solving
     dependencies = builtins.filter (dep: (dep.pname or "") != "yt-dlp-ejs") (old.dependencies or []) ++ [ yt-dlp-ejs ];
