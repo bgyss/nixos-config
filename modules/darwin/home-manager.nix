@@ -99,7 +99,6 @@ in
     { path = "/Applications/Notion Calendar.app/"; }
     { path = "/Applications/Notion.app/"; }
     { path = "/Applications/Devin.app/"; }
-    { path = "/Applications/Codex.app/"; }
     { path = "/Applications/ChatGPT Atlas.app/"; }
     { path = "/Applications/Google Chrome.app/"; }
     { path = "/Applications/ChatGPT.app/"; }
@@ -113,6 +112,7 @@ in
     { path = "/Applications/Steam.app/"; }
     { path = "${pkgs.iina}/Applications/IINA.app"; }
     { path = "/Applications/1Password.app/"; }
+    { path = "/Applications/Tailscale.app/"; }
     { path = "/Applications/Utilities/Adobe Creative Cloud/ACC/Creative Cloud.app";}
     {
       path = "${config.users.users.${user}.home}/Downloads";
