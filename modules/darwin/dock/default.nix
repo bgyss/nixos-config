@@ -67,6 +67,15 @@ in
             ${createEntries}
             echo >&2 "Restarting Dock."
             sudo -u ${config.system.primaryUser} killall Dock || true
+            # `killall Dock` returns before macOS finishes writing/reloading
+            # com.apple.dock.plist, so a stale entry (e.g. a removed app,
+            # showing as a "?" tile) can survive the reset. Re-run the same
+            # remove+add pass once more after a short delay as a verification
+            # pass, then do a final Dock restart.
+            sleep 2
+            sudo -u ${config.system.primaryUser} ${dockutil} --no-restart --remove all || true
+            ${createEntries}
+            sudo -u ${config.system.primaryUser} killall Dock || true
           '';
         }
       );

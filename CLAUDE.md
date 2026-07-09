@@ -348,6 +348,21 @@ nix-prefetch-url --unpack https://github.com/astral-sh/uv/releases/download/X.Y.
 
 When upstream servers rate-limit or remove downloads (e.g., Spotify), temporarily comment out the package in `modules/shared/packages.nix` if it's also available via Homebrew cask on macOS. Re-enable later when the download stabilizes.
 
+### Stale Dock Entry ("?" icon) After Removing an App
+
+Removing an entry from `local.dock.entries` (`modules/darwin/home-manager.nix`) and running
+`build-switch` can still leave a "?" tile in the Dock for the removed app after the rebuild
+completes. Root cause: `modules/darwin/dock/default.nix`'s activation script does
+`dockutil --remove all` → re-add configured entries → `killall Dock`, but `killall Dock`
+returns before macOS finishes writing/reloading `com.apple.dock.plist`, so the reset can
+lose the race and a removed app's tile survives. The activation script now runs the
+remove+add pass twice (with a `sleep 2` between) as a verification pass to close this race.
+If a stale tile still appears after `build-switch`, fix it directly and it won't come back:
+```bash
+/opt/homebrew/bin/dockutil --remove "<App Name>" --no-restart
+killall Dock
+```
+
 ### macOS Specific
 
 - Ensure nix-darwin is properly installed
