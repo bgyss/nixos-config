@@ -93,7 +93,7 @@ _:
   "chatgpt"
   "claude"
   "upscayl"
-  "llamabarn"
+  "llama-app"
 
   # Bittorrent
   "transmission"
