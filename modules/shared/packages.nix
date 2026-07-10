@@ -70,6 +70,7 @@ with pkgs;
   aws-cdk-cli
   kubectl
   rclone
+  terraform
 
   # Docker tools
   docker-client
