@@ -13,7 +13,7 @@ final: prev:
 
 let
   inherit (prev) stdenvNoCC fetchurl lib nodejs makeWrapper;
-  version = "2.1129.0";
+  version = "2.1130.0";
 in
 {
   aws-cdk-cli = stdenvNoCC.mkDerivation {
@@ -22,7 +22,7 @@ in
 
     src = fetchurl {
       url = "https://registry.npmjs.org/aws-cdk/-/aws-cdk-${version}.tgz";
-      sha256 = "sha256-mX72ZiOsKyMIbiF9TCPLz5V1MgWEZs0ASuZmkdkdXvc=";
+      sha256 = "sha256-o/irfX1n+iwvqDz3vgldd0Cps36tHdYSasnofswwczo=";
     };
 
     sourceRoot = "package";

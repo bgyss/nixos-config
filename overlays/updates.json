@@ -28,7 +28,7 @@
     {
       "name": "trailbase",
       "overlay": "overlays/50-trailbase.nix",
-      "current_version": "0.30.0",
+      "current_version": "0.30.1",
       "check": { "method": "github-release", "repo": "trailbaseio/trailbase" },
       "update_type": "prebuilt-binary-multiplatform",
       "platforms": {
