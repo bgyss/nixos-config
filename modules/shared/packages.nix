@@ -30,6 +30,7 @@ with pkgs;
   just
   jujutsu
   jjui
+  dcg
   killall
   lean4
   ncdu
