@@ -9,6 +9,12 @@
   # Set the primary user for the new nix-darwin multi-user setup
   system.primaryUser = user;
 
+  age.secrets.openai-api-key = {
+    file = ../../secrets/openai-api-key.age;
+    owner = user;
+    mode = "0400";
+  };
+
   # Disable nix-darwin's Nix management to work with Determinate Nix
   nix.enable = false;
   

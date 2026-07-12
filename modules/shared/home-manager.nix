@@ -130,8 +130,10 @@ let name = "Brian Gyss";
         compinit
       fi
 
-      # OpenAI API Key (this needs to be made more secure)
-      export OPENAI_API_KEY="***REDACTED-SECRET***"
+      # OpenAI API key, decrypted at activation by agenix (see secrets/secrets.nix)
+      if [[ -r /run/agenix/openai-api-key ]]; then
+        export OPENAI_API_KEY="$(< /run/agenix/openai-api-key)"
+      fi
 
       # Activate mise for interactive shells
       if [[ -o interactive ]] && command -v mise &>/dev/null; then

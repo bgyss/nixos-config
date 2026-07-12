@@ -44,9 +44,13 @@
       url = "github:nix-community/disko";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    agenix = {
+      url = "github:ryantm/agenix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
-  outputs = { self, darwin, nix-homebrew, homebrew-bundle, homebrew-core, homebrew-cask, home-manager, nixpkgs, nixpkgs-master, emacs-overlay, disko, dagger-tap } @inputs:
+  outputs = { self, darwin, nix-homebrew, homebrew-bundle, homebrew-core, homebrew-cask, home-manager, nixpkgs, nixpkgs-master, emacs-overlay, disko, dagger-tap, agenix } @inputs:
     let
       user = "briangyss";
       linuxSystems = [ "x86_64-linux" "aarch64-linux" ];
@@ -54,7 +58,7 @@
       forAllSystems = f: nixpkgs.lib.genAttrs (linuxSystems ++ darwinSystems) f;
       devShell = system: let pkgs = nixpkgs.legacyPackages.${system}; in {
         default = with pkgs; mkShell {
-          nativeBuildInputs = with pkgs; [ bashInteractive git ];
+          nativeBuildInputs = with pkgs; [ bashInteractive git agenix.packages.${system}.default ];
           shellHook = with pkgs; ''
             export EDITOR=vim
           '';
@@ -133,6 +137,7 @@
           specialArgs = inputs // { inherit user; };
           modules = [
             home-manager.darwinModules.home-manager
+            agenix.darwinModules.default
             nix-homebrew.darwinModules.nix-homebrew
             {
               nix-homebrew = {
@@ -160,6 +165,7 @@
         specialArgs = inputs // { inherit user; };
         modules = [
           disko.nixosModules.disko
+          agenix.nixosModules.default
           home-manager.nixosModules.home-manager {
             home-manager = {
               useGlobalPkgs = true;
