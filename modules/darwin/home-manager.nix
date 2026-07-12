@@ -170,6 +170,12 @@ in
               alt-shift-8 = "move-node-to-workspace 8";
               alt-shift-9 = "move-node-to-workspace 9";
 
+              # Cycle workspaces
+              alt-left = "workspace prev";
+              alt-right = "workspace next";
+              alt-shift-left = "move-node-to-workspace prev";
+              alt-shift-right = "move-node-to-workspace next";
+
               # Monitors
               alt-tab = "workspace-back-and-forth";
               alt-shift-tab = "move-workspace-to-monitor --wrap-around next";
