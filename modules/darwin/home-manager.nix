@@ -104,24 +104,28 @@ in
 
             on-window-detected = [
               {
+                "if".app-id = "com.hey.app.desktop";
+                run = "move-node-to-workspace 2";
+              }
+              {
                 "if".app-id = "com.google.Chrome";
-                run = "move-node-to-workspace 2";
-              }
-              {
-                "if".app-id = "com.openai.atlas";
-                run = "move-node-to-workspace 2";
-              }
-              {
-                "if".app-id = "com.openai.codex";
                 run = "move-node-to-workspace 3";
               }
               {
-                "if".app-id = "com.anthropic.claudefordesktop";
+                "if".app-id = "com.openai.atlas";
+                run = "move-node-to-workspace 3";
+              }
+              {
+                "if".app-id = "com.openai.codex";
                 run = "move-node-to-workspace 4";
               }
               {
-                "if".app-id = "com.hnc.Discord";
+                "if".app-id = "com.anthropic.claudefordesktop";
                 run = "move-node-to-workspace 5";
+              }
+              {
+                "if".app-id = "com.hnc.Discord";
+                run = "move-node-to-workspace 6";
               }
             ];
 
