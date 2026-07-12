@@ -115,7 +115,7 @@ This configuration uses a modular approach with shared components between macOS 
 
 #### Development Tools
 
-- `gcc`, `cmake`, `rustup`, `nodejs_24`, `python312`
+- `gcc`, `cmake`, `rustup`, `nodejs_24`, `python314`
 - `gh` (GitHub CLI), `docker`, `docker-compose`
 - Code editors and IDEs via homebrew casks
 
@@ -171,7 +171,7 @@ Custom package definitions and patches in `overlays/`:
 - `60-beads.nix`: beads from source (Go, uses `buildGoModule`)
 - `70-igir.nix`: igir prebuilt binaries (multi-platform)
 - `80-llm.nix`: Disables checks for python312 llm
-- `81-python313-disable-checks.nix`: **Consolidated** doCheck overrides for flaky Python 3.13 packages (see Troubleshooting)
+- `81-python-disable-checks.nix`: **Consolidated** doCheck overrides for flaky Python packages, applied to both python313 (nixpkgs' internal `python3`) and python314 (our own package list) (see Troubleshooting)
 - `82-python313-httpcore.nix`: Neutralized (now handled by `81-*`)
 - `82-fmt.nix`: Disables checks for fmt
 - `83-deno.nix`: Disables checks for deno
@@ -266,11 +266,11 @@ If a package isn't getting the expected version from nixpkgs-unstable, check the
 - Verify flake.lock is up to date: `nix flake update`
 - Review error logs: `nix log /nix/store/[derivation-hash]`
 
-### Python 3.13 Test Failures in Nix Sandbox
+### Python Test Failures in Nix Sandbox
 
-After `nix flake update`, Python 3.13 packages frequently fail to build because their test suites are incompatible with the Nix build sandbox (no network, no dbus, no real timers). The fix is **not** to pin nixpkgs — instead, disable checks for the offending package.
+After `nix flake update`, Python packages frequently fail to build because their test suites are incompatible with the Nix build sandbox (no network, no dbus, no real timers). The fix is **not** to pin nixpkgs — instead, disable checks for the offending package.
 
-**How it works**: `overlays/81-python313-disable-checks.nix` uses `python313.override { packageOverrides = ...; }` to propagate `doCheck = false` through the interpreter's own scope. This is critical — `overrideScope` alone does NOT propagate to `python313.withPackages` consumers.
+**How it works**: `overlays/81-python-disable-checks.nix` uses `pythonX.override { packageOverrides = ...; }` to propagate `doCheck = false` through the interpreter's own scope, for **both** python313 and python314. This is critical — `overrideScope` alone does NOT propagate to `pythonX.withPackages` consumers. Both interpreters must be patched: our own package list (`modules/shared/packages.nix`) uses python314, but nixpkgs' internal `python3` alias is still python313, and several nixpkgs derivations (`glances`, `semgrep`, `curl-cffi`, `fastapi`, `mcp`, `jetbrains-mono`, `yt-dlp`, ...) build against it internally.
 
 **Diagnosing which phase failed**:
 
@@ -289,7 +289,7 @@ After `nix flake update`, Python 3.13 packages frequently fail to build because 
 - **AI/ML ecosystem** (network-dependent tests): `openai`, `anthropic`, `tiktoken`, `tokenizers`, `datasets`, `huggingface-hub`, `llm`, `fsspec`
 - **Misc**: `elasticsearch`, `elastic-transport`, `inline-snapshot` (needs `dontCheckRuntimeDeps` for pytest)
 
-**To add a new package**, edit `overlays/81-python313-disable-checks.nix` and add to the `pyOverrides` set:
+**To add a new package**, edit `overlays/81-python-disable-checks.nix` and add to the `pyOverrides` set:
 
 ```nix
 # Simple case (flaky tests):

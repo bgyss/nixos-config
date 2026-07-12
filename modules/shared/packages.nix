@@ -149,16 +149,17 @@ with pkgs;
   asciinema-agg
 
   # Python packages
-  python313
-  python313Packages.huggingface-hub # huggingface cli
-  python313Packages.llm             # llm cli util from datasette
-  python313Packages.anthropic       # anthropic
-  python313Packages.openai          # openai cli
-  python313Packages.virtualenv      # globally install virtualenv
-  python313Packages.git-filter-repo # git filter repo
-  python313Packages.tiktoken        # tiktoken
-  python313Packages.reportlab       # PDF generation library
-  python313Packages.cocotb          # coroutine cosimulation testbench for HDL
+  python314
+  python314Packages.huggingface-hub # huggingface cli
+  python314Packages.llm             # llm cli util from datasette
+  python314Packages.anthropic       # anthropic
+  python314Packages.openai          # openai cli
+  python314Packages.virtualenv      # globally install virtualenv
+  python314Packages.git-filter-repo # git filter repo
+  python314Packages.tiktoken        # tiktoken
+  python314Packages.reportlab       # PDF generation library
+  python314Packages.cocotb          # coroutine cosimulation testbench for HDL
+  python314Packages.pyyaml          # YAML parsing library
 
   # Qt6 development
   qt6.qtbase
