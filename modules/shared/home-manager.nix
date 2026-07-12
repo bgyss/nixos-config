@@ -138,6 +138,13 @@ let name = "Brian Gyss";
         eval "$(mise activate zsh)"
       fi
 
+      # Auto-attach to a shared tmux session for every new interactive shell.
+      # Skip when already inside tmux, inside Emacs' shell, or in a non-interactive
+      # context (e.g. scp, rsync, CI) so this never breaks non-terminal use.
+      if [[ -o interactive ]] && [[ -z "$TMUX" ]] && [[ -z "$INSIDE_EMACS" ]] && command -v tmux &>/dev/null; then
+        tmux attach -t main 2>/dev/null || tmux new -s main
+      fi
+
     '';
   };
 
@@ -349,6 +356,46 @@ let name = "Brian Gyss";
           white = "0xd8dee9";
         };
       };
+    };
+  };
+
+  ghostty = {
+    enable = true;
+    # nixpkgs' ghostty package is Linux-only; on Darwin the app comes from the
+    # Homebrew cask (see modules/darwin/casks.nix) and this module just manages
+    # its config file at $XDG_CONFIG_HOME/ghostty/config (or ~/.aerospace-style
+    # fallback path if xdg is disabled).
+    package = if pkgs.stdenv.hostPlatform.isDarwin then null else pkgs.ghostty;
+    enableZshIntegration = true;
+    settings = {
+      font-family = "MesloLGS NF";
+      font-size = if pkgs.stdenv.hostPlatform.isDarwin then 14 else 10;
+      cursor-style = "block";
+      window-padding-x = 24;
+      window-padding-y = 24;
+      window-decoration = true;
+      background-opacity = 1.0;
+      background = "1f2528";
+      foreground = "c0c5ce";
+
+      palette = [
+        "0=#1f2528"
+        "1=#ec5f67"
+        "2=#99c794"
+        "3=#fac863"
+        "4=#6699cc"
+        "5=#c594c5"
+        "6=#5fb3b3"
+        "7=#c0c5ce"
+        "8=#65737e"
+        "9=#ec5f67"
+        "10=#99c794"
+        "11=#fac863"
+        "12=#6699cc"
+        "13=#c594c5"
+        "14=#5fb3b3"
+        "15=#d8dee9"
+      ];
     };
   };
 
