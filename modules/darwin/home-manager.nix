@@ -111,6 +111,10 @@ in
                 "if".app-id = "com.openai.atlas";
                 run = "move-node-to-workspace 2";
               }
+              {
+                "if".app-id = "com.openai.codex";
+                run = "move-node-to-workspace 3";
+              }
             ];
 
             mode.main.binding = {
