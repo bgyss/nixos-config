@@ -408,6 +408,25 @@ Add launchd services (macOS) or systemd services (NixOS) in the respective host 
 - Trusted public keys configured for binary caches
 - Regular garbage collection configured (weekly, 30-day retention)
 
+## Secrets Management
+
+Secrets (API keys, tokens, etc.) are encrypted at rest with [agenix](https://github.com/ryantm/agenix) and decrypted at system activation — **never commit a plaintext secret to a `.nix` file**, even though this repo has no remote configured.
+
+- `secrets/secrets.nix` — the recipient list: which age public keys can decrypt which `.age` files. Currently keyed to the `briangyss` user SSH key and the `garmonbozia` host SSH key (both derived via `ssh-to-age`).
+- `secrets/*.age` — the encrypted secrets themselves; safe to commit.
+- `age.secrets.<name>` (declared per-host, e.g. `hosts/darwin/default.nix`) — wires an encrypted file to a decrypted path at `/run/agenix/<name>`, with an `owner`/`mode`. On Darwin this runs via a `launchd.daemons.activate-agenix` service at every activation; identities default to the host's `/etc/ssh/ssh_host_ed25519_key`.
+- Consumers read the decrypted path at runtime, e.g. `modules/shared/home-manager.nix` sources `OPENAI_API_KEY` from `/run/agenix/openai-api-key` in zsh `initContent` — guard reads with `[[ -r /run/agenix/<name> ]]` since the path won't exist on hosts that don't declare that secret.
+
+**Adding a new secret:**
+```bash
+nix develop   # agenix CLI is in the default devShell
+# add "<name>.age".publicKeys = allKeys; to secrets/secrets.nix, then:
+agenix -e secrets/<name>.age   # opens $EDITOR with decrypted contents, re-encrypts on save
+```
+Then add `age.secrets.<name> = { file = ../../secrets/<name>.age; owner = user; mode = "0400"; };` to the relevant host file, and `git add` the new `.age` file before running any `nix build`/`nix flake check` — **untracked files are invisible to the flake evaluator**, so a freshly-encrypted `.age` file that hasn't been staged will fail with `Path '...' in the repository is not tracked by Git`.
+
+**Adding a new host as a recipient:** derive its age key with `nix run nixpkgs#ssh-to-age -- -i /etc/ssh/ssh_host_ed25519_key.pub`, add it to `allKeys` in `secrets/secrets.nix`, then re-encrypt existing secrets with `agenix -r` (rekey) so the new host can decrypt them too.
+
 ## Known Workarounds
 
 ### Claude Code Native Binary
