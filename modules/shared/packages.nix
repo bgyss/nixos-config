@@ -16,6 +16,7 @@ with pkgs;
   bash-completion
   bat
   beads
+  browsh
   btop
   coreutils
   deno
