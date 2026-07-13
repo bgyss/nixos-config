@@ -8,6 +8,19 @@ let
   '';
   sharedFiles = import ../shared/files.nix { inherit config pkgs; };
   additionalFiles = import ./files.nix { inherit user config pkgs; };
+
+  # AeroSpace workspaces beyond 1-9: letter-keyed, matching upstream's default-config
+  # convention (A-Z). h/j/k/l are excluded (reserved for vim-style focus/move) and f is
+  # excluded (bound to fullscreen), leaving 21 extra workspaces on top of 1-9 for 30 total.
+  extraWorkspaceLetters = lib.stringToCharacters "abcdegimnopqrstuvwxyz";
+  workspaceSwitchBindings = lib.listToAttrs (map (letter: {
+    name = "alt-${letter}";
+    value = "workspace ${lib.toUpper letter}";
+  }) extraWorkspaceLetters);
+  workspaceMoveBindings = lib.listToAttrs (map (letter: {
+    name = "alt-shift-${letter}";
+    value = "move-node-to-workspace ${lib.toUpper letter}";
+  }) extraWorkspaceLetters);
 in
 {
   imports = [
@@ -186,7 +199,7 @@ in
 
               # Service mode
               alt-shift-semicolon = "mode service";
-            };
+            } // workspaceSwitchBindings // workspaceMoveBindings;
 
             mode.service.binding = {
               esc = [ "reload-config" "mode main" ];
