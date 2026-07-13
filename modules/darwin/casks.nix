@@ -58,6 +58,7 @@ _:
   # Browsers
   "google-chrome"
   "orion"
+  "firefox" # required by browsh (headless Marionette driver)
 
   # 3D / CAD / EDA
   "blender"
