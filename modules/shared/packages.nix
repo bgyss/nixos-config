@@ -123,6 +123,7 @@ with pkgs;
   pandoc
   tectonic
   typst
+  wkhtmltopdf # HTML -> PDF conversion (used as a pandoc --pdf-engine)
   zsh
   htop
   hunspell
@@ -159,6 +160,7 @@ with pkgs;
   python314Packages.git-filter-repo # git filter repo
   python314Packages.tiktoken        # tiktoken
   python314Packages.reportlab       # PDF generation library
+  python314Packages.weasyprint      # HTML/CSS -> PDF conversion (used as a pandoc --pdf-engine)
   python314Packages.cocotb          # coroutine cosimulation testbench for HDL
   python314Packages.pyyaml          # YAML parsing library
 
