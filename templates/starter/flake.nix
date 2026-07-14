@@ -49,14 +49,14 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
     secrets = {
-      url = "git+ssh://git@github.com/bgyss/nix-secrets.git";
+      url = "git+ssh://git@github.com/%GITHUB_USER%/%GITHUB_SECRETS_REPO%.git";
       flake = false;
     };
   };
 
   outputs = { self, darwin, nix-homebrew, homebrew-bundle, homebrew-core, homebrew-cask, home-manager, nixpkgs, nixpkgs-master, emacs-overlay, disko, dagger-tap, agenix, secrets } @inputs:
     let
-      user = "briangyss";
+      user = "%USER%";
       linuxSystems = [ "x86_64-linux" "aarch64-linux" ];
       darwinSystems = [ "aarch64-darwin" "x86_64-darwin" ];
       forAllSystems = f: nixpkgs.lib.genAttrs (linuxSystems ++ darwinSystems) f;
@@ -114,13 +114,6 @@
     in
     {
       devShells = forAllSystems devShell;
-      templates = {
-        starter = {
-          path = ./templates/starter;
-          description = "Starter configuration for macOS and NixOS (agenix secrets pulled from a separate GitHub repo)";
-        };
-        default = self.templates.starter;
-      };
       # Export selected custom packages so users can `nix build .#<name>`
       packages = forAllSystems (system:
         let
@@ -141,7 +134,7 @@
 
       darwinConfigurations = {
         # Host-specific configuration for this Mac
-        garmonbozia = let
+        "%HOST%" = let
           system = "aarch64-darwin";
         in darwin.lib.darwinSystem {
           inherit system;

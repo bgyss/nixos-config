@@ -1,0 +1,111 @@
+#!/usr/bin/env bash
+# Verify and fix stale sha256 hashes in prebuilt-binary overlays.
+# Run after `nix flake update` and before `build-switch`.
+set -euo pipefail
+
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+RED='\033[0;31m'
+NC='\033[0m'
+
+# The script runs from a read-only Nix store path, so we must find the actual
+# mutable repo. Try the nix registry first (set up by this config), then git.
+FLAKE_DIR=""
+if FLAKE_DIR=$(nix registry list 2>/dev/null | awk '/flake:nixos-config/ {gsub(/^path:/, "", $3); print $3; exit}') && [[ -n "$FLAKE_DIR" ]]; then
+  : # found via registry
+elif FLAKE_DIR=$(git rev-parse --show-toplevel 2>/dev/null) && [[ -f "$FLAKE_DIR/flake.nix" ]]; then
+  : # found via git
+else
+  echo "Error: cannot locate nixos-config repo. Register it with:" >&2
+  echo "  nix registry add nixos-config path:/path/to/nixos-config" >&2
+  exit 1
+fi
+OVERLAYS_DIR="$FLAKE_DIR/overlays"
+
+total=0
+fixed=0
+errors=0
+
+# Extract (url, hash) pairs from a nix overlay file.
+# Handles both `hash = "sha256-..."` and `sha256 = "sha256-..."` attribute names.
+# Substitutes the `version` Nix variable into URLs (e.g. ${version} -> "1.2.3").
+extract_pairs() {
+  python3 - "$1" <<'PYEOF'
+import re, sys
+text = open(sys.argv[1]).read()
+
+# Resolve the `version` variable so URLs like ${version} become concrete.
+version_match = re.search(r'\bversion\s*=\s*"([^"]+)"', text)
+version = version_match.group(1) if version_match else ""
+
+urls   = re.findall(r'url\s*=\s*"([^"]+)"', text)
+hashes = re.findall(r'(?:hash|sha256)\s*=\s*"(sha256-[^\s"]+)"', text)
+for u, h in zip(urls, hashes):
+    u = u.replace("${version}", version)
+    print(u + "\t" + h)
+PYEOF
+}
+
+# Compute SRI sha256 for a URL using plain fetchurl semantics (hash of the file, not unpacked).
+sri_for_url() {
+  local url="$1"
+  local raw
+  raw=$(nix-prefetch-url "$url" 2>/dev/null)
+  nix hash convert --hash-algo sha256 --to sri "$raw"
+}
+
+check_overlay() {
+  local overlay="$1"
+  local file="$OVERLAYS_DIR/$overlay"
+  [[ -f "$file" ]] || return 0
+
+  local pairs
+  pairs=$(extract_pairs "$file") || return 0
+  [[ -z "$pairs" ]] && return 0
+
+  echo -e "${YELLOW}--- $overlay ---${NC}"
+  while IFS=$'\t' read -r url current_hash; do
+    ((total++)) || true
+    local label
+    label=$(basename "$url")
+    echo -n "  $label ... "
+
+    local actual_hash
+    if actual_hash=$(sri_for_url "$url" 2>/dev/null); then
+      if [[ "$actual_hash" == "$current_hash" ]]; then
+        echo -e "${GREEN}ok${NC}"
+      else
+        echo -e "${RED}stale${NC}"
+        echo "    old: $current_hash"
+        echo "    new: $actual_hash"
+        sed -i '' "s|${current_hash}|${actual_hash}|g" "$file"
+        ((fixed++)) || true
+      fi
+    else
+      echo -e "${RED}fetch failed (skipping)${NC}"
+      ((errors++)) || true
+    fi
+  done <<< "$pairs"
+}
+
+# Overlays with pinned hashes for prebuilt binaries.
+# Add new overlays here when introducing a prebuilt-binary package.
+PINNED_OVERLAYS=(
+  "20-ngrok.nix"
+  "25-uv.nix"
+  "30-mise.nix"
+  "40-codex-openai.nix"
+  "41-claude-code.nix"
+  "50-trailbase.nix"
+  "70-igir.nix"
+)
+
+echo "Checking hashes in prebuilt-binary overlays (this downloads each artifact)..."
+echo ""
+for overlay in "${PINNED_OVERLAYS[@]}"; do
+  check_overlay "$overlay"
+done
+
+echo ""
+echo "Checked $total URL(s): $fixed updated, $errors error(s)."
+[[ $errors -eq 0 ]]

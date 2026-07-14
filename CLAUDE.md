@@ -1,9 +1,12 @@
 # NixOS Configuration
 
 A unified configuration for macOS (Darwin) and NixOS systems using Nix Flakes and Home
-Manager. This is the repo actually driving system config on this machine.
-`~/src/nixos-config` is the original template it was derived from — treat it as reference
-only, not a source of ongoing changes.
+Manager. This checkout (`~/src/nixos-config`) is the copy pushed to
+[github.com/bgyss/nixos-config](https://github.com/bgyss/nixos-config) (public). The daily
+working copy actually driving system config on this machine is `~/nixos-config`, which has no
+git remote — periodically sync changes from there into this checkout before pushing. See
+`templates/starter/` and the root `README.md` for the flake-template flow used to bootstrap a
+*new* machine from this repo.
 
 For agent-specific guidance, see [AGENTS.md](./AGENTS.md) (currently just points back here).
 
