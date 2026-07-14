@@ -1,4 +1,4 @@
-{ config, pkgs, user, ... }:
+{ config, pkgs, user, secrets, ... }:
 
 {
   imports = [
@@ -10,13 +10,13 @@
   system.primaryUser = user;
 
   age.secrets.openai-api-key = {
-    file = ../../secrets/openai-api-key.age;
+    file = "${secrets}/openai-api-key.age";
     owner = user;
     mode = "0400";
   };
 
   age.secrets.ssh-key = {
-    file = ../../secrets/ssh-key.age;
+    file = "${secrets}/ssh-key.age";
     path = "/Users/${user}/.ssh/id_ed25519";
     symlink = true;
     owner = user;
@@ -24,7 +24,7 @@
   };
 
   age.secrets.aws-credentials = {
-    file = ../../secrets/aws-credentials.age;
+    file = "${secrets}/aws-credentials.age";
     path = "/Users/${user}/.aws/credentials";
     symlink = true;
     owner = user;

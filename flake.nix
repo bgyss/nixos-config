@@ -48,9 +48,13 @@
       url = "github:ryantm/agenix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    secrets = {
+      url = "git+ssh://git@github.com/bgyss/nix-secrets.git";
+      flake = false;
+    };
   };
 
-  outputs = { self, darwin, nix-homebrew, homebrew-bundle, homebrew-core, homebrew-cask, home-manager, nixpkgs, nixpkgs-master, emacs-overlay, disko, dagger-tap, agenix } @inputs:
+  outputs = { self, darwin, nix-homebrew, homebrew-bundle, homebrew-core, homebrew-cask, home-manager, nixpkgs, nixpkgs-master, emacs-overlay, disko, dagger-tap, agenix, secrets } @inputs:
     let
       user = "briangyss";
       linuxSystems = [ "x86_64-linux" "aarch64-linux" ];

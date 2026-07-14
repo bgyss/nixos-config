@@ -79,37 +79,47 @@ Secrets (API keys, tokens, etc.) are encrypted at rest with
 [agenix](https://github.com/ryantm/agenix) and decrypted at system activation — **never
 commit a plaintext secret to a `.nix` file**.
 
-- `secrets/secrets.nix` — recipient list: which age public keys can decrypt which `.age`
-  files (currently keyed to the `briangyss` user and `garmonbozia` host SSH keys).
+The encrypted secrets and recipient list live in a **separate repo**,
+[bgyss/nix-secrets](https://github.com/bgyss/nix-secrets), pulled in as the `secrets` flake
+input (`flake = false` in `flake.nix`, `git+ssh://git@github.com/bgyss/nix-secrets.git`) —
+this way a new machine can be bootstrapped without re-encrypting everything from scratch.
+`secrets/README.md` in *this* repo just points there.
+
+- `nix-secrets/secrets.nix` — recipient list: which age public keys can decrypt which `.age`
+  file (currently keyed to the `briangyss` user and `garmonbozia` host SSH keys).
   **Recipients must be the raw `ssh-ed25519 AAAA...` public key string, not an
   `ssh-to-age`-converted `age1...` value** — `ssh-to-age` uses a different ed25519→X25519
   conversion than `age`'s own built-in ssh handling, and agenix decrypts by calling
   `age --identity <ssh-key-file>` directly, so an `ssh-to-age`-derived recipient silently
   never decrypts. (This repo hit exactly that bug — see `docs/troubleshooting.md`.)
-- `secrets/*.age` — encrypted secrets; safe to commit. Currently: `openai-api-key`,
-  `ssh-key` (personal `~/.ssh/id_ed25519`), `aws-credentials` (`~/.aws/credentials`).
-- `age.secrets.<name>` (declared per-host in `hosts/darwin/default.nix`) wires an encrypted
-  file to `/run/agenix.d/<name>` (the "`/run/agenix`" path in older notes is a simplification
-  — the real mountpoint has a `.d` suffix). Set `path`/`symlink = true` to also place the
-  decrypted secret at a real filesystem path (e.g. `~/.ssh/id_ed25519`); otherwise consumers
-  read `/run/agenix.d/<name>` directly, guarding with `[[ -r ... ]]`.
+- `nix-secrets/*.age` — encrypted secrets; safe to commit even though the repo is private.
+  Currently: `openai-api-key`, `ssh-key` (personal `~/.ssh/id_ed25519`), `aws-credentials`
+  (`~/.aws/credentials`).
+- `age.secrets.<name>` (declared per-host in `hosts/darwin/default.nix`) references
+  `"${secrets}/<name>.age"` and wires it to `/run/agenix/<name>` (a symlink into a versioned
+  subdir of the root-only `/run/agenix.d/` mountpoint). Set `path`/`symlink = true` to also
+  place the decrypted secret at a real filesystem path (e.g. `~/.ssh/id_ed25519`); otherwise
+  consumers read `/run/agenix/<name>` directly, guarding with `[[ -r ... ]]`.
 
-**Adding a new secret:**
+**Adding a new secret:** clone `nix-secrets`, then from inside it:
 ```bash
-cd secrets
 # add "<name>.age".publicKeys = allKeys; to secrets.nix, then encrypt directly with age
 # (recipients are raw ssh-ed25519 pubkey strings, so no ssh-to-age/agenix -e round-trip needed):
 age -r "$(cat ~/.ssh/id_ed25519.pub)" -r "<host-ssh-pubkey-string>" -o <name>.age <plaintext-source-file>
+# verify it actually decrypts before pushing:
+age -d -i ~/.ssh/id_ed25519 -o /dev/null <name>.age && echo OK
+git add secrets.nix <name>.age && git commit && git push
 ```
-Then wire `age.secrets.<name>` into the relevant host file, and `git add` the new `.age` file
-before building — **untracked files are invisible to the flake evaluator**. Verify it actually
-decrypts before relying on it: `age -d -i ~/.ssh/id_ed25519 -o /dev/null secrets/<name>.age`.
+Back in `nixos-config`: wire `age.secrets.<name>` to `"${secrets}/<name>.age"` in the relevant
+host file, run `nix flake lock --update-input secrets` to pick up the new commit, and commit
+the updated `flake.lock` alongside the host-config change. **Untracked `.nix` changes are
+invisible to the flake evaluator**, so stage everything before building.
 
-**Adding a new host as a recipient:** read its raw public key directly —
-`ssh-keyscan` or `cat /etc/ssh/ssh_host_ed25519_key.pub` on that host — and add the
-`"ssh-ed25519 AAAA..."` string (not an `ssh-to-age` conversion) to `allKeys` in
-`secrets/secrets.nix`, then re-run the `age -r ... -o <name>.age` command above for each
-existing secret to rekey it.
+**Adding a new host as a recipient:** in the `nix-secrets` clone, get the new host's raw
+public key (`cat /etc/ssh/ssh_host_ed25519_key.pub` on that host, or `ssh-keyscan`), add the
+`"ssh-ed25519 AAAA..."` string (not an `ssh-to-age` conversion) to `allKeys` in `secrets.nix`,
+then re-run the `age -r ... -o <name>.age` command above for every existing secret to rekey
+it, and push.
 
 ## Known Workarounds
 
