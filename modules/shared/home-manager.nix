@@ -463,7 +463,7 @@ let name = "Brian Gyss";
         '';
       }
     ];
-    terminal = "screen-256color";
+    terminal = "tmux-256color";
     prefix = "C-x";
     escapeTime = 10;
     historyLimit = 50000;
