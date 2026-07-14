@@ -15,6 +15,22 @@
     mode = "0400";
   };
 
+  age.secrets.ssh-key = {
+    file = ../../secrets/ssh-key.age;
+    path = "/Users/${user}/.ssh/id_ed25519";
+    symlink = true;
+    owner = user;
+    mode = "0600";
+  };
+
+  age.secrets.aws-credentials = {
+    file = ../../secrets/aws-credentials.age;
+    path = "/Users/${user}/.aws/credentials";
+    symlink = true;
+    owner = user;
+    mode = "0600";
+  };
+
   # Disable nix-darwin's Nix management to work with Determinate Nix
   nix.enable = false;
   
