@@ -6,7 +6,11 @@
 # tests. Mirror the rationale of overlays/81-python313-disable-checks.nix.
 final: prev:
 let
-  skipNodeChecks = node: node.overrideAttrs (_old: { doCheck = false; });
+  skipNodeChecks =
+    node:
+    node.overrideAttrs (_old: {
+      doCheck = false;
+    });
 in
 {
   # In current nixpkgs the heavy compile + the full test suite run in the

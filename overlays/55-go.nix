@@ -3,7 +3,7 @@
 final: prev:
 
 let
-  inherit (prev) fetchurl lib stdenv;
+  inherit (prev) fetchurl stdenv;
 
   version = "1.26.5";
 

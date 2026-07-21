@@ -3,7 +3,13 @@
 final: prev:
 
 let
-  inherit (final) buildGoModule fetchFromGitHub lib sqlite go icu;
+  inherit (final)
+    buildGoModule
+    fetchFromGitHub
+    lib
+    sqlite
+    icu
+    ;
   version = "1.1.0";
   src = fetchFromGitHub {
     owner = "gastownhall";
@@ -11,7 +17,8 @@ let
     rev = "v${version}";
     hash = "sha256-+dFV//0N8ZDw9BHOJOoWZ+BvLmJKlnGtONHIYPRhfBE=";
   };
-in {
+in
+{
   beads = buildGoModule {
     pname = "beads";
     inherit version src;
@@ -20,7 +27,10 @@ in {
     modRoot = ".";
     vendorHash = "sha256-WWEwGpCwMPD7jaz02zN745RQQqYTQttehbcT3J9hayM=";
 
-    buildInputs = [ sqlite icu ];
+    buildInputs = [
+      sqlite
+      icu
+    ];
     preBuild = ''
       export CGO_ENABLED=1
     '';

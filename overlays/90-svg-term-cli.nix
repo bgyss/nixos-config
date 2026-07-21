@@ -4,10 +4,11 @@ final: prev:
 
 let
   inherit (prev) fetchurl lib buildNpmPackage;
-  nodejs = prev.nodejs;
+  inherit (prev) nodejs;
   version = "2.1.1";
 
-in {
+in
+{
   svg-term-cli = buildNpmPackage {
     pname = "svg-term-cli";
     inherit version nodejs;
@@ -21,7 +22,10 @@ in {
 
     npmDepsHash = "sha256-7AT5HktW3YnCEhgDjwrsmEQGczbjsNSfRD49zX4+5R4=";
 
-    npmInstallFlags = [ "--omit=dev" "--legacy-peer-deps" ];
+    npmInstallFlags = [
+      "--omit=dev"
+      "--legacy-peer-deps"
+    ];
     dontNpmBuild = true;
     dontNpmPrune = true;
 

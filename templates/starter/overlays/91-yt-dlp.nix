@@ -1,5 +1,6 @@
 # yt-dlp overlay – bump to latest version with yt-dlp-ejs 0.8.0 for YouTube challenge solving
-final: prev: let
+final: prev:
+let
   # Bump yt-dlp-ejs to 0.8.0 (required by yt-dlp 2026.06.09)
   yt-dlp-ejs = prev.python313Packages.yt-dlp-ejs.overridePythonAttrs (old: rec {
     version = "0.8.0";
@@ -9,7 +10,8 @@ final: prev: let
       hash = "sha256-1foWOfY7XEr42TJJX2BonVNw8aCVeCyUT39iowPrEE4=";
     };
   });
-in {
+in
+{
   yt-dlp = prev.yt-dlp.overridePythonAttrs (old: rec {
     version = "2026.07.04";
     src = prev.fetchFromGitHub {
@@ -19,7 +21,9 @@ in {
       hash = "sha256-+oHcVylLXFJTRR6jXF6IXvgntXJz0tRdtnwTruRPkoc=";
     };
     # Replace yt-dlp-ejs 0.3.2 with 0.8.0 for YouTube challenge solving
-    dependencies = builtins.filter (dep: (dep.pname or "") != "yt-dlp-ejs") (old.dependencies or []) ++ [ yt-dlp-ejs ];
+    dependencies =
+      builtins.filter (dep: (dep.pname or "") != "yt-dlp-ejs") (old.dependencies or [ ])
+      ++ [ yt-dlp-ejs ];
     # Update postPatch for new curl_cffi version check pattern (0, 16) instead of (0, 15)
     postPatch = ''
       substituteInPlace yt_dlp/version.py \

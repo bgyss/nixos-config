@@ -58,11 +58,11 @@ let
     else
       throw "ngrok: unsupported OS ${stdenv.hostPlatform.system}";
 
-  versionInfo =
-    lib.attrByPath [ "${os}-${arch}" ]
-      (throw "ngrok: unsupported platform ${os}-${arch}")
-      versions;
-in {
+  versionInfo = lib.attrByPath [
+    "${os}-${arch}"
+  ] (throw "ngrok: unsupported platform ${os}-${arch}") versions;
+in
+{
   ngrok = prev.ngrok.overrideAttrs (_: {
     inherit (versionInfo) version;
     src = fetchurl { inherit (versionInfo) url sha256; };

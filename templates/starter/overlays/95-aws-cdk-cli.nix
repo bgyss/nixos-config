@@ -12,7 +12,13 @@
 final: prev:
 
 let
-  inherit (prev) stdenvNoCC fetchurl lib nodejs makeWrapper;
+  inherit (prev)
+    stdenvNoCC
+    fetchurl
+    lib
+    nodejs
+    makeWrapper
+    ;
   version = "2.1130.0";
 in
 {

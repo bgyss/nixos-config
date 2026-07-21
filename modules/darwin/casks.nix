@@ -13,7 +13,7 @@ _:
   "miniconda"
   "visual-studio-code"
   "rive"
-  
+
   # Terminals
   "warp"
   "ghostty"
@@ -54,7 +54,7 @@ _:
 
   # Productivity Tools
   "raycast"
- 
+
   # Browsers
   "google-chrome"
   "orion"

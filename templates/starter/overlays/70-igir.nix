@@ -24,7 +24,7 @@ let
     };
   };
 
-  system = final.stdenv.hostPlatform.system;
+  inherit (final.stdenv.hostPlatform) system;
   source = sources.${system} or null;
 
   igirPrebuilt = stdenvNoCC.mkDerivation {
@@ -66,10 +66,16 @@ let
       homepage = "https://github.com/emmercm/igir";
       license = licenses.mit;
       mainProgram = "igir";
-      platforms = [ "aarch64-darwin" "x86_64-darwin" "aarch64-linux" "x86_64-linux" ];
+      platforms = [
+        "aarch64-darwin"
+        "x86_64-darwin"
+        "aarch64-linux"
+        "x86_64-linux"
+      ];
     };
   };
 
-in {
+in
+{
   igir = if source == null then prev.igir else igirPrebuilt;
 }

@@ -24,21 +24,21 @@ let
   pyOverrides = pyFinal: pyPrev: {
     # ── async / networking (timing-sensitive, need real sockets) ──
     aiohappyeyeballs = noCheck pyPrev.aiohappyeyeballs;
-    aiohttp           = noCheck pyPrev.aiohttp;
-    aiosignal         = noCheck pyPrev.aiosignal;
-    httpcore          = noCheck pyPrev.httpcore;
-    httpx             = noCheck pyPrev.httpx;
-    anyio             = noCheck pyPrev.anyio;
-    uvloop            = noCheck pyPrev.uvloop;
-    watchfiles        = noCheck pyPrev.watchfiles;  # pytest-timeout in sandbox
+    aiohttp = noCheck pyPrev.aiohttp;
+    aiosignal = noCheck pyPrev.aiosignal;
+    httpcore = noCheck pyPrev.httpcore;
+    httpx = noCheck pyPrev.httpx;
+    anyio = noCheck pyPrev.anyio;
+    uvloop = noCheck pyPrev.uvloop;
+    watchfiles = noCheck pyPrev.watchfiles; # pytest-timeout in sandbox
 
     # ── dbus / system-service tests (no dbus-daemon in sandbox) ──
     jeepney = pyPrev.jeepney.overridePythonAttrs {
       doCheck = false;
-      pythonImportsCheck = [ ];  # trio.io needs 'outcome' module
+      pythonImportsCheck = [ ]; # trio.io needs 'outcome' module
     };
     secretstorage = noCheck pyPrev.secretstorage;
-    keyring       = noCheck pyPrev.keyring;
+    keyring = noCheck pyPrev.keyring;
 
     # ── crypto / ssh (need agents, hardware, or network) ──
     paramiko = pyPrev.paramiko.overridePythonAttrs {
@@ -48,27 +48,27 @@ let
     cryptography = noCheck pyPrev.cryptography;
 
     # ── packages with sandbox-incompatible test suites ──
-    twisted        = noCheck pyPrev.twisted;
-    ffmpeg-python  = noCheck pyPrev.ffmpeg-python;
-    black          = noCheck pyPrev.black;
-    tornado        = noCheck pyPrev.tornado;
+    twisted = noCheck pyPrev.twisted;
+    ffmpeg-python = noCheck pyPrev.ffmpeg-python;
+    black = noCheck pyPrev.black;
+    tornado = noCheck pyPrev.tornado;
 
     # ── AI/ML ecosystem (network-dependent or very slow tests) ──
-    openai     = noCheck pyPrev.openai;
-    anthropic  = noCheck pyPrev.anthropic;
-    tiktoken   = noCheck pyPrev.tiktoken;
+    openai = noCheck pyPrev.openai;
+    anthropic = noCheck pyPrev.anthropic;
+    tiktoken = noCheck pyPrev.tiktoken;
     tokenizers = noCheck pyPrev.tokenizers;
-    datasets   = noCheck pyPrev.datasets;
+    datasets = noCheck pyPrev.datasets;
     huggingface-hub = noCheck pyPrev.huggingface-hub;
-    llm        = noCheck pyPrev.llm;
-    fsspec     = noCheck pyPrev.fsspec;
+    llm = noCheck pyPrev.llm;
+    fsspec = noCheck pyPrev.fsspec;
 
     # ── misc commonly-flaky in sandbox ──
-    elasticsearch    = noCheck pyPrev.elasticsearch;
+    elasticsearch = noCheck pyPrev.elasticsearch;
     elastic-transport = noCheck pyPrev.elastic-transport;
     inline-snapshot = pyPrev.inline-snapshot.overridePythonAttrs {
       doCheck = false;
-      dontCheckRuntimeDeps = true;  # pytest is a runtime dep but not propagated
+      dontCheckRuntimeDeps = true; # pytest is a runtime dep but not propagated
     };
     # ── cocotb ──
     # cocotb 2.0.1's setup.py hard-caps at Python 3.13 (RuntimeError unless
@@ -85,12 +85,18 @@ let
         pyPrev.cocotb.overridePythonAttrs (old: {
           doCheck = false;
           nativeCheckInputs = [ ];
-          env = (old.env or { }) // { COCOTB_IGNORE_PYTHON_REQUIRES = "1"; };
-          meta = old.meta // { broken = false; };
+          env = (old.env or { }) // {
+            COCOTB_IGNORE_PYTHON_REQUIRES = "1";
+          };
+          meta = old.meta // {
+            broken = false;
+          };
         })
       else
         pyPrev.cocotb.overridePythonAttrs (old: {
-          env = (old.env or { }) // { COCOTB_IGNORE_PYTHON_REQUIRES = "1"; };
+          env = (old.env or { }) // {
+            COCOTB_IGNORE_PYTHON_REQUIRES = "1";
+          };
         });
   };
 

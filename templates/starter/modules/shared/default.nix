@@ -1,4 +1,10 @@
-{ config, pkgs, nixpkgs-master, emacs-overlay, ... }:
+{
+  config,
+  pkgs,
+  nixpkgs-master,
+  emacs-overlay,
+  ...
+}:
 
 {
   nixpkgs = {
@@ -14,11 +20,15 @@
 
     overlays =
       # Apply each overlay found in the /overlays directory
-      let path = ../../overlays; in with builtins;
-      map (n: import (path + ("/" + n)))
-          (filter (n: match ".*\\.nix" n != null ||
-                      pathExists (path + ("/" + n + "/default.nix")))
-                  (attrNames (readDir path)))
+      let
+        path = ../../overlays;
+      in
+      with builtins;
+      map (n: import (path + ("/" + n))) (
+        filter (n: match ".*\\.nix" n != null || pathExists (path + ("/" + n + "/default.nix"))) (
+          attrNames (readDir path)
+        )
+      )
 
       # Add emacs overlay from flake input
       ++ [ emacs-overlay.overlays.default ]
@@ -28,7 +38,8 @@
       # build-time nodejs_26 dependency doesn't fail on sandbox-incompatible
       # network tests (see overlays/84-nodejs-skip-flaky-tests.nix).
       ++ [
-        (final: prev:
+        (
+          final: prev:
           let
             masterPkgs = import nixpkgs-master {
               inherit (prev.stdenv.hostPlatform) system;
@@ -43,7 +54,8 @@
           in
           {
             inherit (masterPkgs) llama-cpp aegisub;
-          })
+          }
+        )
       ];
   };
 }

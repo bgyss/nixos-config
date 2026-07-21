@@ -48,34 +48,81 @@
       url = "github:ryantm/agenix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    # Formatting / linting: drives `nix fmt` and the `treefmt` / `statix` /
+    # `deadnix` checks (nixfmt-rfc-style + statix + deadnix). See treefmt.nix.
+    treefmt-nix = {
+      url = "github:numtide/treefmt-nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
     secrets = {
       url = "git+ssh://git@github.com/bgyss/nix-secrets.git";
       flake = false;
     };
   };
 
-  outputs = { self, darwin, nix-homebrew, homebrew-bundle, homebrew-core, homebrew-cask, home-manager, nixpkgs, nixpkgs-master, emacs-overlay, disko, dagger-tap, agenix, secrets } @inputs:
+  outputs =
+    {
+      self,
+      darwin,
+      nix-homebrew,
+      homebrew-bundle,
+      homebrew-core,
+      homebrew-cask,
+      home-manager,
+      nixpkgs,
+      nixpkgs-master,
+      emacs-overlay,
+      disko,
+      dagger-tap,
+      agenix,
+      treefmt-nix,
+      secrets,
+    }@inputs:
     let
       user = "briangyss";
-      linuxSystems = [ "x86_64-linux" "aarch64-linux" ];
-      darwinSystems = [ "aarch64-darwin" "x86_64-darwin" ];
+      linuxSystems = [
+        "x86_64-linux"
+        "aarch64-linux"
+      ];
+      darwinSystems = [
+        "aarch64-darwin"
+        "x86_64-darwin"
+      ];
       forAllSystems = f: nixpkgs.lib.genAttrs (linuxSystems ++ darwinSystems) f;
-      devShell = system: let pkgs = nixpkgs.legacyPackages.${system}; in {
-        default = with pkgs; mkShell {
-          nativeBuildInputs = with pkgs; [ bashInteractive git agenix.packages.${system}.default ];
-          shellHook = with pkgs; ''
-            export EDITOR=vim
-          '';
+      # treefmt (nixfmt-rfc-style + statix + deadnix) evaluated per system.
+      # Drives `nix fmt`, the `formatter` output, and the `treefmt` check.
+      treefmtEval = forAllSystems (
+        system: treefmt-nix.lib.evalModule nixpkgs.legacyPackages.${system} ./treefmt.nix
+      );
+      devShell =
+        system:
+        let
+          pkgs = nixpkgs.legacyPackages.${system};
+        in
+        {
+          default =
+            with pkgs;
+            mkShell {
+              nativeBuildInputs = with pkgs; [
+                bashInteractive
+                git
+                agenix.packages.${system}.default
+              ];
+              shellHook = with pkgs; ''
+                export EDITOR=vim
+              '';
+            };
         };
-      };
       mkApp = scriptName: system: {
         type = "app";
-        program = "${(nixpkgs.legacyPackages.${system}.writeScriptBin scriptName ''
-          #!/usr/bin/env bash
-          PATH=${nixpkgs.legacyPackages.${system}.git}/bin:$PATH
-          echo "Running ${scriptName} for ${system}"
-          exec ${self}/apps/${system}/${scriptName}
-        '')}/bin/${scriptName}";
+        program = "${
+          (nixpkgs.legacyPackages.${system}.writeScriptBin scriptName ''
+            #!/usr/bin/env bash
+            PATH=${nixpkgs.legacyPackages.${system}.git}/bin:$PATH
+            echo "Running ${scriptName} for ${system}"
+            exec ${self}/apps/${system}/${scriptName}
+          '')
+        }/bin/${scriptName}";
       };
       mkLinuxApps = system: {
         "apply" = mkApp "apply" system;
@@ -85,35 +132,71 @@
         "check-keys" = mkApp "check-keys" system;
         "install" = mkApp "install" system;
       };
-      mkDarwinApps = system: let
-        nixBin = nixpkgs.legacyPackages.${system}.nix;
-        script = name: contents:
-          (nixpkgs.legacyPackages.${system}.writeScriptBin name contents) + "/bin/" + name;
-      in {
-        "apply" = mkApp "apply" system;
-        "build" = mkApp "build" system;
-        # Make build-switch independent of current working directory by invoking
-        # darwin-rebuild from the nix-darwin input and pointing it at this flake.
-        "build-switch" = {
-          type = "app";
-          program = script "build-switch" ''
-            #!/usr/bin/env bash
-            set -euo pipefail
-            export PATH=${nixpkgs.legacyPackages.${system}.git}/bin:$PATH
-            echo "Running build-switch for ${system}"
-            exec sudo -H -- /run/current-system/sw/bin/darwin-rebuild switch --flake ${self} "$@"
-          '';
+      mkDarwinApps =
+        system:
+        let
+          script =
+            name: contents: (nixpkgs.legacyPackages.${system}.writeScriptBin name contents) + "/bin/" + name;
+        in
+        {
+          "apply" = mkApp "apply" system;
+          "build" = mkApp "build" system;
+          # Make build-switch independent of current working directory by invoking
+          # darwin-rebuild from the nix-darwin input and pointing it at this flake.
+          "build-switch" = {
+            type = "app";
+            program = script "build-switch" ''
+              #!/usr/bin/env bash
+              set -euo pipefail
+              export PATH=${nixpkgs.legacyPackages.${system}.git}/bin:$PATH
+              echo "Running build-switch for ${system}"
+              exec sudo -H -- /run/current-system/sw/bin/darwin-rebuild switch --flake ${self} "$@"
+            '';
+          };
+          "copy-keys" = mkApp "copy-keys" system;
+          "create-keys" = mkApp "create-keys" system;
+          "check-keys" = mkApp "check-keys" system;
+          "rollback" = mkApp "rollback" system;
+          "fix-hashes" = mkApp "fix-hashes" system;
+          "update" = mkApp "update" system;
         };
-        "copy-keys" = mkApp "copy-keys" system;
-        "create-keys" = mkApp "create-keys" system;
-        "check-keys" = mkApp "check-keys" system;
-        "rollback" = mkApp "rollback" system;
-        "fix-hashes" = mkApp "fix-hashes" system;
-        "update" = mkApp "update" system;
-      };
     in
     {
       devShells = forAllSystems devShell;
+
+      # `nix fmt` formats the whole tree with treefmt (nixfmt-rfc-style).
+      formatter = forAllSystems (system: treefmtEval.${system}.config.build.wrapper);
+
+      # `nix flake check` gate. Everything an agent must not break is expressed
+      # here: the config evaluates, the live darwin system builds, and the tree
+      # is formatted / lint-clean (statix, deadnix) and updates.json ↔ overlays
+      # stay consistent. "Green check = safe to attempt switch."
+      checks = forAllSystems (
+        system:
+        let
+          pkgs = nixpkgs.legacyPackages.${system};
+        in
+        {
+          # Formatting + statix + deadnix (all wired through treefmt.nix).
+          treefmt = treefmtEval.${system}.config.build.check self;
+
+          # updates.json parses and matches the overlays it references.
+          overlays-manifest =
+            pkgs.runCommand "check-overlays-manifest"
+              {
+                nativeBuildInputs = [ pkgs.jq ];
+              }
+              ''
+                ${pkgs.bash}/bin/bash ${./scripts/check-overlay-manifest.sh} ${self}
+                touch $out
+              '';
+        }
+        # Build the live darwin system as a check on its native system only.
+        // nixpkgs.lib.optionalAttrs (system == "aarch64-darwin") {
+          darwin-build = self.darwinConfigurations.garmonbozia.system;
+        }
+      );
+
       templates = {
         starter = {
           path = ./templates/starter;
@@ -122,70 +205,86 @@
         default = self.templates.starter;
       };
       # Export selected custom packages so users can `nix build .#<name>`
-      packages = forAllSystems (system:
+      packages = forAllSystems (
+        system:
         let
           basePkgs = nixpkgs.legacyPackages.${system};
-          pkgs = basePkgs.extend (final: prev:
+          pkgs = basePkgs.extend (
+            final: prev:
             (import ./overlays/40-codex-openai.nix final prev)
             // (import ./overlays/50-trailbase.nix final prev)
             // (import ./overlays/60-beads.nix final prev)
             // (import ./overlays/90-svg-term-cli.nix final prev)
           );
-          trailbasePkg = nixpkgs.lib.optionalAttrs (pkgs ? trailbase) { trailbase = pkgs.trailbase; };
-        in {
-          beads = pkgs.beads;
-          codex-openai = pkgs.codex-openai;
-          svg-term-cli = pkgs.svg-term-cli;
-        } // trailbasePkg);
-      apps = nixpkgs.lib.genAttrs linuxSystems mkLinuxApps // nixpkgs.lib.genAttrs darwinSystems mkDarwinApps;
+          trailbasePkg = nixpkgs.lib.optionalAttrs (pkgs ? trailbase) { inherit (pkgs) trailbase; };
+        in
+        {
+          inherit (pkgs) beads;
+          inherit (pkgs) codex-openai;
+          inherit (pkgs) svg-term-cli;
+        }
+        // trailbasePkg
+      );
+      apps =
+        nixpkgs.lib.genAttrs linuxSystems mkLinuxApps // nixpkgs.lib.genAttrs darwinSystems mkDarwinApps;
 
       darwinConfigurations = {
         # Host-specific configuration for this Mac
-        garmonbozia = let
-          system = "aarch64-darwin";
-        in darwin.lib.darwinSystem {
-          inherit system;
-          specialArgs = inputs // { inherit user; };
-          modules = [
-            home-manager.darwinModules.home-manager
-            agenix.darwinModules.default
-            nix-homebrew.darwinModules.nix-homebrew
-            {
-              nix-homebrew = {
-                inherit user;
-                enable = true;
-                taps = {
-                  "homebrew/core" = homebrew-core;
-                  "homebrew/cask" = homebrew-cask;
-                  "homebrew/bundle" = homebrew-bundle;
-                  "dagger/tap" = dagger-tap;
+        garmonbozia =
+          let
+            system = "aarch64-darwin";
+          in
+          darwin.lib.darwinSystem {
+            inherit system;
+            specialArgs = inputs // {
+              inherit user;
+            };
+            modules = [
+              home-manager.darwinModules.home-manager
+              agenix.darwinModules.default
+              nix-homebrew.darwinModules.nix-homebrew
+              {
+                nix-homebrew = {
+                  inherit user;
+                  enable = true;
+                  taps = {
+                    "homebrew/core" = homebrew-core;
+                    "homebrew/cask" = homebrew-cask;
+                    "homebrew/bundle" = homebrew-bundle;
+                    "dagger/tap" = dagger-tap;
+                  };
+                  mutableTaps = false;
+                  autoMigrate = true;
                 };
-                mutableTaps = false;
-                autoMigrate = true;
-              };
-            }
-            # Import your darwin Home Manager module which itself configures HM
-            ./modules/darwin/home-manager.nix
-            ./hosts/darwin
-          ];
-        };
+              }
+              # Import your darwin Home Manager module which itself configures HM
+              ./modules/darwin/home-manager.nix
+              ./hosts/darwin
+            ];
+          };
       };
 
-      nixosConfigurations = nixpkgs.lib.genAttrs linuxSystems (system: nixpkgs.lib.nixosSystem {
-        inherit system;
-        specialArgs = inputs // { inherit user; };
-        modules = [
-          disko.nixosModules.disko
-          agenix.nixosModules.default
-          home-manager.nixosModules.home-manager {
-            home-manager = {
-              useGlobalPkgs = true;
-              useUserPackages = true;
-              users.${user} = import ./modules/nixos/home-manager.nix;
-            };
-          }
-          ./hosts/nixos
-        ];
-     });
+      nixosConfigurations = nixpkgs.lib.genAttrs linuxSystems (
+        system:
+        nixpkgs.lib.nixosSystem {
+          inherit system;
+          specialArgs = inputs // {
+            inherit user;
+          };
+          modules = [
+            disko.nixosModules.disko
+            agenix.nixosModules.default
+            home-manager.nixosModules.home-manager
+            {
+              home-manager = {
+                useGlobalPkgs = true;
+                useUserPackages = true;
+                users.${user} = import ./modules/nixos/home-manager.nix;
+              };
+            }
+            ./hosts/nixos
+          ];
+        }
+      );
     };
 }

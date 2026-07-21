@@ -8,7 +8,14 @@
 final: prev:
 
 let
-  inherit (prev) autoPatchelfHook fetchurl gzip lib stdenv stdenvNoCC;
+  inherit (prev)
+    autoPatchelfHook
+    fetchurl
+    gzip
+    lib
+    stdenv
+    stdenvNoCC
+    ;
 
   version = "2026.7.5";
   sources = {
@@ -42,7 +49,10 @@ else
       src = fetchurl source;
 
       nativeBuildInputs = [ gzip ] ++ lib.optionals stdenv.isLinux [ autoPatchelfHook ];
-      buildInputs = lib.optionals stdenv.isLinux [ stdenv.cc.cc.lib stdenv.cc.libc ];
+      buildInputs = lib.optionals stdenv.isLinux [
+        stdenv.cc.cc.lib
+        stdenv.cc.libc
+      ];
 
       dontConfigure = true;
       dontBuild = true;

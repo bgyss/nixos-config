@@ -1,24 +1,31 @@
-{ config, pkgs, lib, ... }:
+{
+  config,
+  pkgs,
+  lib,
+  ...
+}:
 
-let name = "%NAME%";
-    user = "%USER%";
-    email = "%EMAIL%"; in
+let
+  name = "%NAME%";
+  user = "%USER%";
+  email = "%EMAIL%";
+in
 {
   autojump = {
     enable = true;
     enableZshIntegration = true;
   };
-  
+
   direnv = {
-      enable = true;
-      enableZshIntegration = true;
-      config = { 
-        global = {
-          hide_env_diff = true;  
-        };
+    enable = true;
+    enableZshIntegration = true;
+    config = {
+      global = {
+        hide_env_diff = true;
       };
-      nix-direnv.enable = true;
     };
+    nix-direnv.enable = true;
+  };
 
   # Shared shell configuration
   zsh = {
@@ -159,8 +166,8 @@ let name = "%NAME%";
     };
     settings = {
       user = {
-        name = name;
-        email = email;
+        inherit name;
+        inherit email;
       };
       init.defaultBranch = "main";
       core = {
@@ -188,8 +195,15 @@ let name = "%NAME%";
 
   vim = {
     enable = true;
-    plugins = with pkgs.vimPlugins; [ vim-airline vim-airline-themes vim-startify vim-tmux-navigator ];
-    settings = { ignorecase = true; };
+    plugins = with pkgs.vimPlugins; [
+      vim-airline
+      vim-airline-themes
+      vim-startify
+      vim-tmux-navigator
+    ];
+    settings = {
+      ignorecase = true;
+    };
     extraConfig = ''
       "" General
       set number
@@ -293,8 +307,8 @@ let name = "%NAME%";
 
       let g:airline_theme='bubblegum'
       let g:airline_powerline_fonts = 1
-      '';
-     };
+    '';
+  };
 
   alacritty = {
     enable = true;
@@ -405,23 +419,15 @@ let name = "%NAME%";
     enable = true;
     enableDefaultConfig = false;
     includes = [
-      (lib.mkIf pkgs.stdenv.hostPlatform.isLinux
-        "/home/${user}/.ssh/config_external"
-      )
-      (lib.mkIf pkgs.stdenv.hostPlatform.isDarwin
-        "/Users/${user}/.ssh/config_external"
-      )
+      (lib.mkIf pkgs.stdenv.hostPlatform.isLinux "/home/${user}/.ssh/config_external")
+      (lib.mkIf pkgs.stdenv.hostPlatform.isDarwin "/Users/${user}/.ssh/config_external")
     ];
     matchBlocks = {
       "github.com" = {
         identitiesOnly = true;
         identityFile = [
-          (lib.mkIf pkgs.stdenv.hostPlatform.isLinux
-            "/home/${user}/.ssh/id_ed25519"
-          )
-          (lib.mkIf pkgs.stdenv.hostPlatform.isDarwin
-            "/Users/${user}/.ssh/id_ed25519"
-          )
+          (lib.mkIf pkgs.stdenv.hostPlatform.isLinux "/home/${user}/.ssh/id_ed25519")
+          (lib.mkIf pkgs.stdenv.hostPlatform.isDarwin "/Users/${user}/.ssh/id_ed25519")
         ];
       };
       "blacklodge" = {
@@ -441,7 +447,7 @@ let name = "%NAME%";
       {
         plugin = power-theme;
         extraConfig = ''
-           set -g @tmux_power_theme 'gold'
+          set -g @tmux_power_theme 'gold'
         '';
       }
       {
@@ -468,7 +474,7 @@ let name = "%NAME%";
     escapeTime = 10;
     historyLimit = 50000;
     extraConfig = ''
-      
+
       # Default shell
       set-option -g default-shell /run/current-system/sw/bin/zsh
 
@@ -516,6 +522,6 @@ let name = "%NAME%";
       bind-key -T copy-mode-vi 'C-k' select-pane -U
       bind-key -T copy-mode-vi 'C-l' select-pane -R
       bind-key -T copy-mode-vi 'C-\' select-pane -l
-      '';
-    };
+    '';
+  };
 }

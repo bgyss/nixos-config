@@ -3,7 +3,7 @@
 # which requires CGO. Override env to enable CGO.
 final: prev: {
   direnv = prev.direnv.overrideAttrs (old: {
-    env = (old.env or {}) // {
+    env = (old.env or { }) // {
       CGO_ENABLED = "1";
     };
   });

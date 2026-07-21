@@ -48,7 +48,7 @@ with pkgs;
   uv
   wget
   zip
-  
+
   # buildroot stuff
   gnupatch
   findutils
@@ -153,16 +153,16 @@ with pkgs;
   # Python packages
   python314
   python314Packages.huggingface-hub # huggingface cli
-  python314Packages.llm             # llm cli util from datasette
-  python314Packages.anthropic       # anthropic
-  python314Packages.openai          # openai cli
-  python314Packages.virtualenv      # globally install virtualenv
+  python314Packages.llm # llm cli util from datasette
+  python314Packages.anthropic # anthropic
+  python314Packages.openai # openai cli
+  python314Packages.virtualenv # globally install virtualenv
   python314Packages.git-filter-repo # git filter repo
-  python314Packages.tiktoken        # tiktoken
-  python314Packages.reportlab       # PDF generation library
-  python314Packages.weasyprint      # HTML/CSS -> PDF conversion (used as a pandoc --pdf-engine)
-  python314Packages.cocotb          # coroutine cosimulation testbench for HDL
-  python314Packages.pyyaml          # YAML parsing library
+  python314Packages.tiktoken # tiktoken
+  python314Packages.reportlab # PDF generation library
+  python314Packages.weasyprint # HTML/CSS -> PDF conversion (used as a pandoc --pdf-engine)
+  python314Packages.cocotb # coroutine cosimulation testbench for HDL
+  python314Packages.pyyaml # YAML parsing library
 
   # Qt6 development
   qt6.qtbase
@@ -185,11 +185,13 @@ with pkgs;
   codex-openai
   hey-cli
 
-] ++ optionals stdenv.isDarwin [
+]
+++ optionals stdenv.isDarwin [
   # macOS-specific libraries needed for Rust builds (ring crate, etc.)
   # libiconv  # disabled: Rust now managed by mise, not Nix
   # Note: darwin.apple_sdk.frameworks removed in nixpkgs; frameworks now provided via stdenv
-] ++ optionals (!stdenv.isDarwin) [
+]
+++ optionals (!stdenv.isDarwin) [
   dolphin-emu
   # bittorrent (use Homebrew cask on Darwin)
   transmission_4

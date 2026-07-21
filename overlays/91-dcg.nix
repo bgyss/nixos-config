@@ -28,10 +28,9 @@ let
     };
   };
 
-  versionInfo =
-    lib.attrByPath [ stdenv.hostPlatform.system ]
-      (throw "dcg: unsupported platform ${stdenv.hostPlatform.system}")
-      versions;
+  versionInfo = lib.attrByPath [
+    stdenv.hostPlatform.system
+  ] (throw "dcg: unsupported platform ${stdenv.hostPlatform.system}") versions;
 in
 {
   dcg = stdenv.mkDerivation {
@@ -53,7 +52,12 @@ in
       description = "Destructive Command Guard - multi-agent safety hook that blocks destructive shell commands";
       homepage = "https://github.com/Dicklesworthstone/destructive_command_guard";
       license = licenses.mit;
-      platforms = [ "aarch64-darwin" "x86_64-darwin" "aarch64-linux" "x86_64-linux" ];
+      platforms = [
+        "aarch64-darwin"
+        "x86_64-darwin"
+        "aarch64-linux"
+        "x86_64-linux"
+      ];
       mainProgram = "dcg";
     };
   };

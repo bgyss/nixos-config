@@ -3,7 +3,14 @@
 final: prev:
 
 let
-  inherit (prev) autoPatchelfHook fetchurl lib stdenv stdenvNoCC unzip;
+  inherit (prev)
+    autoPatchelfHook
+    fetchurl
+    lib
+    stdenv
+    stdenvNoCC
+    unzip
+    ;
 
   version = "0.30.3";
   sources = {
@@ -33,7 +40,10 @@ else
       src = fetchurl source;
 
       nativeBuildInputs = [ unzip ] ++ lib.optionals stdenv.isLinux [ autoPatchelfHook ];
-      buildInputs = lib.optionals stdenv.isLinux [ stdenv.cc.cc.lib stdenv.cc.libc ];
+      buildInputs = lib.optionals stdenv.isLinux [
+        stdenv.cc.cc.lib
+        stdenv.cc.libc
+      ];
 
       dontUnpack = true;
       dontConfigure = true;

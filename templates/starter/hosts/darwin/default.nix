@@ -1,4 +1,10 @@
-{ config, pkgs, user, secrets, ... }:
+{
+  config,
+  pkgs,
+  user,
+  secrets,
+  ...
+}:
 
 {
   imports = [
@@ -33,7 +39,7 @@
 
   # Disable nix-darwin's Nix management to work with Determinate Nix
   nix.enable = false;
-  
+
   # Note: Nix settings like garbage collection and substituters should be
   # configured through Determinate's configuration instead
 
