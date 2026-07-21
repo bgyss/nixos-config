@@ -39,6 +39,13 @@ pypi_latest() {
     || printf 'ERROR'
 }
 
+npm_latest() {
+  local package="$1"
+  curl -sf --max-time 15 "https://registry.npmjs.org/${package}/latest" 2>/dev/null \
+    | jq -r '.version // empty' \
+    || printf 'ERROR'
+}
+
 github_latest_commit() {
   local repo="$1" branch="${2:-master}"
   curl -sf --max-time 15 \
@@ -81,6 +88,10 @@ while IFS= read -r pkg; do
     pypi)
       package=$(jq -r '.check.package' <<<"$pkg")
       latest=$(pypi_latest "$package")
+      ;;
+    npm)
+      package=$(jq -r '.check.package' <<<"$pkg")
+      latest=$(npm_latest "$package")
       ;;
     github-commits)
       repo=$(  jq -r '.check.repo'          <<<"$pkg")

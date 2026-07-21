@@ -4,7 +4,10 @@
       "name": "claude-code",
       "overlay": "overlays/41-claude-code.nix",
       "current_version": "2.1.207",
-      "check": { "method": "github-release", "repo": "anthropics/claude-code" },
+      "check": {
+        "method": "github-release",
+        "repo": "anthropics/claude-code"
+      },
       "update_type": "prebuilt-binary",
       "platforms": {
         "aarch64-darwin": {
@@ -16,8 +19,12 @@
     {
       "name": "codex-openai",
       "overlay": "overlays/40-codex-openai.nix",
-      "current_version": "0.144.1",
-      "check": { "method": "github-release", "repo": "openai/codex", "tag_prefix": "rust-v" },
+      "current_version": "0.144.3",
+      "check": {
+        "method": "github-release",
+        "repo": "openai/codex",
+        "tag_prefix": "rust-v"
+      },
       "update_type": "prebuilt-binary",
       "platforms": {
         "aarch64-darwin": {
@@ -28,8 +35,11 @@
     {
       "name": "trailbase",
       "overlay": "overlays/50-trailbase.nix",
-      "current_version": "0.30.2",
-      "check": { "method": "github-release", "repo": "trailbaseio/trailbase" },
+      "current_version": "0.30.3",
+      "check": {
+        "method": "github-release",
+        "repo": "trailbaseio/trailbase"
+      },
       "update_type": "prebuilt-binary-multiplatform",
       "platforms": {
         "aarch64-darwin": {
@@ -47,7 +57,10 @@
       "name": "igir",
       "overlay": "overlays/70-igir.nix",
       "current_version": "5.4.0",
-      "check": { "method": "github-release", "repo": "emmercm/igir" },
+      "check": {
+        "method": "github-release",
+        "repo": "emmercm/igir"
+      },
       "update_type": "prebuilt-binary-multiplatform",
       "platforms": {
         "aarch64-darwin": {
@@ -68,7 +81,10 @@
       "name": "uv",
       "overlay": "overlays/25-uv.nix",
       "current_version": "0.11.28",
-      "check": { "method": "github-release", "repo": "astral-sh/uv" },
+      "check": {
+        "method": "github-release",
+        "repo": "astral-sh/uv"
+      },
       "update_type": "prebuilt-binary",
       "platforms": {
         "aarch64-darwin": {
@@ -80,13 +96,24 @@
       "name": "mise",
       "overlay": "overlays/30-mise.nix",
       "current_version": "2026.7.5",
-      "check": { "method": "github-release", "repo": "jdx/mise" },
+      "check": {
+        "method": "github-release",
+        "repo": "jdx/mise"
+      },
       "update_type": "prebuilt-binary-multiplatform",
       "platforms": {
-        "aarch64-darwin": { "url_template": "https://github.com/jdx/mise/releases/download/v{version}/mise-v{version}-macos-arm64.tar.gz" },
-        "x86_64-darwin":  { "url_template": "https://github.com/jdx/mise/releases/download/v{version}/mise-v{version}-macos-x64.tar.gz" },
-        "aarch64-linux":  { "url_template": "https://github.com/jdx/mise/releases/download/v{version}/mise-v{version}-linux-arm64.tar.gz" },
-        "x86_64-linux":   { "url_template": "https://github.com/jdx/mise/releases/download/v{version}/mise-v{version}-linux-x64.tar.gz" }
+        "aarch64-darwin": {
+          "url_template": "https://github.com/jdx/mise/releases/download/v{version}/mise-v{version}-macos-arm64.tar.gz"
+        },
+        "x86_64-darwin": {
+          "url_template": "https://github.com/jdx/mise/releases/download/v{version}/mise-v{version}-macos-x64.tar.gz"
+        },
+        "aarch64-linux": {
+          "url_template": "https://github.com/jdx/mise/releases/download/v{version}/mise-v{version}-linux-arm64.tar.gz"
+        },
+        "x86_64-linux": {
+          "url_template": "https://github.com/jdx/mise/releases/download/v{version}/mise-v{version}-linux-x64.tar.gz"
+        }
       },
       "notes": "Now ships prebuilt binaries (converted from cargo-source). Prefetch each platform's tarball with nix-prefetch-url (raw hash, not --unpack) and convert to SRI."
     },
@@ -94,7 +121,10 @@
       "name": "beads",
       "overlay": "overlays/60-beads.nix",
       "current_version": "1.1.0",
-      "check": { "method": "github-release", "repo": "gastownhall/beads" },
+      "check": {
+        "method": "github-release",
+        "repo": "gastownhall/beads"
+      },
       "update_type": "go-source",
       "notes": "Step 1: update version + src hash. Step 2: set vendorHash to empty string. Step 3: run nix build to get expected hash. Step 4: update vendorHash."
     },
@@ -102,13 +132,23 @@
       "name": "go",
       "overlay": "overlays/55-go.nix",
       "current_version": "1.26.5",
-      "check": { "method": "go-dev" },
+      "check": {
+        "method": "go-dev"
+      },
       "update_type": "prebuilt-binary-multiplatform",
       "platforms": {
-        "aarch64-darwin": { "url_template": "https://go.dev/dl/go{version}.darwin-arm64.tar.gz" },
-        "x86_64-darwin":  { "url_template": "https://go.dev/dl/go{version}.darwin-amd64.tar.gz" },
-        "x86_64-linux":   { "url_template": "https://go.dev/dl/go{version}.linux-amd64.tar.gz" },
-        "aarch64-linux":  { "url_template": "https://go.dev/dl/go{version}.linux-arm64.tar.gz" }
+        "aarch64-darwin": {
+          "url_template": "https://go.dev/dl/go{version}.darwin-arm64.tar.gz"
+        },
+        "x86_64-darwin": {
+          "url_template": "https://go.dev/dl/go{version}.darwin-amd64.tar.gz"
+        },
+        "x86_64-linux": {
+          "url_template": "https://go.dev/dl/go{version}.linux-amd64.tar.gz"
+        },
+        "aarch64-linux": {
+          "url_template": "https://go.dev/dl/go{version}.linux-arm64.tar.gz"
+        }
       },
       "notes": "When the minor version bumps (e.g. 1.26→1.27), also rename the go_1_26 attribute to go_1_27 in the overlay."
     },
@@ -116,7 +156,10 @@
       "name": "yt-dlp",
       "overlay": "overlays/91-yt-dlp.nix",
       "current_version": "2026.07.04",
-      "check": { "method": "github-release", "repo": "yt-dlp/yt-dlp" },
+      "check": {
+        "method": "github-release",
+        "repo": "yt-dlp/yt-dlp"
+      },
       "update_type": "python-override",
       "notes": "Complex overlay. Also check yt-dlp-ejs on PyPI (package: yt_dlp_ejs). Review the postPatch section manually — curl_cffi version bounds may need adjustment on each yt-dlp release."
     },
@@ -124,7 +167,10 @@
       "name": "yt-dlp-ejs",
       "overlay": "overlays/91-yt-dlp.nix",
       "current_version": "0.8.0",
-      "check": { "method": "pypi", "package": "yt_dlp_ejs" },
+      "check": {
+        "method": "pypi",
+        "package": "yt_dlp_ejs"
+      },
       "update_type": "python-override",
       "notes": "Bundled inside 91-yt-dlp.nix. Update the yt-dlp-ejs version/hash in that file."
     },
@@ -132,15 +178,21 @@
       "name": "ngrok",
       "overlay": "overlays/20-ngrok.nix",
       "current_version": "3.39.9",
-      "check": { "method": "manual", "hint": "https://github.com/nicowillis/ngrok-changelog or check ngrok website" },
+      "check": {
+        "method": "manual",
+        "hint": "https://github.com/nicowillis/ngrok-changelog or check ngrok website"
+      },
       "update_type": "prebuilt-binary-multiplatform",
       "notes": "Uses stable CDN URLs from bin.equinox.io — no versioned GitHub releases page. Must manually verify the new version and update all six platform hashes."
     },
     {
       "name": "c4",
       "overlay": "overlays/56-c4.nix",
-      "current_version": "0-unstable-2026-07-09",
-      "check": { "method": "manual", "hint": "https://github.com/Avalanche-io/c4/commits/master — no tags, check for new commits manually" },
+      "current_version": "0-unstable-2026-07-12",
+      "check": {
+        "method": "manual",
+        "hint": "https://github.com/Avalanche-io/c4/commits/master — no tags, check for new commits manually"
+      },
       "update_type": "go-source",
       "notes": "No tagged releases. Check for new commits on master. Update rev to new commit SHA, update version date string (0-unstable-YYYY-MM-DD), update src hash, then blank vendorHash to get new hash."
     },
@@ -148,20 +200,133 @@
       "name": "hey-cli",
       "overlay": "overlays/94-hey-cli.nix",
       "current_version": "0-unstable-2026-06-10",
-      "check": { "method": "manual", "hint": "https://github.com/basecamp/hey-cli/commits/main — no tags, check for new commits manually" },
+      "check": {
+        "method": "manual",
+        "hint": "https://github.com/basecamp/hey-cli/commits/main — no tags, check for new commits manually"
+      },
       "update_type": "go-source",
       "notes": "No tagged releases. Update rev to new commit SHA, update version date string (0-unstable-YYYY-MM-DD), update src hash, then blank vendorHash to get new hash."
+    },
+    {
+      "name": "tmux",
+      "overlay": "overlays/96-tmux.nix",
+      "current_version": "3.7b",
+      "check": {
+        "method": "github-release",
+        "repo": "tmux/tmux"
+      },
+      "update_type": "source-override",
+      "notes": "overrideAttrs on nixpkgs' tmux with a fetchFromGitHub src (tag == version, e.g. 3.7b). Not a url/hash prebuilt, so fix-hashes does NOT touch it — bump the tag + fetchFromGitHub hash by hand (nix-prefetch-url --unpack the tag tarball or blank the hash and read the build error)."
+    },
+    {
+      "name": "aws-cdk-cli",
+      "overlay": "overlays/95-aws-cdk-cli.nix",
+      "current_version": "2.1130.0",
+      "check": {
+        "method": "npm",
+        "package": "aws-cdk"
+      },
+      "update_type": "prebuilt-npm",
+      "notes": "Self-contained npm tarball from registry.npmjs.org. Bump version + sha256 (nix-prefetch-url the .tgz, convert to SRI). Keep in step with the aws-cdk-lib construct version the app uses (CLI must be >= the lib's required cloud-assembly schema)."
+    },
+    {
+      "name": "dcg",
+      "overlay": "overlays/91-dcg.nix",
+      "current_version": "0.6.5",
+      "check": {
+        "method": "github-release",
+        "repo": "Dicklesworthstone/destructive_command_guard"
+      },
+      "update_type": "prebuilt-binary-multiplatform",
+      "platforms": {
+        "aarch64-darwin": {
+          "url_template": "https://github.com/Dicklesworthstone/destructive_command_guard/releases/download/v{version}/dcg-aarch64-apple-darwin.tar.xz"
+        },
+        "x86_64-darwin": {
+          "url_template": "https://github.com/Dicklesworthstone/destructive_command_guard/releases/download/v{version}/dcg-x86_64-apple-darwin.tar.xz"
+        },
+        "aarch64-linux": {
+          "url_template": "https://github.com/Dicklesworthstone/destructive_command_guard/releases/download/v{version}/dcg-aarch64-unknown-linux-gnu.tar.xz"
+        },
+        "x86_64-linux": {
+          "url_template": "https://github.com/Dicklesworthstone/destructive_command_guard/releases/download/v{version}/dcg-x86_64-unknown-linux-musl.tar.xz"
+        }
+      },
+      "notes": "Prebuilt release binary; no nixpkgs package exists. tar.xz archives — prefetch each platform with nix-prefetch-url (raw hash, not --unpack) and convert to SRI."
     }
   ],
   "skip": [
-    { "file": "10-feather-font.nix",            "reason": "intentionally pinned to v1.0 — do not bump" },
-    { "file": "80-llm.nix",                      "reason": "build fix (doCheck=false), not version-pinned" },
-    { "file": "81-python313-disable-checks.nix", "reason": "sandbox test-suppression overlay, not version-pinned" },
-    { "file": "82-python313-httpcore.nix",        "reason": "neutralized stub — logic moved to 81-*" },
-    { "file": "82-fmt.nix",                       "reason": "build fix (doCheck=false)" },
-    { "file": "83-deno.nix",                      "reason": "build fix (doCheck=false)" },
-    { "file": "90-svg-term-cli.nix",              "reason": "npm package with vendored package-lock.json — update manually" },
-    { "file": "92-lmstudio.nix",                  "reason": "macOS codesign workaround, not version-pinned" },
-    { "file": "93-direnv.nix",                    "reason": "CGO build fix, not version-pinned" }
+    {
+      "file": "10-feather-font.nix",
+      "reason": "intentionally pinned to v1.0 — do not bump"
+    },
+    {
+      "file": "80-llm.nix",
+      "reason": "build fix (doCheck=false), not version-pinned"
+    },
+    {
+      "file": "81-python-disable-checks.nix",
+      "reason": "sandbox test-suppression overlay, not version-pinned"
+    },
+    {
+      "file": "82-python313-httpcore.nix",
+      "reason": "neutralized stub — logic moved to 81-*"
+    },
+    {
+      "file": "82-fmt.nix",
+      "reason": "build fix (doCheck=false)"
+    },
+    {
+      "file": "83-deno.nix",
+      "reason": "build fix (doCheck=false)"
+    },
+    {
+      "file": "84-nodejs-skip-flaky-tests.nix",
+      "reason": "sandbox test-suppression overlay (nodejs_26 build tool), not version-pinned"
+    },
+    {
+      "file": "90-svg-term-cli.nix",
+      "reason": "npm package with vendored package-lock.json — update manually"
+    },
+    {
+      "file": "92-lmstudio.nix",
+      "reason": "macOS codesign workaround, not version-pinned"
+    },
+    {
+      "file": "93-direnv.nix",
+      "reason": "CGO build fix, not version-pinned"
+    }
+  ],
+  "pinned_inputs": [
+    {
+      "name": "nixpkgs",
+      "flake_input": "nixpkgs",
+      "pinned_ref": "af45a5c7362bcf6585aff1ffd1de09663cce80c8",
+      "reason": "Commit before the libxml2 CVE-2026-0989/0990/0992 patches, which make GNU patch run out of memory during nixpkgs source patching.",
+      "risk": "high",
+      "last_verified": "2026-07-21",
+      "unpin_when": "Upstream nixpkgs resolves the patch-utility OOM (track NixOS/nixpkgs issue for the libxml2 CVE patch OOM). Re-test by bumping to nixpkgs-unstable HEAD and running `nix run .#build`.",
+      "rollback_hint": "If a bump breaks the build, restore this commit in flake.nix nixpkgs.url and run `nix flake lock`."
+    },
+    {
+      "name": "home-manager",
+      "flake_input": "home-manager",
+      "pinned_ref": "9ce9f7f",
+      "reason": "Last commit before services-modular added lib/services/lib.nix, a dependency that does not exist in the pinned nixpkgs (af45a5c).",
+      "risk": "medium",
+      "last_verified": "2026-07-21",
+      "unpin_when": "nixpkgs is unpinned to a commit that contains lib/services/lib.nix (coupled to the nixpkgs unpin above). Then bump home-manager to the matching release branch.",
+      "rollback_hint": "Restore this commit in flake.nix home-manager.url and run `nix flake lock`."
+    },
+    {
+      "name": "darwin",
+      "flake_input": "darwin",
+      "pinned_ref": "nix-darwin-26.05",
+      "reason": "nix-darwin master rolled to 26.11 and enforces a branch/nixpkgs release match; the 26.05 branch matches the pinned nixpkgs (26.05).",
+      "risk": "low",
+      "last_verified": "2026-07-21",
+      "unpin_when": "nixpkgs is unpinned to a newer release; move darwin to the matching nix-darwin release branch at the same time.",
+      "rollback_hint": "Restore darwin.url = github:LnL7/nix-darwin/nix-darwin-26.05 and run `nix flake lock`."
+    }
   ]
 }
