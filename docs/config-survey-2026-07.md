@@ -190,5 +190,34 @@ Steps 1–4 are the high-leverage core; 5–8 are cleanup and scale prep.
 
 ---
 
+## 7. Implementation status (2026-07-21)
+
+The recommendations above were implemented in this pass. Summary:
+
+| Finding | Status | Where |
+|---|---|---|
+| **F1** flake check / CI gate | Done | `checks.<system>` (treefmt, overlays-manifest, darwin-build) + `.github/workflows/check.yml` |
+| **F2** formatting/linting | Done | `treefmt.nix` (nixfmt-rfc-style + statix + deadnix), `nix fmt`, tree formatted |
+| **F3** frozen inputs / master eval | Done | `pinned_inputs` in `updates.json` (risk/last_verified/unpin_when/rollback_hint); single DRY master eval in `modules/shared/default.nix` |
+| **F4** flake-parts | **Deferred (decision)** | Optional/L in this survey; current hand-rolled plumbing is "fine and readable" and host count is 1. Revisit when a second real host lands. |
+| **F5** hostname-keyed nixos | Done | `nixosHosts` + `mkNixos` in `flake.nix`; hostname from the flake key |
+| **F6** consolidate apps / nix-update | Partial (decision) | Shared `apps/aarch64-darwin/_common.sh` removes the copy-pasted locate-flake block. `nvfetcher`/`nix-update` **not** adopted: this survey notes `updates.json` is a *better* manifest than either ships with, so the bespoke manifest-driven flow is kept. |
+| **F7** zsh initContent heredoc | Done | `programs.zsh.{sessionVariables,shellAliases}` + `modules/shared/config/zsh/init.zsh` |
+| **F8** agenix ergonomics | **Kept (decision)** | Survey: "current setup is sound … not urgent." agenix + private `nix-secrets` input retained; `agenix-rekey`/`sops-nix` revisit only if cross-host rekeying becomes frequent. |
+| **F9** dead commented config | Done | Moved to `docs/recipes.md`; pointers left in place |
+| **F10** global allowBroken/unsupported | Done | Scoped to lmstudio + wkhtmltopdf via `overlays/05-permit-marked-packages.nix`; global flags now `false` (byte-identical system derivation) |
+| **F11** sudo NOPASSWD for darwin-rebuild | **Kept (documented)** | Deliberate ergonomics choice for unattended `build-switch`/`activate`. It remains the single largest standing privilege; the `prepare`/`activate` split (below) narrows *when* it is exercised — only the `activate` step is privileged, and it consumes a specific committed revision. |
+| **§5.1** flake check as contract | Done | see F1 |
+| **§5.2** updates.json as source of truth | Done | `scripts/check-overlay-manifest.sh` fails the build on any manifest↔tree drift |
+| **§5.3** read-only preview apps | Done | `nix run .#diff`, `nix run .#dry-activate` |
+| **§5.4** separate propose/activate | Done | `nix run .#prepare` (build+commit, unprivileged) vs `nix run .#activate -- <rev>` (privileged, specific committed rev) |
+| **§5.5** explicit machine-invocable rollback | Done | `nix run .#rollback` rewritten: non-interactive, idempotent, `[<gen>|--list]` |
+
+New agent-facing commands: `nix fmt`, `nix flake check` (or the secret-free
+subset `nix build .#checks.<system>.{treefmt,overlays-manifest}`), and
+`nix run .#{diff,dry-activate,prepare,activate,rollback}`.
+
+---
+
 *Companion document (private working copy only): `docs/adaptive-computer-integration-plan.md`
 maps these patterns onto the adaptive-computer system-side architecture.*

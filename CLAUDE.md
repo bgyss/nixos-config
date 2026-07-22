@@ -15,8 +15,18 @@ For agent-specific guidance, see [AGENTS.md](./AGENTS.md) (currently just points
 ```bash
 nix run .#build-switch   # Build and activate new system generation (requires sudo)
 nix run .#apply          # Apply configuration changes without a full rebuild
-nix run .#rollback       # Rollback to previous generation (macOS)
-nix run .#update         # Full update: flake update → fix-hashes → build-switch
+nix run .#rollback       # Rollback: `rollback [<gen>|--list]` (idempotent, macOS)
+nix run .#update         # Full update: prepare (build+commit) then activate HEAD
+
+# Preview / propose / activate (agent-friendly; see "Update Workflow" below)
+nix run .#diff           # Read-only: build the config + show the closure delta
+nix run .#dry-activate   # Read-only: what activation would do, without switching
+nix run .#prepare        # Propose: flake update → fix-hashes → build → commit (no sudo)
+nix run .#activate -- <rev>   # Activate a specific committed revision (privileged)
+
+# Verification (run before committing / activating)
+nix fmt                  # Format the tree (nixfmt-rfc-style + statix + deadnix)
+nix flake check          # Gate: treefmt, overlays-manifest, darwin-build all green
 ```
 
 Can be run from anywhere via the `nixos-config` flake registry entry (see `nix registry list`)
@@ -28,8 +38,24 @@ in [docs/setup.md](docs/setup.md).
 Prebuilt-binary overlays (codex-openai, claude-code, uv, trailbase, igir, ngrok, tmux) pin
 `sha256`/source hashes that can go stale whenever a publisher re-uploads a release artifact.
 **Always run `fix-hashes` after `nix flake update` and before `build-switch`** — or just use
-`nix run .#update`, which does all three steps. If you see a `hash mismatch in fixed-output
+`nix run .#update`, which does all the steps. If you see a `hash mismatch in fixed-output
 derivation` error during `build-switch`, run `nix run .#fix-hashes` first.
+
+**Propose vs. activate (agentic).** `update` is now `prepare` + `activate HEAD`. For unattended
+/ agent operation, run the two halves separately: `nix run .#prepare` does the unprivileged
+flake-update → fix-hashes → **build (evidence)** → commit and prints a closure diff and the
+proposed revision; then `nix run .#activate -- <rev>` does the single privileged switch,
+consuming that *specific committed revision* rather than the working tree. Preview first with
+`nix run .#diff` / `nix run .#dry-activate` (both read-only, no activation).
+
+**Checks / formatting.** `nix flake check` is the pass/fail gate: `treefmt` (nixfmt-rfc-style +
+statix + deadnix), `overlays-manifest` (`updates.json` ↔ overlays consistency, enforced by
+`scripts/check-overlay-manifest.sh`), and `darwin-build`. Run `nix fmt` before committing any
+`.nix` change. Public CI (`.github/workflows/check.yml`) runs the secret-free checks
+(`treefmt`, `overlays-manifest`) on a Linux runner — the full `nix flake check` / `darwin-build`
+needs the private `secrets` input and so runs locally or behind a deploy key. Every overlay must
+appear in `overlays/updates.json` (as a `packages[]` pin or a `skip[]` entry) or the
+`overlays-manifest` check fails.
 
 ## Architecture
 
@@ -145,3 +171,7 @@ Dock icons, etc. — see [docs/troubleshooting.md](docs/troubleshooting.md).
 - After `nix flake update`, always run `nix run .#fix-hashes` before `build-switch` (or just
   `nix run .#update`).
 - On a `hash mismatch in fixed-output derivation` error, run `nix run .#fix-hashes`.
+- Run `nix fmt` before committing any `.nix` change, and keep `nix flake check` green
+  (`treefmt` + `overlays-manifest` + `darwin-build`). Every overlay must be registered in
+  `overlays/updates.json`.
+- Optional/example config snippets live in `docs/recipes.md`, not as commented-out dead code.
