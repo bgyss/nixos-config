@@ -1,0 +1,68 @@
+name: nix flake check
+
+# F1 from docs/config-survey-2026-07.md: a fast, deterministic pass/fail gate.
+# Runs the secret-free flake checks on every push / PR so the public mirror
+# always has a green "config evaluates + tree is formatted + manifest is
+# consistent" signal.
+#
+# NOTE: the `darwin-build` check and a full `nix flake check` both evaluate
+# `darwinConfigurations.garmonbozia`, which pulls the private `secrets` flake
+# input over ssh. Public CI has no key for that repo, so we deliberately build
+# only the secret-free checks here (treefmt + overlays-manifest). To also gate
+# the darwin system build in CI, add a macOS runner job with an ssh deploy key
+# for bgyss/nix-secrets and run `nix build .#checks.aarch64-darwin.darwin-build`
+# (see the commented job at the bottom).
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    name: secret-free flake checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@main
+
+      - name: Cache Nix store
+        uses: DeterminateSystems/magic-nix-cache-action@main
+
+      # Build only the checks that do not evaluate darwinConfigurations (and
+      # therefore never touch the private `secrets` input). Attribute-scoped
+      # `nix build` avoids the full-flake evaluation that `nix flake check`
+      # would otherwise force.
+      - name: treefmt (nixfmt / statix / deadnix)
+        run: nix build --print-build-logs .#checks.x86_64-linux.treefmt
+
+      - name: overlays manifest consistency
+        run: nix build --print-build-logs .#checks.x86_64-linux.overlays-manifest
+
+  # ---------------------------------------------------------------------------
+  # Optional: gate the live darwin system build too. Requires a deploy key for
+  # the private bgyss/nix-secrets repo stored as the NIX_SECRETS_DEPLOY_KEY
+  # repository secret. Uncomment to enable.
+  #
+  # darwin-build:
+  #   name: darwin system build
+  #   runs-on: macos-14
+  #   if: ${{ github.repository == 'bgyss/nixos-config' }}
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - uses: webfactory/ssh-agent@v0.9.0
+  #       with:
+  #         ssh-private-key: ${{ secrets.NIX_SECRETS_DEPLOY_KEY }}
+  #     - name: Install Nix
+  #       uses: DeterminateSystems/nix-installer-action@main
+  #     - name: Cache Nix store
+  #       uses: DeterminateSystems/magic-nix-cache-action@main
+  #     - name: build darwinConfigurations.garmonbozia
+  #       run: nix build --print-build-logs .#checks.aarch64-darwin.darwin-build
