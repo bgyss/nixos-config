@@ -3,7 +3,7 @@
     {
       "name": "claude-code",
       "overlay": "overlays/41-claude-code.nix",
-      "current_version": "2.1.217",
+      "current_version": "2.1.218",
       "check": {
         "method": "github-release",
         "repo": "anthropics/claude-code"
@@ -177,7 +177,7 @@
     {
       "name": "ngrok",
       "overlay": "overlays/20-ngrok.nix",
-      "current_version": "3.39.9",
+      "current_version": "3.39.10",
       "check": {
         "method": "ngrok-binary"
       },
@@ -224,7 +224,7 @@
     {
       "name": "aws-cdk-cli",
       "overlay": "overlays/95-aws-cdk-cli.nix",
-      "current_version": "2.1132.0",
+      "current_version": "2.1132.1",
       "check": {
         "method": "npm",
         "package": "aws-cdk"
