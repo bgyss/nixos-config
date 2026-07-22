@@ -73,10 +73,14 @@ fi
 
 # --- Copy the public set into the public repo -------------------------------
 while IFS= read -r f; do
-  mkdir -p "$PUBLIC_REPO/$(dirname "$f")"
+  dest="$PUBLIC_REPO/$f"
+  mkdir -p "$(dirname "$dest")"
+  # Remove any existing destination first: if it's a symlink to a directory,
+  # `cp -P` would otherwise copy the source *into* that directory instead of
+  # replacing the link. `rm -f` unlinks the symlink itself (never follows it).
+  rm -f "$dest"
   # -P: copy symlinks as symlinks (don't follow, e.g. apps/aarch64-linux).
-  # -f: replace an existing file/symlink at the destination.
-  cp -Ppf "$PRIVATE_REPO/$f" "$PUBLIC_REPO/$f"
+  cp -Pp "$PRIVATE_REPO/$f" "$dest"
 done < "$public_set"
 
 # --- Remove anything tracked in public but not in the public set ------------
