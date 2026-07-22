@@ -4,9 +4,10 @@ A unified configuration for macOS (Darwin) and NixOS systems using Nix Flakes an
 Manager. This checkout (`~/src/nixos-config`) is the copy pushed to
 [github.com/bgyss/nixos-config](https://github.com/bgyss/nixos-config) (public). The daily
 working copy actually driving system config on this machine is `~/nixos-config`, which has no
-git remote — periodically sync changes from there into this checkout before pushing. See
-`templates/starter/` and the root `README.md` for the flake-template flow used to bootstrap a
-*new* machine from this repo.
+git remote. A **post-commit hook mirrors public-safe files from there into this checkout and
+pushes automatically** — so package/cask/overlay/module changes reach GitHub on every commit
+with no manual sync (see "Public Mirror Sync" below). See `templates/starter/` and the root
+`README.md` for the flake-template flow used to bootstrap a *new* machine from this repo.
 
 For agent-specific guidance, see [AGENTS.md](./AGENTS.md) (currently just points back here).
 
@@ -163,6 +164,24 @@ point at this repo's actual clone path or it silently falls back to a stale upst
 For everything else — build failures, hash mismatches, Python sandbox test failures, stale
 Dock icons, etc. — see [docs/troubleshooting.md](docs/troubleshooting.md).
 
+## Public Mirror Sync
+
+A **post-commit hook** in the private daily-driver checkout (`~/nixos-config`) automatically
+mirrors public-safe files into the public checkout (`~/src/nixos-config`) and pushes to GitHub
+after every commit — so package, cask, overlay, and module changes go public with no manual
+step. Wired via `git config core.hooksPath scripts/git-hooks` (set in the private repo only, so
+the public repo receives the hook file but never runs it → no sync loop).
+
+- **`scripts/sync-to-public.sh`** — the engine (also runnable by hand). Publishes every
+  `git ls-files` path **minus** the denylist, then commits (mirroring the private commit's
+  subject) and pushes. Anything tracked in public but not in the published set is `git rm`ed, so
+  denylisted files can never linger and deletions propagate. A commit touching only private
+  paths produces no public commit. Push failures (offline) warn but never block the commit.
+- **`scripts/public-sync-denylist.txt`** — one path per line (trailing `/` = whole dir) of files
+  that must stay private. It lists **itself**, so private filenames never reach the public repo.
+  Add a line here *before* committing any new private note — the model is a denylist, so an
+  unlisted new file auto-publishes (the hook prints `Publishing NEW files: …` as a safety net).
+
 ## Memories
 
 - Always commit any changes made to this configuration in Claude Code (commit each change,
@@ -175,3 +194,6 @@ Dock icons, etc. — see [docs/troubleshooting.md](docs/troubleshooting.md).
   (`treefmt` + `overlays-manifest` + `darwin-build`). Every overlay must be registered in
   `overlays/updates.json`.
 - Optional/example config snippets live in `docs/recipes.md`, not as commented-out dead code.
+- Commits in `~/nixos-config` auto-mirror + push to the public repo via a post-commit hook
+  (see "Public Mirror Sync"). Before committing a **new private note**, add its path to
+  `scripts/public-sync-denylist.txt` or it will be published to GitHub.
