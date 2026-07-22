@@ -44,8 +44,9 @@ in
   # The global useDHCP flag is deprecated, therefore explicitly set to false here.
   # Per-interface useDHCP will be mandatory in the future, so this generated config
   # replicates the default behaviour.
+  # networking.hostName is set per-host from the flake key (see nixosHosts in
+  # flake.nix), so it is intentionally not defined here.
   networking = {
-    hostName = "%HOST%"; # Define your hostname.
     useDHCP = false;
     interfaces."%INTERFACE%".useDHCP = true;
   };

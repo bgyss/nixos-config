@@ -167,6 +167,42 @@
           "activate" = mkApp "activate" system;
           "update" = mkApp "update" system;
         };
+
+      # NixOS hosts keyed by HOSTNAME, not by system string (F5). Keying by
+      # hostname means a second machine can't silently collide, and matches the
+      # idiomatic `nixos-rebuild --flake .#<hostname>` selection. Add a per-host
+      # entry here (and, when hardware diverges, a hosts/<name>/ dir) for each
+      # real machine; today all NixOS hosts share ./hosts/nixos.
+      nixosHosts = {
+        nixos = {
+          system = "x86_64-linux";
+        };
+      };
+      mkNixos =
+        hostname: cfg:
+        nixpkgs.lib.nixosSystem {
+          inherit (cfg) system;
+          specialArgs = inputs // {
+            inherit user hostname;
+          };
+          modules = [
+            disko.nixosModules.disko
+            agenix.nixosModules.default
+            home-manager.nixosModules.home-manager
+            {
+              # Hostname comes from the flake key (see nixosHosts), so the config
+              # evaluates directly instead of only after the bootstrap %HOST%
+              # token substitution.
+              networking.hostName = hostname;
+              home-manager = {
+                useGlobalPkgs = true;
+                useUserPackages = true;
+                users.${user} = import ./modules/nixos/home-manager.nix;
+              };
+            }
+            ./hosts/nixos
+          ];
+        };
     in
     {
       devShells = forAllSystems devShell;
@@ -271,27 +307,6 @@
           };
       };
 
-      nixosConfigurations = nixpkgs.lib.genAttrs linuxSystems (
-        system:
-        nixpkgs.lib.nixosSystem {
-          inherit system;
-          specialArgs = inputs // {
-            inherit user;
-          };
-          modules = [
-            disko.nixosModules.disko
-            agenix.nixosModules.default
-            home-manager.nixosModules.home-manager
-            {
-              home-manager = {
-                useGlobalPkgs = true;
-                useUserPackages = true;
-                users.${user} = import ./modules/nixos/home-manager.nix;
-              };
-            }
-            ./hosts/nixos
-          ];
-        }
-      );
+      nixosConfigurations = nixpkgs.lib.mapAttrs mkNixos nixosHosts;
     };
 }

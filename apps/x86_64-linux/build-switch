@@ -7,22 +7,12 @@ RED='\033[1;31m'
 YELLOW='\033[1;33m'
 NC='\033[0m'
 
-SYSTEM=$(uname -m)
+# nixosConfigurations are keyed by hostname (F5), matching the idiomatic
+# `nixos-rebuild --flake .#<hostname>` selection. Add an entry for this host to
+# `nixosHosts` in flake.nix if one does not exist yet.
+FLAKE_TARGET="$(hostname -s 2>/dev/null || hostname)"
 
-case "$SYSTEM" in
-  x86_64)
-    FLAKE_TARGET="x86_64-linux"
-    ;;
-  aarch64)
-    FLAKE_TARGET="aarch64-linux"
-    ;;
-  *)
-    echo -e "${RED}Unsupported architecture: $SYSTEM${NC}"
-    exit 1
-    ;;
-esac
-
-echo -e "${YELLOW}Starting...${NC}"
+echo -e "${YELLOW}Starting (target: .#${FLAKE_TARGET})...${NC}"
 
 # We pass SSH from user to root so root can download secrets from our private Github
 sudo SSH_AUTH_SOCK=$SSH_AUTH_SOCK /run/current-system/sw/bin/nixos-rebuild switch --flake .#$FLAKE_TARGET $@
