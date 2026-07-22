@@ -50,7 +50,16 @@ in
     enable = true;
     onActivation = {
       autoUpdate = true;
-      upgrade = true;
+      # Disabled (2026-07-14, second time): any cask upgrade failure aborts
+      # the whole darwin-rebuild activation (set -e) before it reaches
+      # home-manager/AeroSpace/Dock linking, since the homebrew step runs
+      # before those in the generated activate script. First hit this via
+      # blender's Cloudflare-blocked download; re-enabling then broke again
+      # on zed (quarantine xattr permission error) and docker-desktop
+      # (removing privileged helper tools needs an interactive sudo prompt,
+      # which never works from an unattended build-switch). Run `brew
+      # upgrade` manually/interactively when you want cask updates instead.
+      upgrade = false;
       cleanup = "uninstall";
       extraFlags = [
         "--force"
@@ -118,6 +127,10 @@ in
 
               on-window-detected = [
                 {
+                  "if".app-id = "com.mitchellh.ghostty";
+                  run = "move-node-to-workspace 1";
+                }
+                {
                   "if".app-id = "com.hey.app.desktop";
                   run = "move-node-to-workspace 2";
                 }
@@ -127,7 +140,7 @@ in
                 }
                 {
                   "if".app-id = "com.openai.atlas";
-                  run = "move-node-to-workspace 3";
+                  run = "move-node-to-workspace M";
                 }
                 {
                   "if".app-id = "com.openai.codex";
@@ -140,6 +153,56 @@ in
                 {
                   "if".app-id = "com.hnc.Discord";
                   run = "move-node-to-workspace 6";
+                }
+                {
+                  "if".app-id = "com.apple.MobileSMS";
+                  run = "move-node-to-workspace 7";
+                }
+                {
+                  "if".app-id = "com.valvesoftware.steam.helper";
+                  run = "move-node-to-workspace 8";
+                }
+                {
+                  "if".app-id = "com.apple.Preview";
+                  run = "move-node-to-workspace 9";
+                }
+                {
+                  "if".app-id = "com.parallels.desktop.console";
+                  run = "move-node-to-workspace A";
+                }
+                {
+                  "if".app-id = "com.microsoft.Word";
+                  run = "move-node-to-workspace B";
+                }
+                {
+                  "if".app-id = "com.exafunction.windsurf";
+                  run = "move-node-to-workspace C";
+                }
+                {
+                  "if".app-id = "notion.id";
+                  run = "move-node-to-workspace D";
+                }
+                {
+                  "if".app-id = "com.apple.news";
+                  run = "move-node-to-workspace E";
+                }
+                {
+                  "if".app-id = "com.1password.1password";
+                  run = "move-node-to-workspace G";
+                }
+                {
+                  "if".app-id = "io.tailscale.ipn.macos";
+                  run = "move-node-to-workspace N";
+                }
+                {
+                  # Zoom spawns several separate windows per meeting (main,
+                  # meeting, floating toolbar, chat, participants) that tile
+                  # badly; float them instead of tiling, on their own workspace.
+                  "if".app-id = "us.zoom.xos";
+                  run = [
+                    "layout floating"
+                    "move-node-to-workspace I"
+                  ];
                 }
               ];
 

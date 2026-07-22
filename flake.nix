@@ -150,7 +150,7 @@
               set -euo pipefail
               export PATH=${nixpkgs.legacyPackages.${system}.git}/bin:$PATH
               echo "Running build-switch for ${system}"
-              exec sudo -H -- /run/current-system/sw/bin/darwin-rebuild switch --flake ${self} "$@"
+              exec sudo -- /run/current-system/sw/bin/darwin-rebuild switch --flake ${self} "$@"
             '';
           };
           "copy-keys" = mkApp "copy-keys" system;

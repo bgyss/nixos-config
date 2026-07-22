@@ -1,4 +1,4 @@
-# mise overlay – ship upstream release binaries (v2026.7.5)
+# mise overlay – ship upstream release binaries (v2026.7.11)
 #
 # Previously built from source via fetchCargoVendor, but crates.io now returns
 # HTTP 403 for the default `python-requests` User-Agent used by nixpkgs'
@@ -17,23 +17,23 @@ let
     stdenvNoCC
     ;
 
-  version = "2026.7.5";
+  version = "2026.7.11";
   sources = {
     "aarch64-darwin" = {
       url = "https://github.com/jdx/mise/releases/download/v${version}/mise-v${version}-macos-arm64.tar.gz";
-      hash = "sha256-rgwhUyd07aGYsjoip/++aE9ILAdKl2oT4PZkr4JV4q4=";
+      hash = "sha256-8bYRKpW4DWFaAKw0mVGm6QpWOKs8IhoBJTBTkRafJ7s=";
     };
     "x86_64-darwin" = {
       url = "https://github.com/jdx/mise/releases/download/v${version}/mise-v${version}-macos-x64.tar.gz";
-      hash = "sha256-SMxK41K9kD1QaemWfruhjfsLvUaqMlqCo1Owcynr9X0=";
+      hash = "sha256-uLqPFjx0nw9tlUFFtMQkwWSBkhhYKzRXAMUrrYSeIfs=";
     };
     "aarch64-linux" = {
       url = "https://github.com/jdx/mise/releases/download/v${version}/mise-v${version}-linux-arm64.tar.gz";
-      hash = "sha256-kCD3RTkxpoc9YM8gTVk169CGM7JfZ1sIIM0GhitLZFA=";
+      hash = "sha256-/KH/pft/yEj2rwvnqkUmC1qFB/xPl7a5dKnWDtlkeBc=";
     };
     "x86_64-linux" = {
       url = "https://github.com/jdx/mise/releases/download/v${version}/mise-v${version}-linux-x64.tar.gz";
-      hash = "sha256-vpLaOvsYDccbPOb8qq8vOTgSycUOmmTJy2cGzyjttIY=";
+      hash = "sha256-ZlLuXdO/qASik1X3u5NhNIkruawAK0zaFypExnWXzQw=";
     };
   };
 

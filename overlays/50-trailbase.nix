@@ -1,4 +1,4 @@
-# trailbase overlay – ship upstream release binaries (v0.30.3)
+# trailbase overlay – ship upstream release binaries (v0.31.0)
 
 final: prev:
 
@@ -12,19 +12,19 @@ let
     unzip
     ;
 
-  version = "0.30.3";
+  version = "0.31.0";
   sources = {
     "aarch64-darwin" = {
       url = "https://github.com/trailbaseio/trailbase/releases/download/v${version}/trailbase_v${version}_arm64_apple_darwin.zip";
-      hash = "sha256-5/Lg8kj1XTOKL9gzm4Z8fT74/x+S6gia5ncLunx0IUU=";
+      hash = "sha256-L8KVr04rTlb3W3Mr1QQUfNn7MznGRyGpxoPHcaKBS6I=";
     };
     "x86_64-darwin" = {
       url = "https://github.com/trailbaseio/trailbase/releases/download/v${version}/trailbase_v${version}_x86_64_apple_darwin.zip";
-      hash = "sha256-Twmro4xEdaaXcSWEfmiNz4Cg2FxzLrU8mMAY31ZVDXo=";
+      hash = "sha256-ttGywz/IuN9FDfcayqd1ID2ZFPvqyPBW6jKeu34EL9A=";
     };
     "x86_64-linux" = {
       url = "https://github.com/trailbaseio/trailbase/releases/download/v${version}/trailbase_v${version}_x86_64_linux.zip";
-      hash = "sha256-gVtyB/40WdabQrWjXd8HqsEGyDmVO+3sf4G8FC1tJAQ=";
+      hash = "sha256-T6iKlDXqqPLEOL5jN0ZRJCBSqso+kzNKDDMo8o8Sy+8=";
     };
   };
 

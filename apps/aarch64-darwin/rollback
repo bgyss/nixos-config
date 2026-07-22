@@ -27,7 +27,7 @@ if [[ -n "${1:-}" ]]; then
   gen="$1"
   [[ "$gen" =~ ^[0-9]+$ ]] || { err "generation must be a number (or --list); got: $gen"; exit 1; }
   warn "==> rolling back to generation $gen"
-  exec sudo -H -- "$darwin_rebuild" switch --switch-generation "$gen"
+  exec sudo -- "$darwin_rebuild" switch --switch-generation "$gen"
 fi
 
 # No argument: the immediately-previous generation (second-newest in the list).
@@ -38,4 +38,4 @@ if [[ -z "$prev" ]]; then
   exit 1
 fi
 warn "==> rolling back to previous generation $prev"
-exec sudo -H -- "$darwin_rebuild" switch --switch-generation "$prev"
+exec sudo -- "$darwin_rebuild" switch --switch-generation "$prev"

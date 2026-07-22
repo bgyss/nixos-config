@@ -61,7 +61,9 @@ _:
   "firefox" # required by browsh (headless Marionette driver)
 
   # 3D / CAD / EDA
-  "blender"
+  # blender: unmanaged (2026-07-14) -- download.blender.org 403s behind a
+  # Cloudflare bot challenge that brew/curl can't pass; install manually from
+  # the DMG instead.
   "touchdesigner"
   "freecad"
   "kicad"

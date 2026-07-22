@@ -55,6 +55,28 @@ github_latest_commit() {
     || printf 'ERROR'
 }
 
+# ngrok publishes no versioned releases, but the "stable" darwin-arm64 CDN URL
+# always serves the latest build. Download it and ask the binary its own version.
+ngrok_stable_latest() {
+  local tmpdir zip
+  tmpdir=$(mktemp -d) || { printf 'ERROR'; return; }
+  zip="$tmpdir/ngrok.zip"
+  if ! curl -sfL --max-time 30 \
+      -o "$zip" \
+      "https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-darwin-arm64.zip" 2>/dev/null; then
+    rm -rf "$tmpdir"; printf 'ERROR'; return
+  fi
+  if ! unzip -oq "$zip" -d "$tmpdir" 2>/dev/null; then
+    rm -rf "$tmpdir"; printf 'ERROR'; return
+  fi
+  chmod +x "$tmpdir/ngrok" 2>/dev/null
+  local ver
+  ver=$("$tmpdir/ngrok" version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')
+  rm -rf "$tmpdir"
+  [[ -z "$ver" ]] && { printf 'ERROR'; return; }
+  printf '%s' "$ver"
+}
+
 # ── Output ────────────────────────────────────────────────────────────────────
 
 printf '%-22s %-18s %-18s %s\n' "PACKAGE" "CURRENT" "LATEST" "STATUS"
@@ -94,9 +116,20 @@ while IFS= read -r pkg; do
       latest=$(npm_latest "$package")
       ;;
     github-commits)
-      repo=$(  jq -r '.check.repo'          <<<"$pkg")
-      branch=$(jq -r '.check.branch // "master"' <<<"$pkg")
-      latest="$(github_latest_commit "$repo" "$branch") (commit)"
+      repo=$(       jq -r '.check.repo'          <<<"$pkg")
+      branch=$(     jq -r '.check.branch // "master"' <<<"$pkg")
+      current_rev=$(jq -r '.current_rev // ""'   <<<"$pkg")
+      latest_sha=$(github_latest_commit "$repo" "$branch")
+      if [[ "$latest_sha" == "ERROR" || -z "$latest_sha" ]]; then
+        latest="ERROR"
+      elif [[ -n "$current_rev" && "$latest_sha" == "${current_rev:0:12}" ]]; then
+        latest="$current"
+      else
+        latest="$latest_sha (commit)"
+      fi
+      ;;
+    ngrok-binary)
+      latest=$(ngrok_stable_latest)
       ;;
     manual)
       hint=$(jq -r '.check.hint // ""' <<<"$pkg")

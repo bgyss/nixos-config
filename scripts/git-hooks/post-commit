@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+#
+# post-commit — mirror public-safe changes to the public repo after every commit
+# in the private daily-driver checkout. Wired via:
+#     git config core.hooksPath scripts/git-hooks   (set in the private repo only)
+#
+# A hook runs with GIT_DIR / GIT_INDEX_FILE / GIT_WORK_TREE pointing at THIS
+# repo; unset them so the sync script's `git -C <public-repo>` calls operate on
+# the public repo instead of this one.
+unset GIT_DIR GIT_INDEX_FILE GIT_WORK_TREE GIT_PREFIX
+
+HOOK_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Never let a sync problem break the commit workflow.
+"$HOOK_DIR/../sync-to-public.sh" || echo "post-commit: sync-to-public.sh failed (commit itself is fine)."

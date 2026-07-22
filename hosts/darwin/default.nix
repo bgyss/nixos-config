@@ -37,6 +37,23 @@
     mode = "0600";
   };
 
+  # darwin-rebuild forces HOME=~root when run as root (needed for `switch`),
+  # so root's ssh can't see the user's ~/.ssh/config or key, and fetching the
+  # private nix-secrets flake input fails with "Permission denied (publickey)".
+  # Nix's fetcher doesn't honor git's core.sshCommand, but the ssh it spawns
+  # does read root's own ~/.ssh/config — so point that at the agenix-decrypted
+  # key (root can read it despite the user ownership/0600 mode).
+  system.activationScripts.postActivation.text = ''
+    mkdir -p /var/root/.ssh
+    chmod 700 /var/root/.ssh
+    cat > /var/root/.ssh/config <<'EOF'
+    Host github.com
+      IdentityFile /run/agenix/ssh-key
+      IdentitiesOnly yes
+    EOF
+    chmod 600 /var/root/.ssh/config
+  '';
+
   # Disable nix-darwin's Nix management to work with Determinate Nix
   nix.enable = false;
 
@@ -55,6 +72,16 @@
     emacs-unstable
     svg-term-cli
   ];
+
+  # Cheap insurance against macOS Automatic Termination quitting the app when
+  # its window is hidden/closed (_kLSApplicationWouldBeTerminatedByTALKey=1 in
+  # the unified log). This wasn't actually the cause of the "randomly closing
+  # every 1-4 min" symptom (that was the app's own menu-bar/startup setting,
+  # since fixed in-app), but it's a harmless opt-out to keep.
+  # See docs/notion-calendar-auto-termination.md.
+  system.defaults.CustomUserPreferences."com.cron.electron" = {
+    NSDisableAutomaticTermination = true;
+  };
 
   launchd.user.agents.emacs.path = [ config.environment.systemPath ];
   launchd.user.agents.emacs.serviceConfig = {

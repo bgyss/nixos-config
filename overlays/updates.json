@@ -3,7 +3,7 @@
     {
       "name": "claude-code",
       "overlay": "overlays/41-claude-code.nix",
-      "current_version": "2.1.207",
+      "current_version": "2.1.217",
       "check": {
         "method": "github-release",
         "repo": "anthropics/claude-code"
@@ -19,7 +19,7 @@
     {
       "name": "codex-openai",
       "overlay": "overlays/40-codex-openai.nix",
-      "current_version": "0.144.3",
+      "current_version": "0.145.0",
       "check": {
         "method": "github-release",
         "repo": "openai/codex",
@@ -35,7 +35,7 @@
     {
       "name": "trailbase",
       "overlay": "overlays/50-trailbase.nix",
-      "current_version": "0.30.3",
+      "current_version": "0.31.0",
       "check": {
         "method": "github-release",
         "repo": "trailbaseio/trailbase"
@@ -80,7 +80,7 @@
     {
       "name": "uv",
       "overlay": "overlays/25-uv.nix",
-      "current_version": "0.11.28",
+      "current_version": "0.11.31",
       "check": {
         "method": "github-release",
         "repo": "astral-sh/uv"
@@ -95,7 +95,7 @@
     {
       "name": "mise",
       "overlay": "overlays/30-mise.nix",
-      "current_version": "2026.7.5",
+      "current_version": "2026.7.11",
       "check": {
         "method": "github-release",
         "repo": "jdx/mise"
@@ -179,19 +179,20 @@
       "overlay": "overlays/20-ngrok.nix",
       "current_version": "3.39.9",
       "check": {
-        "method": "manual",
-        "hint": "https://github.com/nicowillis/ngrok-changelog or check ngrok website"
+        "method": "ngrok-binary"
       },
       "update_type": "prebuilt-binary-multiplatform",
-      "notes": "Uses stable CDN URLs from bin.equinox.io — no versioned GitHub releases page. Must manually verify the new version and update all six platform hashes."
+      "notes": "Uses stable CDN URLs from bin.equinox.io — no versioned GitHub releases page, but the darwin-arm64 stable URL always serves the latest build. Check script downloads it and runs `ngrok version` to detect the current upstream version. Updating still requires manually fetching all six platform hashes."
     },
     {
       "name": "c4",
       "overlay": "overlays/56-c4.nix",
-      "current_version": "0-unstable-2026-07-12",
+      "current_version": "0-unstable-2026-07-13",
+      "current_rev": "136d74d1bb6b889ef7eb160b3c7529cbde02c45d",
       "check": {
-        "method": "manual",
-        "hint": "https://github.com/Avalanche-io/c4/commits/master — no tags, check for new commits manually"
+        "method": "github-commits",
+        "repo": "Avalanche-io/c4",
+        "branch": "master"
       },
       "update_type": "go-source",
       "notes": "No tagged releases. Check for new commits on master. Update rev to new commit SHA, update version date string (0-unstable-YYYY-MM-DD), update src hash, then blank vendorHash to get new hash."
@@ -200,9 +201,11 @@
       "name": "hey-cli",
       "overlay": "overlays/94-hey-cli.nix",
       "current_version": "0-unstable-2026-06-10",
+      "current_rev": "a3cf885fc80b906e887af3eb753b13f8ffcdae24",
       "check": {
-        "method": "manual",
-        "hint": "https://github.com/basecamp/hey-cli/commits/main — no tags, check for new commits manually"
+        "method": "github-commits",
+        "repo": "basecamp/hey-cli",
+        "branch": "main"
       },
       "update_type": "go-source",
       "notes": "No tagged releases. Update rev to new commit SHA, update version date string (0-unstable-YYYY-MM-DD), update src hash, then blank vendorHash to get new hash."
@@ -221,7 +224,7 @@
     {
       "name": "aws-cdk-cli",
       "overlay": "overlays/95-aws-cdk-cli.nix",
-      "current_version": "2.1130.0",
+      "current_version": "2.1132.0",
       "check": {
         "method": "npm",
         "package": "aws-cdk"
@@ -232,7 +235,7 @@
     {
       "name": "dcg",
       "overlay": "overlays/91-dcg.nix",
-      "current_version": "0.6.5",
+      "current_version": "0.6.7",
       "check": {
         "method": "github-release",
         "repo": "Dicklesworthstone/destructive_command_guard"
@@ -256,10 +259,6 @@
     }
   ],
   "skip": [
-    {
-      "file": "05-permit-marked-packages.nix",
-      "reason": "meta un-gate for lmstudio/wkhtmltopdf replacing global allowBroken/allowUnsupportedSystem (F10), not version-pinned"
-    },
     {
       "file": "10-feather-font.nix",
       "reason": "intentionally pinned to v1.0 — do not bump"
@@ -285,10 +284,6 @@
       "reason": "build fix (doCheck=false)"
     },
     {
-      "file": "84-nodejs-skip-flaky-tests.nix",
-      "reason": "sandbox test-suppression overlay (nodejs_26 build tool), not version-pinned"
-    },
-    {
       "file": "90-svg-term-cli.nix",
       "reason": "npm package with vendored package-lock.json — update manually"
     },
@@ -299,6 +294,14 @@
     {
       "file": "93-direnv.nix",
       "reason": "CGO build fix, not version-pinned"
+    },
+    {
+      "file": "84-nodejs-skip-flaky-tests.nix",
+      "reason": "sandbox test-suppression overlay (nodejs_26 build tool), not version-pinned"
+    },
+    {
+      "file": "05-permit-marked-packages.nix",
+      "reason": "meta un-gate for lmstudio/wkhtmltopdf replacing global allowBroken/allowUnsupportedSystem (F10), not version-pinned"
     }
   ],
   "pinned_inputs": [

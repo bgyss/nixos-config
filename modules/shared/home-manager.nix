@@ -388,6 +388,12 @@ in
       # Default shell
       set-option -g default-shell /run/current-system/sw/bin/zsh
 
+      # Pass extended keys (CSI u / kitty protocol) through to apps, so e.g.
+      # Shift+Enter reaches Claude Code instead of being flattened to Enter.
+      # Ghostty presents as xterm-256color to tmux, hence the xterm* match.
+      set -s extended-keys on
+      set -as terminal-features 'xterm*:extkeys'
+
       # Remove Vim mode delays
       set -g focus-events on
 

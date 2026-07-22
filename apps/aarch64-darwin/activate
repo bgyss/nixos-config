@@ -22,4 +22,4 @@ sha="$(git -C "$FLAKE_DIR" rev-parse --verify "${rev_arg}^{commit}" 2>/dev/null)
 flake_ref="git+file://${FLAKE_DIR}?rev=${sha}&allRefs=1"
 
 warn "==> activating committed revision ${sha:0:7} (working-tree changes ignored)"
-exec sudo -H -- /run/current-system/sw/bin/darwin-rebuild switch --flake "$flake_ref"
+exec sudo -- /run/current-system/sw/bin/darwin-rebuild switch --flake "$flake_ref"

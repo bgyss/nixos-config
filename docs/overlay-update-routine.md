@@ -12,9 +12,10 @@ build, and commit. Originally written for the scheduled Claude Code overlay-upda
 bash scripts/check-overlay-versions.sh
 ```
 
-This queries GitHub Releases, go.dev, and PyPI and prints a table of `current` vs `latest`
-versions. If all packages are up to date the script exits 0 and you are done — nothing to
-commit.
+This queries GitHub Releases, go.dev, PyPI, GitHub commit history (for untagged repos like
+c4 and hey-cli), and the ngrok stable CDN binary itself, and prints a table of `current` vs
+`latest` versions. If all packages are up to date the script exits 0 and you are done —
+nothing to commit.
 
 If any packages are `OUTDATED`, continue to Step 2.
 
@@ -115,14 +116,26 @@ do NOT wait for the build to finish in a single session. Procedure:
 6. Update `vendorHash` with the printed `sha256-...` value.
 7. Commit: `overlays: update beads to vX.Y.Z`.
 
-**c4** (`overlays/56-c4.nix`): Tracks latest commit on master (no tags). Check for new
-commits:
+**c4** (`overlays/56-c4.nix`): Tracks latest commit on master (no tags). Step 1 already checks
+this automatically (`github-commits` method against `current_rev` in `updates.json`); if it
+reports outdated:
 ```bash
 curl -sf -H "Accept: application/vnd.github+json" \
   "https://api.github.com/repos/Avalanche-io/c4/commits/master" | jq -r '.sha'
 ```
 Update `rev`, the `version` date string (`0-unstable-YYYY-MM-DD`), and `hash`. Then blank
 `vendorHash` and get it from a build attempt (same as beads above, but using `56-c4.nix`).
+Also update `current_rev` in `overlays/updates.json` to the new full commit SHA.
+
+**hey-cli** (`overlays/94-hey-cli.nix`): Tracks latest commit on `main` (no tags). Step 1
+checks this the same way as c4 (`github-commits` against `current_rev`). If outdated:
+```bash
+curl -sf -H "Accept: application/vnd.github+json" \
+  "https://api.github.com/repos/basecamp/hey-cli/commits/main" | jq -r '.sha'
+```
+Update `rev`, the `version` date string (`0-unstable-YYYY-MM-DD`), and `hash`. Then blank
+`vendorHash` and get it from a build attempt (same pattern as beads/c4, using
+`94-hey-cli.nix`). Also update `current_rev` in `overlays/updates.json`.
 
 ---
 
@@ -152,11 +165,22 @@ auto-update without reading the overlay carefully.
 
 ---
 
-### Manual overlays — do not auto-update
+### Semi-automated overlays — detection is automatic, applying updates is not
 
 **ngrok** (`overlays/20-ngrok.nix`): Uses stable CDN URLs (`bin.equinox.io`) without versioned
-paths. Updating requires knowing the new version number from the ngrok website, then fetching
-6 platform hashes. Skip in automated runs.
+release pages, but the darwin-arm64 "stable" URL always serves the latest build. Step 1
+downloads it and runs `ngrok version` to detect the current upstream version automatically
+(`ngrok-binary` check method). If it reports outdated, update all 6 platform hashes:
+```bash
+for plat in linux-386 linux-amd64 linux-arm linux-arm64 darwin-amd64 darwin-arm64; do
+  ext=tgz; [[ "$plat" == darwin-* ]] && ext=zip
+  url="https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-${plat}.${ext}"
+  nix-prefetch-url --unpack "$url" 2>/dev/null | xargs nix hash convert --hash-algo sha256 --to sri
+done
+```
+Update the `version` and `sha256` fields for each platform entry in the overlay, and bump
+`current_version` in `overlays/updates.json`. Skip auto-applying in automated runs — do this
+step manually.
 
 **Skip list** (build fixes, not version-pinned — never modify in automated runs):
 - `10-feather-font.nix` — intentionally pinned to v1.0
