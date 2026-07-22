@@ -1,37 +1,11 @@
 #!/usr/bin/env bash
-# Full update workflow: update flake inputs, fix prebuilt-binary hashes, build-switch.
+# Convenience wrapper: the full update in one shot = prepare (propose) then
+# activate (switch). For agentic / unattended use prefer running the two halves
+# separately so the privileged switch consumes a reviewed, committed revision
+# (see apps/aarch64-darwin/{prepare,activate} and §5.4 of the config survey).
 set -euo pipefail
 
-FLAKE_DIR=""
-if FLAKE_DIR=$(nix registry list 2>/dev/null | awk '/flake:nixos-config/ {gsub(/^path:/, "", $3); print $3; exit}') && [[ -n "$FLAKE_DIR" ]]; then
-  :
-elif FLAKE_DIR=$(git rev-parse --show-toplevel 2>/dev/null) && [[ -f "$FLAKE_DIR/flake.nix" ]]; then
-  :
-else
-  echo "Error: cannot locate nixos-config repo. Register it with:" >&2
-  echo "  nix registry add nixos-config path:/path/to/nixos-config" >&2
-  exit 1
-fi
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-echo "==> nix flake update"
-nix flake update --flake "$FLAKE_DIR"
-
-echo ""
-echo "==> fix-hashes"
-"$FLAKE_DIR/apps/aarch64-darwin/fix-hashes"
-
-echo ""
-echo "==> commit changes"
-cd "$FLAKE_DIR"
-if ! git diff --quiet; then
-  git add flake.lock overlays/
-  git commit -m "flake.lock: Update" \
-    --author="$(git config user.name) <$(git config user.email)>"
-  echo "Committed flake.lock and overlay hash updates."
-else
-  echo "No changes to commit."
-fi
-
-echo ""
-echo "==> build-switch"
-exec sudo -H -- /run/current-system/sw/bin/darwin-rebuild switch --flake "$FLAKE_DIR" "$@"
+"$SCRIPT_DIR/prepare"
+exec "$SCRIPT_DIR/activate" HEAD

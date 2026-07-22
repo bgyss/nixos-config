@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+# Read-only preview (§5.3): show exactly what activating this config would do
+# — which launchd services / activation steps run — WITHOUT switching.
+# Wraps `darwin-rebuild build` then the activation script's dry-run.
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=/dev/null
+source "$SCRIPT_DIR/_common.sh"
+
+FLAKE_DIR="$(locate_flake)" || exit 1
+
+warn "==> darwin-rebuild build (no activation)"
+/run/current-system/sw/bin/darwin-rebuild build --flake "$FLAKE_DIR" "$@"
+
+warn "==> store closure diff (running system -> proposed)"
+nix store diff-closures /run/current-system ./result || true
+
+warn "==> dry activation (no changes applied)"
+# The built system's activate-user script supports a dry-run via the standard
+# activation entrypoint; fall back to just reporting the closure if unavailable.
+if [[ -x ./result/activate ]]; then
+  ./result/sw/bin/darwin-rebuild activate --dry-run --flake "$FLAKE_DIR" 2>/dev/null \
+    || warn "(this nix-darwin has no activate --dry-run; closure diff above is the preview)"
+fi
+
+rm -f ./result
+msg "Dry run complete. Nothing was activated."

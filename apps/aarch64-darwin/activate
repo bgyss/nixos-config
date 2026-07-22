@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+# "Activate" half of the update pipeline (§5.4): the single privileged step.
+# Consumes a SPECIFIC COMMITTED REVISION (default HEAD) rather than whatever is
+# in the working tree, so what gets activated is exactly what was reviewed.
+#
+# Usage: activate [<git-rev>]   (e.g. `nix run .#activate -- a1b2c3d`)
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=/dev/null
+source "$SCRIPT_DIR/_common.sh"
+
+FLAKE_DIR="$(locate_flake)" || exit 1
+
+rev_arg="${1:-HEAD}"
+sha="$(git -C "$FLAKE_DIR" rev-parse --verify "${rev_arg}^{commit}" 2>/dev/null)" || {
+  err "not a committed revision: ${rev_arg}"
+  exit 1
+}
+
+# Build the flake from that exact git revision (ignores uncommitted changes).
+flake_ref="git+file://${FLAKE_DIR}?rev=${sha}&allRefs=1"
+
+warn "==> activating committed revision ${sha:0:7} (working-tree changes ignored)"
+exec sudo -H -- /run/current-system/sw/bin/darwin-rebuild switch --flake "$flake_ref"

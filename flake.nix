@@ -158,6 +158,13 @@
           "check-keys" = mkApp "check-keys" system;
           "rollback" = mkApp "rollback" system;
           "fix-hashes" = mkApp "fix-hashes" system;
+          # Read-only previews (§5.3): show what a change WOULD do, no activation.
+          "diff" = mkApp "diff" system;
+          "dry-activate" = mkApp "dry-activate" system;
+          # Propose / activate split (§5.4): prepare builds+commits (unprivileged),
+          # activate switches to a specific committed revision (privileged).
+          "prepare" = mkApp "prepare" system;
+          "activate" = mkApp "activate" system;
           "update" = mkApp "update" system;
         };
     in

@@ -1,24 +1,41 @@
-#!/bin/sh -e
+#!/usr/bin/env bash
+# The agent's undo button (§5.5): roll the darwin system back to a previous
+# generation. Machine-invocable and idempotent.
+#
+# Usage:
+#   rollback                 roll back to the immediately-previous generation
+#   rollback <generation>    roll back to a specific generation number
+#   rollback --list          list generations and exit
+#
+# Idempotent: activating a generation that is already current is a no-op switch.
+# (Note: --switch-generation does not take --flake; it activates an existing
+# generation's store path directly.)
+set -euo pipefail
 
-GREEN='\033[1;32m'
-YELLOW='\033[1;33m'
-RED='\033[1;31m'
-NC='\033[0m'
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=/dev/null
+source "$SCRIPT_DIR/_common.sh"
 
-FLAKE="macos"
+darwin_rebuild=/run/current-system/sw/bin/darwin-rebuild
 
-echo "${YELLOW}Available generations:${NC}"
-/run/current-system/sw/bin/darwin-rebuild --list-generations
-
-echo "${YELLOW}Enter the generation number for rollback:${NC}"
-read GEN_NUM
-
-if [ -z "$GEN_NUM" ]; then
-  echo "${RED}No generation number entered. Aborting rollback.${NC}"
-  exit 1
+if [[ "${1:-}" == "--list" ]]; then
+  "$darwin_rebuild" --list-generations
+  exit 0
 fi
 
-echo "${YELLOW}Rolling back to generation $GEN_NUM...${NC}"
-/run/current-system/sw/bin/darwin-rebuild switch --flake .#$FLAKE --switch-generation $GEN_NUM
+if [[ -n "${1:-}" ]]; then
+  gen="$1"
+  [[ "$gen" =~ ^[0-9]+$ ]] || { err "generation must be a number (or --list); got: $gen"; exit 1; }
+  warn "==> rolling back to generation $gen"
+  exec sudo -H -- "$darwin_rebuild" switch --switch-generation "$gen"
+fi
 
-echo "${GREEN}Rollback to generation $GEN_NUM complete!${NC}"
+# No argument: the immediately-previous generation (second-newest in the list).
+prev=$("$darwin_rebuild" --list-generations \
+  | awk '{print $1}' | grep -E '^[0-9]+$' | sort -n | tail -2 | head -1)
+if [[ -z "$prev" ]]; then
+  err "no previous generation to roll back to"
+  exit 1
+fi
+warn "==> rolling back to previous generation $prev"
+exec sudo -H -- "$darwin_rebuild" switch --switch-generation "$prev"

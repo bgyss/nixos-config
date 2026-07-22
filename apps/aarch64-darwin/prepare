@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+# "Propose" half of the update pipeline (§5.4): update inputs, repair stale
+# prebuilt-binary hashes, BUILD the resulting system as evidence, and commit —
+# WITHOUT activating anything. Unprivileged; no sudo. The privileged switch is
+# a separate step (`activate`) that consumes the commit this produces.
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=/dev/null
+source "$SCRIPT_DIR/_common.sh"
+
+FLAKE_DIR="$(locate_flake)" || exit 1
+cd "$FLAKE_DIR"
+
+warn "==> nix flake update"
+nix flake update --flake "$FLAKE_DIR"
+
+warn "==> fix-hashes"
+"$SCRIPT_DIR/fix-hashes"
+
+warn "==> build ${FLAKE_SYSTEM_ATTR} (evidence; no activation)"
+nix build "${FLAKE_DIR}#${FLAKE_SYSTEM_ATTR}" --out-link ./result "$@"
+
+warn "==> closure diff (running system -> proposed)"
+nix store diff-closures /run/current-system ./result || true
+rm -f ./result
+
+warn "==> commit"
+if ! git diff --quiet || ! git diff --cached --quiet; then
+  git add flake.lock overlays/
+  git commit -m "flake.lock: Update" \
+    --author="$(git config user.name) <$(git config user.email)>"
+  msg "Committed. Proposed revision: $(git rev-parse --short HEAD)"
+  msg "Review the closure diff above, then activate with:"
+  msg "  nix run .#activate -- $(git rev-parse --short HEAD)"
+else
+  msg "No changes to commit; already up to date."
+fi
