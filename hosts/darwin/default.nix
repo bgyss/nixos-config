@@ -68,21 +68,8 @@
     StandardOutPath = "/tmp/emacs.out.log";
   };
 
-  # disabling to test Cline in vscode with deepseek r1
-  # launchd.user.agents.llama-server.serviceConfig = {
-  #   KeepAlive = true;
-  #   RunAtLoad = true;
-  #   ProgramArguments = [
-  #     "/bin/sh"
-  #     "-c"
-  #     "/bin/wait4path ${pkgs.llama-cpp}/bin/llama-server && exec ${pkgs.llama-cpp}/bin/llama-server -hf ggml-org/Qwen2.5-Coder-7B-Q8_0-GGUF --port 8012 -ngl 99 -fa -ub 1024 -b 1024 -dt 0.1 --ctx-size 0 --cache-reuse 256"
-  #   ];
-  #   StandardErrorPath = "/tmp/llama-server.err.log";
-  #   StandardOutPath = "/tmp/llama-server.out.log";
-  #   EnvironmentVariables = {
-  #     PATH = config.environment.systemPath;
-  #   };
-  # };
+  # To run a persistent local llama-server as a launchd agent, see the recipe
+  # in docs/recipes.md.
 
   system = {
     stateVersion = 4;

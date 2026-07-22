@@ -58,13 +58,6 @@ in
       ];
     };
 
-    # Update taps to use a list of strings
-    # taps = [
-    #   "homebrew/cask"
-    #   "homebrew/core"
-    #   "dagger/tap"
-    # ];
-
     global = {
       brewfile = true;
     };
@@ -72,21 +65,8 @@ in
     casks = pkgs.callPackage ./casks.nix { };
     brews = pkgs.callPackage ./brews.nix { };
 
-    # These app IDs are from using the mas CLI app
-    # mas = mac app store
-    # https://github.com/mas-cli/mas
-    #
-    # $ nix shell nixpkgs#mas
-    # $ mas search <app name>
-    #
-    # If you have previously added these apps to your Mac App Store profile (but not installed them on this system),
-    # you may receive an error message "Redownload Unavailable with This Apple ID".
-    # This message is safe to ignore. (https://github.com/dustinlyons/nixos-config/issues/83)
-    # masApps = {
-    #   "1password" = 1333542190;
-    #   "hidden-bar" = 1452453066;
-    #   "wireguard" = 1451685025;
-    # };
+    # To declare explicit taps or Mac App Store apps (masApps), see the recipes
+    # in docs/recipes.md.
   };
 
   # Enable home-manager
