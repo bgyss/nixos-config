@@ -10,9 +10,9 @@ let
   # instance and the one narrow nixpkgs-master instance below (F3).
   nixpkgsConfig = {
     allowUnfree = true;
-    allowBroken = true;
+    allowBroken = false;
     allowInsecure = false;
-    allowUnsupportedSystem = true;
+    allowUnsupportedSystem = false;
     permittedInsecurePackages = [
       "libtiff-4.0.3-opentoonz"
     ];

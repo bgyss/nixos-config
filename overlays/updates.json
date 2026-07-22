@@ -257,6 +257,10 @@
   ],
   "skip": [
     {
+      "file": "05-permit-marked-packages.nix",
+      "reason": "meta un-gate for lmstudio/wkhtmltopdf replacing global allowBroken/allowUnsupportedSystem (F10), not version-pinned"
+    },
+    {
       "file": "10-feather-font.nix",
       "reason": "intentionally pinned to v1.0 — do not bump"
     },
