@@ -1,0 +1,50 @@
+#!/usr/bin/env bash
+# launchd entrypoint: run prepare; notify only on a real proposed revision.
+# Never activates/switches the system — propose+notify only (§5.4). On a
+# prepare failure this notifies and leaves the tree exactly as prepare left
+# it (prepare itself only commits after a successful build, so a failure
+# here never leaves a bad commit behind).
+set -uo pipefail
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=/dev/null
+source "$SCRIPT_DIR/_common.sh"
+FLAKE_DIR="$(locate_flake)" || exit 1
+# shellcheck source=/dev/null
+source "$FLAKE_DIR/scripts/update-notify.sh"
+cd "$FLAKE_DIR"
+
+# launchd opens StandardOutPath/StandardErrorPath in append mode and reuses
+# the same two files for every daily invocation (see hosts/darwin/default.nix's
+# nixos-update-check agent) — with no rotation they'd grow unboundedly.
+# Truncate them at the start of each run instead: this script's own log
+# output is negligible per-run (prepare's own output is redirected to its own
+# separate /tmp/nixos-scheduled-check.log below, overwritten each run the
+# same way), so capping these to "this run only" loses nothing worth keeping
+# and needs no full logrotate setup. The paths are duplicated here
+# intentionally — keep them in sync with hosts/darwin/default.nix.
+: > /tmp/nixos-update-check.out.log 2>/dev/null || true
+: > /tmp/nixos-update-check.err.log 2>/dev/null || true
+
+before="$(git rev-parse HEAD 2>/dev/null)"; before_rc=$?
+"$SCRIPT_DIR/prepare" >/tmp/nixos-scheduled-check.log 2>&1
+prepare_rc=$?
+if [[ $prepare_rc -eq 0 ]]; then
+  after="$(git rev-parse HEAD 2>/dev/null)"; after_rc=$?
+  if [[ $before_rc -ne 0 || $after_rc -ne 0 ]]; then
+    # rev-parse itself failed (broken checkout, git missing, FLAKE_DIR not a
+    # repo, unborn HEAD, ...). NOTE: on failure `git rev-parse HEAD` still
+    # prints the literal string "HEAD" to stdout (not empty), so this must
+    # check the exit status, not just whether $before/$after are non-empty.
+    # Silence here would violate "stay silent only when nothing changed",
+    # since something is very much wrong with the environment.
+    notify "nixos-config update FAILED" "scheduled-check: could not determine git HEAD, check environment"
+  elif [[ "$before" != "$after" ]]; then
+    notify "nixos-config update" "revision ${after:0:7} ready — run 'nix run .#activate -- ${after:0:7}'"
+  fi
+elif [[ $prepare_rc -eq 2 ]]; then
+  # Lock contention (another prepare run already in progress, e.g. a manual
+  # one) — benign, not a failure. Stay silent; the other run owns reporting.
+  :
+else
+  notify "nixos-config update FAILED" "see /tmp/nixos-scheduled-check.log"
+fi

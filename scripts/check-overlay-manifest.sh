@@ -10,6 +10,7 @@
 #   * a manifest-referenced overlay/skip file does not exist on disk
 #   * a package's current_version string does not appear in its overlay file
 #   * a pinned_inputs[] entry is missing a required agent field
+#   * an inputs{} entry is missing both cadence_hours and on_demand:true
 set -euo pipefail
 
 ROOT="${1:-$(git rev-parse --show-toplevel)}"
@@ -66,6 +67,15 @@ done < <(
       | [ $e.name, join(",") ] | @tsv
   ' "$MANIFEST" | awk -F'\t' '$2 != ""'
 )
+
+# 6. Input cadence: each .inputs entry needs cadence_hours (int) or on_demand.
+while IFS= read -r name; do
+  [[ -z "$name" ]] && continue
+  ok="$(jq -r --arg n "$name" '
+    .inputs[$n] as $e
+    | (($e.cadence_hours|type=="number") or ($e.on_demand==true))' "$MANIFEST")"
+  [[ "$ok" == "true" ]] || err "inputs '$name' needs cadence_hours (number) or on_demand:true"
+done < <(jq -r '(.inputs // {}) | keys[]' "$MANIFEST")
 
 if [[ $fail -ne 0 ]]; then
   echo "overlay manifest consistency: FAILED" >&2

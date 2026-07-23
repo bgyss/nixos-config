@@ -242,26 +242,45 @@ Do not mix lock file updates with overlay version bumps.
 
 The repository includes a **smart incremental update system** that automates detection of
 changes in both overlays and flake inputs, respecting per-input update cadence and frozen
-`pinned_inputs[]`:
+`pinned_inputs[]` — but it only *auto-applies* flake-input movement. Overlay version bumps are
+always detected automatically but never auto-applied; you still run the manual routine above to
+actually bump one.
 
 - `nix run .#check` — read-only gate that probes upstream sources (GitHub, PyPI, etc.) and
   caches results in `.update-state.json` (a gitignored, deletable file). Reports which
-  packages have new versions available.
-- `nix run .#prepare` — now gates on `check`'s result and only rebuilds/commits if something
-  actually moved. Previously it always ran `nix flake update`, but now it respects cadence.
+  packages/inputs have new versions available. Never mutates anything.
+- `nix run .#prepare` — probes flake inputs and overlays, but **gates its build/commit
+  decision on flake-input movement only**. If a due flake input has actually moved upstream, it
+  updates just that input, builds the resulting system as evidence, and commits. If overlays
+  are outdated, `prepare` prints them (e.g. `overlays outdated (not auto-updated — see
+  docs/overlay-update-routine.md): claude-code, uv`) but takes no action on them — it never
+  calls `fix-hashes`, never rewrites an overlay `.nix` file, and never touches
+  `overlays/updates.json`. This is intentional: bumping a pinned overlay's version requires
+  rewriting the overlay's pinned version/hash *and* `updates.json`'s `current_version`
+  together (exactly what the manual routine above does) — auto-applying only the latter would
+  leave the manifest permanently lying about what's actually pinned, and would mask the
+  package as "up to date" on every subsequent probe without the underlying artifact ever
+  having changed. Use the manual routine above to actually bump an outdated overlay.
+- If `prepare` can't acquire its lock (another `prepare` run — manual or scheduled — is already
+  in progress), it exits with status `2` rather than the general failure status `1`.
+  `scheduled-check` (below) treats that specific exit code as benign lock contention and stays
+  silent, rather than sending a failure notification.
 - Per-input update cadence is configured in `overlays/updates.json` under `inputs.*`, e.g.:
   ```json
   "inputs": {
-    "nixpkgs": { "cadence": "monthly" },
-    "home-manager": { "cadence": "weekly" }
+    "nixpkgs": { "cadence_hours": 168 },
+    "home-manager": { "cadence_hours": 168 }
   }
   ```
 - `pinned_inputs[]` entries (e.g., `"nixpkgs"` today) are always frozen regardless of cadence
   and never auto-update.
-- A daily **launchd agent** (`nixos-update-check`) runs `scheduled-check`, which calls `check`
-  + notifies you via macOS notification, but never activates. You review and run
-  `nix run .#prepare && nix run .#activate -- <rev>` manually.
+- A daily **launchd agent** (`nixos-update-check`) runs `scheduled-check`, which runs `prepare`
+  itself (propose only: build + commit, no privileged switch) and notifies you via macOS
+  notification of the proposed revision, but never activates. You review and run
+  `nix run .#activate -- <rev>` manually.
 
-This design separates cheap, safe read-only checks from privileged system activation. The
-manual overlay update routine above still works unchanged — use it for emergency overrides or
-when you prefer direct control.
+This design separates cheap, safe read-only checks (and flake-input auto-updates, which are
+low-risk and easily reverted) from privileged system activation and from overlay version bumps
+(which require rewriting pinned hashes and so stay a deliberate, manual action). The manual
+overlay update routine above still works unchanged — it's the only way overlay bumps happen now,
+automated or not.

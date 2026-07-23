@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+# Read-only preview: what would `prepare`'s gate do right now? No mutations
+# beyond the state cache's observed-version timestamps. Never builds, never
+# updates the lock (uses probe report mode).
+set -euo pipefail
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=/dev/null
+source "$SCRIPT_DIR/_common.sh"
+FLAKE_DIR="$(locate_flake)" || exit 1
+# shellcheck source=/dev/null
+source "$FLAKE_DIR/scripts/update-state.sh"
+# shellcheck source=/dev/null
+source "$FLAKE_DIR/scripts/update-probe.sh"
+cd "$FLAKE_DIR"
+state_init
+
+warn "==> overlay probe"
+overlays_outdated="$(probe_overlays)"
+warn "==> flake-input probe (report only)"
+inputs_due="$(probe_flake_inputs report)"
+
+echo ""
+if [[ -z "$overlays_outdated" && -z "$inputs_due" ]]; then
+  msg "nothing to do — everything within cadence and up to date"
+else
+  if [[ -n "$overlays_outdated" ]]; then
+    msg "overlays outdated: $overlays_outdated"
+    msg "  (informational only — 'prepare' does not auto-bump overlays; see docs/overlay-update-routine.md)"
+  fi
+  if [[ -n "$inputs_due" ]]; then
+    msg "flake inputs to refresh: $inputs_due"
+    msg "run 'nix run .#prepare' to build + commit the proposed revision"
+  fi
+fi
+state_set_last_gate "$(now_iso)"

@@ -4,6 +4,9 @@
 # Exit code 1 if any package is OUTDATED; 0 if all up to date.
 set -euo pipefail
 
+JSON=0
+[[ "${1:-}" == "--json" ]] && JSON=1
+
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 MANIFEST="$REPO_ROOT/overlays/updates.json"
 
@@ -79,8 +82,12 @@ ngrok_stable_latest() {
 
 # ── Output ────────────────────────────────────────────────────────────────────
 
-printf '%-22s %-18s %-18s %s\n' "PACKAGE" "CURRENT" "LATEST" "STATUS"
-printf '%s\n' "$(printf '%.0s─' {1..72})"
+if [[ $JSON -eq 1 ]]; then
+  rows=()
+else
+  printf '%-22s %-18s %-18s %s\n' "PACKAGE" "CURRENT" "LATEST" "STATUS"
+  printf '%s\n' "$(printf '%.0s─' {1..72})"
+fi
 
 while IFS= read -r pkg; do
   name=$(    jq -r '.name'           <<<"$pkg")
@@ -153,12 +160,27 @@ while IFS= read -r pkg; do
     OUTDATED=$((OUTDATED + 1))
   fi
 
-  printf '%-22s %-18s %-18s %s\n' "$name" "$current" "$latest" "$status"
+  case "$status" in
+    *OUTDATED*) sc=OUTDATED; od=true ;;
+    *"up to date"*) sc=OK; od=false ;;
+    ERROR) sc=ERROR; od=false ;;
+    *) sc=MANUAL; od=false ;;
+  esac
+  if [[ $JSON -eq 1 ]]; then
+    rows+=("$(jq -nc --arg n "$name" --arg c "$current" --arg l "$latest" \
+      --arg s "$sc" --argjson o "$od" \
+      '{name:$n,current:$c,latest:($l|sub(" \\(commit\\)$";"")),outdated:$o,status:$s}')")
+  else
+    printf '%-22s %-18s %-18s %s\n' "$name" "$current" "$latest" "$status"
+  fi
 
 done < <(jq -c '.packages[]' "$MANIFEST")
 
-echo ""
-printf 'Summary: %d up to date  |  %d outdated  |  %d errors\n' \
-  "$UP_TO_DATE" "$OUTDATED" "$ERRORS"
-
+if [[ $JSON -eq 1 ]]; then
+  printf '%s\n' "$(printf '%s\n' "${rows[@]}" | jq -sc '.')"
+else
+  echo ""
+  printf 'Summary: %d up to date  |  %d outdated  |  %d errors\n' \
+    "$UP_TO_DATE" "$OUTDATED" "$ERRORS"
+fi
 [[ $OUTDATED -gt 0 ]] && exit 1 || exit 0

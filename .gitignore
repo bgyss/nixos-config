@@ -4,3 +4,7 @@ result-*
 
 # Local Claude Code tool settings (personal automation permissions, not part of the config)
 .claude/
+
+# Incremental-update state cache (non-authoritative)
+.update-state.json
+.update-state.json.lock.d/

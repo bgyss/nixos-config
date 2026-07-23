@@ -14,6 +14,10 @@ GREEN="$C_GREEN"; YELLOW="$C_YELLOW"; RED="$C_RED"; NC="$C_NC"
 FLAKE_DIR="$(locate_flake)" || exit 1
 OVERLAYS_DIR="$FLAKE_DIR/overlays"
 
+# Parse --only argument to filter to specific overlay names
+ONLY=""
+if [[ "${1:-}" == "--only" ]]; then ONLY="${2:-}"; shift 2 || true; fi
+
 total=0
 fixed=0
 errors=0
@@ -94,7 +98,36 @@ PINNED_OVERLAYS=(
 
 echo "Checking hashes in prebuilt-binary overlays (this downloads each artifact)..."
 echo ""
-for overlay in "${PINNED_OVERLAYS[@]}"; do
+
+# Build target overlay list based on --only filter
+declare -a TARGET_OVERLAYS
+if [[ -n "$ONLY" ]]; then
+  IFS=',' read -r -a names <<< "$ONLY"
+  for n in "${names[@]}"; do
+    file="$(jq -r --arg n "$n" \
+      '.packages[] | select(.name==$n) | .overlay' \
+      "$FLAKE_DIR/overlays/updates.json" | sed 's|overlays/||')"
+    if [[ -z "$file" ]]; then
+      warn "  (skip: '$n' not in updates.json)"; continue
+    fi
+    # Only re-hash overlays fix-hashes actually knows how to (prebuilt list).
+    found=0
+    for p in "${PINNED_OVERLAYS[@]}"; do
+      if [[ "$p" == "$file" ]]; then
+        TARGET_OVERLAYS+=("$file")
+        found=1
+        break
+      fi
+    done
+    if [[ $found -eq 0 ]]; then
+      warn "  (skip: '$n' -> '$file' not in PINNED_OVERLAYS)"
+    fi
+  done
+else
+  TARGET_OVERLAYS=("${PINNED_OVERLAYS[@]}")
+fi
+
+for overlay in "${TARGET_OVERLAYS[@]}"; do
   check_overlay "$overlay"
 done
 

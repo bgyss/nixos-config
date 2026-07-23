@@ -161,11 +161,18 @@
           # Read-only previews (§5.3): show what a change WOULD do, no activation.
           "diff" = mkApp "diff" system;
           "dry-activate" = mkApp "dry-activate" system;
+          # Read-only gate preview (Task 6): what would `prepare`'s overlay/input
+          # probes find right now? Never builds, never mutates the lock.
+          "check" = mkApp "check" system;
           # Propose / activate split (§5.4): prepare builds+commits (unprivileged),
           # activate switches to a specific committed revision (privileged).
           "prepare" = mkApp "prepare" system;
           "activate" = mkApp "activate" system;
           "update" = mkApp "update" system;
+          # Daily launchd entrypoint (Task 9): propose+notify only, never
+          # activates. Wired to `launchd.user.agents.nixos-update-check` in
+          # hosts/darwin/default.nix.
+          "scheduled-check" = mkApp "scheduled-check" system;
         };
 
       # NixOS hosts keyed by HOSTNAME, not by system string (F5). Keying by

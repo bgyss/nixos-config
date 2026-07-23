@@ -95,6 +95,39 @@
     StandardOutPath = "/tmp/emacs.out.log";
   };
 
+  # Daily "propose, never activate" update check (Task 9, §5.4/§5.5): runs
+  # `scheduled-check`, which runs `prepare` (unprivileged build+commit gated
+  # on actual overlay/input drift) and posts an osascript notification when a
+  # new revision lands or the run fails. Never invokes `activate`/`switch` —
+  # a human still reviews the closure diff and switches by hand.
+  #
+  # Deliberately an ABSOLUTE path into the live checkout rather than
+  # `nix run nixos-config#scheduled-check` via the flake registry: launchd
+  # user agents run with a minimal environment (bare NSGlobalDomain-ish
+  # PATH, no guarantee the interactive shell's `nix registry add` state is
+  # what a from-scratch agent process sees), and the rest of this file
+  # already hardcodes `/Users/${user}/...` for exactly this kind of
+  # environment-independence (see the ssh-key/aws-credentials paths above).
+  # `nix` itself is still invoked by absolute store path, same as the emacs
+  # agent does for `pkgs.emacs`.
+  launchd.user.agents.nixos-update-check.path = [ config.environment.systemPath ];
+  launchd.user.agents.nixos-update-check.serviceConfig = {
+    ProgramArguments = [
+      "/bin/sh"
+      "-c"
+      "exec ${pkgs.nix}/bin/nix run /Users/${user}/nixos-config#scheduled-check"
+    ];
+    StartCalendarInterval = [
+      {
+        Hour = 9;
+        Minute = 30;
+      }
+    ];
+    StandardErrorPath = "/tmp/nixos-update-check.err.log";
+    StandardOutPath = "/tmp/nixos-update-check.out.log";
+    RunAtLoad = false;
+  };
+
   # To run a persistent local llama-server as a launchd agent, see the recipe
   # in docs/recipes.md.
 

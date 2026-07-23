@@ -304,6 +304,12 @@
       "reason": "meta un-gate for lmstudio/wkhtmltopdf replacing global allowBroken/allowUnsupportedSystem (F10), not version-pinned"
     }
   ],
+  "inputs": {
+    "nixpkgs": { "cadence_hours": 168 },
+    "home-manager": { "cadence_hours": 168 },
+    "darwin": { "cadence_hours": 168 },
+    "secrets": { "cadence_hours": 0, "on_demand": true }
+  },
   "pinned_inputs": [
     {
       "name": "nixpkgs",

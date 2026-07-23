@@ -1,8 +1,17 @@
 #!/usr/bin/env bash
-# "Propose" half of the update pipeline (§5.4): update inputs, repair stale
-# prebuilt-binary hashes, BUILD the resulting system as evidence, and commit —
-# WITHOUT activating anything. Unprivileged; no sudo. The privileged switch is
-# a separate step (`activate`) that consumes the commit this produces.
+# "Propose" half of the update pipeline (§5.4): update flake inputs that are
+# due (respecting cadence/frozen pins), BUILD the resulting system as
+# evidence, and commit — WITHOUT activating anything. Unprivileged; no sudo.
+# The privileged switch is a separate step (`activate`) that consumes the
+# commit this produces.
+#
+# Overlay version bumps are NOT performed here: this script only reports
+# outdated overlays (informational) and never rewrites an overlay .nix or
+# overlays/updates.json. Bumping a pinned overlay version is a manual step —
+# see docs/overlay-update-routine.md — because it requires rewriting the
+# overlay's pinned version/hash AND updates.json's current_version together;
+# doing only the latter here previously produced silently-broken, falsely
+# "up to date" state (see git history / final review for details).
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -12,11 +21,42 @@ source "$SCRIPT_DIR/_common.sh"
 FLAKE_DIR="$(locate_flake)" || exit 1
 cd "$FLAKE_DIR"
 
-warn "==> nix flake update"
-nix flake update --flake "$FLAKE_DIR"
+# shellcheck source=/dev/null
+source "$FLAKE_DIR/scripts/update-state.sh"
+# shellcheck source=/dev/null
+source "$FLAKE_DIR/scripts/update-probe.sh"
+state_init
+# Lock contention is a distinct, benign exit (2): another `prepare` run
+# (manual or scheduled) is already in flight. `scheduled-check` treats this
+# specially — stay silent rather than fire a FAILED notification — so it
+# must never share exit code 1 with a genuine failure.
+if ! state_lock; then err "another update run holds the lock; aborting"; exit 2; fi
+trap 'state_unlock' EXIT
 
-warn "==> fix-hashes"
-"$SCRIPT_DIR/fix-hashes"
+warn "==> overlay probe"
+overlays_outdated="$(probe_overlays)"
+warn "==> flake-input probe (apply)"
+inputs_updated="$(probe_flake_inputs apply)"
+
+# Overlay version bumps are informational ONLY here — never gate the build
+# and never get auto-committed. Auto-bumping the pinned version requires
+# rewriting the overlay .nix's URL/hash AND updates.json's current_version
+# together (the existing manual routine in docs/overlay-update-routine.md);
+# doing only the latter previously left `updates.json` permanently lying
+# about what's actually pinned, which also masked the package as "up to
+# date" on every subsequent probe. See docs/overlay-update-routine.md.
+if [[ -n "$overlays_outdated" ]]; then
+  msg "overlays outdated (not auto-updated — see docs/overlay-update-routine.md): $overlays_outdated"
+fi
+
+# Gate on flake-input movement only; overlays never factor into build/commit.
+if ! gate_should_build "" "$inputs_updated"; then
+  msg "nothing to do — no flake input moved within cadence"
+  state_set_last_gate "$(now_iso)"
+  exit 0
+fi
+
+state_set_last_gate "$(now_iso)"
 
 warn "==> build ${FLAKE_SYSTEM_ATTR} (evidence; no activation)"
 nix build "${FLAKE_DIR}#${FLAKE_SYSTEM_ATTR}" --out-link ./result "$@"
@@ -27,7 +67,7 @@ rm -f ./result
 
 warn "==> commit"
 if ! git diff --quiet || ! git diff --cached --quiet; then
-  git add flake.lock overlays/
+  git add flake.lock
   git commit -m "flake.lock: Update" \
     --author="$(git config user.name) <$(git config user.email)>"
   msg "Committed. Proposed revision: $(git rev-parse --short HEAD)"

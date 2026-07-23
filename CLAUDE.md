@@ -44,22 +44,33 @@ Prebuilt-binary overlays (codex-openai, claude-code, uv, trailbase, igir, ngrok,
 derivation` error during `build-switch`, run `nix run .#fix-hashes` first.
 
 **Propose vs. activate (agentic).** `update` is now `prepare` + `activate HEAD`. For unattended
-/ agent operation, run the two halves separately: `nix run .#prepare` does the unprivileged
-flake-update → fix-hashes → **build (evidence)** → commit and prints a closure diff and the
-proposed revision; then `nix run .#activate -- <rev>` does the single privileged switch,
-consuming that *specific committed revision* rather than the working tree. Preview first with
-`nix run .#diff` / `nix run .#dry-activate` (both read-only, no activation).
+/ agent operation, run the two halves separately: `nix run .#prepare` probes flake inputs
+(respecting cadence/frozen pins), updates only the ones actually due → **build (evidence)** →
+commit, and prints a closure diff and the proposed revision (outdated overlays are reported but
+never auto-updated — see "Smart incremental updates" below); then `nix run .#activate -- <rev>`
+does the single privileged switch, consuming that *specific committed revision* rather than the
+working tree. Preview first with `nix run .#diff` / `nix run .#dry-activate` (both read-only, no
+activation).
 
 **Smart incremental updates (new).** `nix run .#check` is a read-only gate that previews what
 `prepare` would actually change — it probes each flake input and overlay against upstream,
 respecting per-input cadence and frozen `pinned_inputs[]`, caches the result in `.update-state.json`
 (a gitignored, deletable file), and reports which packages have real new versions available.
-`prepare` now builds only if something moved. Per-input update cadence is configured in
-`overlays/updates.json` under `inputs.*` (e.g., `"nixpkgs": {"cadence": "daily"}`) — `pinned_inputs[]`
-entries are always frozen regardless of cadence. A **daily launchd agent** (`nixos-update-check`)
-runs `scheduled-check`, which calls `check` + notifies you via macOS notification of pending
-updates, but **never activates** — you review and run `nix run .#prepare && nix run .#activate -- <rev>`
-manually. This design separates read-only checks (cheap, safe to automate) from privileged activation.
+`prepare` builds/commits only if a flake input actually moved (per its cadence) — overlay
+version bumps are reported informationally only and are **never** auto-applied by `prepare`;
+bumping a pinned overlay's version still requires the manual routine in
+[docs/overlay-update-routine.md](docs/overlay-update-routine.md) (it has to rewrite the
+overlay's pinned version/hash *and* `updates.json`'s `current_version` together — auto-doing
+only the latter previously left the manifest permanently lying about what's pinned). Per-input
+update cadence is configured in `overlays/updates.json` under `inputs.*` (e.g., `"nixpkgs":
+{"cadence_hours": 168}`) — `pinned_inputs[]` entries are always frozen regardless of cadence. A
+**daily launchd agent** (`nixos-update-check`) runs `scheduled-check`, which runs `prepare`
+itself (propose only: build + commit, no privileged switch) and notifies you via macOS
+notification of the proposed revision, but **never activates** — you review and run `nix run
+.#activate -- <rev>` manually. If `prepare` can't acquire its lock (another run already in
+progress) it exits 2 and `scheduled-check` stays silent rather than firing a failure
+notification. This design separates read-only checks (cheap, safe to automate) from privileged
+activation.
 
 **Checks / formatting.** `nix flake check` is the pass/fail gate: `treefmt` (nixfmt-rfc-style +
 statix + deadnix), `overlays-manifest` (`updates.json` ↔ overlays consistency, enforced by
