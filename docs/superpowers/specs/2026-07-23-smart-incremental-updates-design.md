@@ -119,10 +119,24 @@ successfully queried.
 
 ## Subsystem 2 — flake inputs (per-input cadence)
 
+### Interaction with existing `pinned_inputs[]`
+
+`overlays/updates.json` **already** has a `pinned_inputs[]` array that *freezes*
+specific flake inputs to a commit (currently `nixpkgs`, pinned to
+`af45a5c7…` because of a libxml2 CVE-patch OOM in newer nixpkgs, with an
+`unpin_when` condition). A frozen input must **never** be auto-updated by the
+probe, regardless of any cadence — the pin wins. The probe treats every input
+named in `pinned_inputs[]` as hard-frozen (skip, always), independent of the
+`inputs` cadence table below. This is the highest-priority rule in the
+flake-input subsystem.
+
 ### Cadence policy in `updates.json`
 
-Add a top-level `inputs` object to `overlays/updates.json` (the single manifest;
-`overlays-manifest` check may need a tolerance for the new key):
+Add a top-level `inputs` object to `overlays/updates.json` (the single
+manifest). It coexists with `pinned_inputs[]`: `pinned_inputs[]` says *never
+touch*, `inputs` says *how often to check the ones that aren't frozen*. Because
+nixpkgs is currently frozen, its cadence entry is inert until unpinned — but is
+declared so the policy is correct the moment the pin is lifted:
 
 ```json
 {
@@ -146,6 +160,8 @@ Add a top-level `inputs` object to `overlays/updates.json` (the single manifest;
 
 For each input in `flake.lock`:
 
+0. **Frozen gate** — if the input appears in `pinned_inputs[]`, skip
+   unconditionally. Never auto-update a frozen input.
 1. **Cadence gate** — if `state.inputs.<name>.updated_at + cadence_hours` has not
    elapsed, skip. (`on_demand` inputs always skip here.)
 2. **Movement check** — for a due input, compare the **locked rev**
@@ -239,8 +255,11 @@ Notification mechanism: `osascript -e 'display notification "…" with title "�
   `modules/darwin/`.
 
 Each phase keeps `nix fmt` clean and `nix flake check` green
-(`treefmt` + `overlays-manifest` + `darwin-build`); the `overlays-manifest`
-check is updated to accept the new `inputs` key.
+(`treefmt` + `overlays-manifest` + `darwin-build`). The `overlays-manifest`
+check (`scripts/check-overlay-manifest.sh`) does not reject unknown top-level
+keys, so adding `inputs` won't break it; the plan adds *positive* validation of
+the new `inputs` key (each entry has `cadence_hours` or `on_demand`) to keep the
+manifest invariant strong, mirroring the existing `pinned_inputs[]` validation.
 
 ## Out of scope (YAGNI)
 
