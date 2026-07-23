@@ -20,6 +20,7 @@ nix run .#rollback       # Rollback: `rollback [<gen>|--list]` (idempotent, macO
 nix run .#update         # Full update: prepare (build+commit) then activate HEAD
 
 # Preview / propose / activate (agent-friendly; see "Update Workflow" below)
+nix run .#check          # Read-only: preview what `prepare` would change (incremental gating)
 nix run .#diff           # Read-only: build the config + show the closure delta
 nix run .#dry-activate   # Read-only: what activation would do, without switching
 nix run .#prepare        # Propose: flake update → fix-hashes → build → commit (no sudo)
@@ -48,6 +49,17 @@ flake-update → fix-hashes → **build (evidence)** → commit and prints a clo
 proposed revision; then `nix run .#activate -- <rev>` does the single privileged switch,
 consuming that *specific committed revision* rather than the working tree. Preview first with
 `nix run .#diff` / `nix run .#dry-activate` (both read-only, no activation).
+
+**Smart incremental updates (new).** `nix run .#check` is a read-only gate that previews what
+`prepare` would actually change — it probes each flake input and overlay against upstream,
+respecting per-input cadence and frozen `pinned_inputs[]`, caches the result in `.update-state.json`
+(a gitignored, deletable file), and reports which packages have real new versions available.
+`prepare` now builds only if something moved. Per-input update cadence is configured in
+`overlays/updates.json` under `inputs.*` (e.g., `"nixpkgs": {"cadence": "daily"}`) — `pinned_inputs[]`
+entries are always frozen regardless of cadence. A **daily launchd agent** (`nixos-update-check`)
+runs `scheduled-check`, which calls `check` + notifies you via macOS notification of pending
+updates, but **never activates** — you review and run `nix run .#prepare && nix run .#activate -- <rev>`
+manually. This design separates read-only checks (cheap, safe to automate) from privileged activation.
 
 **Checks / formatting.** `nix flake check` is the pass/fail gate: `treefmt` (nixfmt-rfc-style +
 statix + deadnix), `overlays-manifest` (`updates.json` ↔ overlays consistency, enforced by

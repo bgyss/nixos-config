@@ -235,3 +235,33 @@ nix flake update
 Commit with: `flake.lock: Update`
 
 Do not mix lock file updates with overlay version bumps.
+
+---
+
+## Smart Incremental Updates (Automated)
+
+The repository includes a **smart incremental update system** that automates detection of
+changes in both overlays and flake inputs, respecting per-input update cadence and frozen
+`pinned_inputs[]`:
+
+- `nix run .#check` — read-only gate that probes upstream sources (GitHub, PyPI, etc.) and
+  caches results in `.update-state.json` (a gitignored, deletable file). Reports which
+  packages have new versions available.
+- `nix run .#prepare` — now gates on `check`'s result and only rebuilds/commits if something
+  actually moved. Previously it always ran `nix flake update`, but now it respects cadence.
+- Per-input update cadence is configured in `overlays/updates.json` under `inputs.*`, e.g.:
+  ```json
+  "inputs": {
+    "nixpkgs": { "cadence": "monthly" },
+    "home-manager": { "cadence": "weekly" }
+  }
+  ```
+- `pinned_inputs[]` entries (e.g., `"nixpkgs"` today) are always frozen regardless of cadence
+  and never auto-update.
+- A daily **launchd agent** (`nixos-update-check`) runs `scheduled-check`, which calls `check`
+  + notifies you via macOS notification, but never activates. You review and run
+  `nix run .#prepare && nix run .#activate -- <rev>` manually.
+
+This design separates cheap, safe read-only checks from privileged system activation. The
+manual overlay update routine above still works unchanged — use it for emergency overrides or
+when you prefer direct control.
