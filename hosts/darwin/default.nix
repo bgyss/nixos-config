@@ -123,8 +123,11 @@
         Minute = 30;
       }
     ];
-    StandardErrorPath = "/tmp/nixos-update-check.err.log";
-    StandardOutPath = "/tmp/nixos-update-check.out.log";
+    # Logs live inside the repo (gitignored under logs/) rather than /tmp so
+    # they survive reboots/tmp-cleanup and are easy to check from the config
+    # checkout itself.
+    StandardErrorPath = "/Users/${user}/nixos-config/logs/nixos-update-check.err.log";
+    StandardOutPath = "/Users/${user}/nixos-config/logs/nixos-update-check.out.log";
     RunAtLoad = false;
   };
 

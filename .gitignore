@@ -8,3 +8,8 @@ result-*
 # Incremental-update state cache (non-authoritative)
 .update-state.json
 .update-state.json.lock.d/
+
+# Launchd/scheduled-update runtime logs (kept in-repo so they're easy to
+# check, but not tracked content — directory itself is kept via .gitkeep)
+logs/*
+!logs/.gitkeep
