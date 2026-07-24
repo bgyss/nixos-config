@@ -19,7 +19,7 @@ let
     nodejs
     makeWrapper
     ;
-  version = "2.1132.1";
+  version = "2.1133.0";
 in
 {
   aws-cdk-cli = stdenvNoCC.mkDerivation {
@@ -28,7 +28,7 @@ in
 
     src = fetchurl {
       url = "https://registry.npmjs.org/aws-cdk/-/aws-cdk-${version}.tgz";
-      sha256 = "sha256-bGWJ6zvahmaH3ZVDJidXADqtbwP3Zp4/HlRKfJqc7sY=";
+      sha256 = "sha256-JtKOHzDXwbd21gQ13+XVbyaVye/SOagCtI2eCgiUIyo=";
     };
 
     sourceRoot = "package";

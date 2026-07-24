@@ -80,7 +80,7 @@
     {
       "name": "uv",
       "overlay": "overlays/25-uv.nix",
-      "current_version": "0.11.31",
+      "current_version": "0.11.32",
       "check": {
         "method": "github-release",
         "repo": "astral-sh/uv"
@@ -224,7 +224,7 @@
     {
       "name": "aws-cdk-cli",
       "overlay": "overlays/95-aws-cdk-cli.nix",
-      "current_version": "2.1132.1",
+      "current_version": "2.1133.0",
       "check": {
         "method": "npm",
         "package": "aws-cdk"
@@ -305,10 +305,19 @@
     }
   ],
   "inputs": {
-    "nixpkgs": { "cadence_hours": 168 },
-    "home-manager": { "cadence_hours": 168 },
-    "darwin": { "cadence_hours": 168 },
-    "secrets": { "cadence_hours": 0, "on_demand": true }
+    "nixpkgs": {
+      "cadence_hours": 168
+    },
+    "home-manager": {
+      "cadence_hours": 168
+    },
+    "darwin": {
+      "cadence_hours": 168
+    },
+    "secrets": {
+      "cadence_hours": 0,
+      "on_demand": true
+    }
   },
   "pinned_inputs": [
     {

@@ -4,6 +4,12 @@ Goal: check all version-pinned overlays for new upstream releases, apply updates
 build, and commit. Originally written for the scheduled Claude Code overlay-update routine
 (see [AGENTS.md](../AGENTS.md)), but equally useful as a manual reference.
 
+**Packages in the automated subset can be bumped with `nix run
+.#bump-overlays` instead of following this by hand** — see
+[docs/overlay-bump-tutorial.md](overlay-bump-tutorial.md) for which
+packages qualify. This document remains the source of truth for every
+pinned overlay, including the ones `bump-overlays` doesn't touch.
+
 ---
 
 ## Step 1 — Run the version check

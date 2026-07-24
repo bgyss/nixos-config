@@ -1,0 +1,340 @@
+#!/usr/bin/env bash
+# Mechanically apply version bumps for overlays where doing so is a pure,
+# verifiable value substitution: fetch a new hash, substitute a literal
+# value, verify with a scoped build, commit. Everything else — mise,
+# yt-dlp, ngrok, tmux, and `go` on a minor-version bump — stays manual.
+# See docs/overlay-bump-tutorial.md and docs/overlay-update-routine.md.
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=/dev/null
+source "$SCRIPT_DIR/_common.sh"
+FLAKE_DIR="$(locate_flake)" || exit 1
+# shellcheck source=/dev/null
+source "$FLAKE_DIR/scripts/update-state.sh"
+cd "$FLAKE_DIR"
+
+MANIFEST="$FLAKE_DIR/overlays/updates.json"
+
+DRY_RUN=0
+ONLY=""
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --dry-run) DRY_RUN=1; shift ;;
+    --only) ONLY="${2:-}"; shift 2 ;;
+    *) err "unknown argument: $1"; exit 1 ;;
+  esac
+done
+
+# Overlay update_types this script knows how to bump mechanically via
+# version-substitution + `fix-hashes --only` (Task 3).
+MECHANICAL_TYPES=("prebuilt-binary" "prebuilt-binary-multiplatform" "prebuilt-npm")
+# Packages with bespoke go-source handling (Task 4), regardless of update_type.
+GOSRC_NAMES=("beads" "c4" "hey-cli")
+
+# Substitute the literal `version = "OLD";` assignment for `version = "NEW";`.
+# Aborts (prints to stderr, returns 1) unless exactly one such assignment is
+# found — never guesses, never touches comment text that happens to mention
+# the version number (e.g. 55-go.nix's header comment).
+bump_version_string() {
+  local file="$1" old="$2" new="$3"
+  python3 - "$file" "$old" "$new" <<'PYEOF'
+import re, sys
+path, old, new = sys.argv[1], sys.argv[2], sys.argv[3]
+text = open(path).read()
+pattern = re.compile(r'(version\s*=\s*")' + re.escape(old) + r'(")')
+matches = list(pattern.finditer(text))
+if len(matches) != 1:
+    print(f"expected exactly 1 version assignment matching {old!r} in {path}, found {len(matches)}", file=sys.stderr)
+    sys.exit(1)
+open(path, "w").write(pattern.sub(r'\g<1>' + new + r'\g<2>', text))
+PYEOF
+}
+
+bump_mechanical() {
+  local name="$1" new_version="$2"
+  local overlay_rel overlay_file current_version
+  overlay_rel="$(jq -r --arg n "$name" '.packages[] | select(.name==$n) | .overlay' "$MANIFEST")"
+  overlay_file="$FLAKE_DIR/$overlay_rel"
+  current_version="$(jq -r --arg n "$name" '.packages[] | select(.name==$n) | .current_version' "$MANIFEST")"
+
+  msg "-- $name: $current_version -> $new_version"
+
+  if ! bump_version_string "$overlay_file" "$current_version" "$new_version"; then
+    err "  version substitution failed, leaving $overlay_rel untouched"
+    return 1
+  fi
+
+  if ! bash "$SCRIPT_DIR/fix-hashes" --only "$name" >/tmp/bump-overlays-fixhashes.$$.log 2>&1; then
+    err "  fix-hashes --only $name failed:"
+    cat /tmp/bump-overlays-fixhashes.$$.log >&2
+    rm -f /tmp/bump-overlays-fixhashes.$$.log
+    git checkout -- "$overlay_rel"
+    return 1
+  fi
+  rm -f /tmp/bump-overlays-fixhashes.$$.log
+
+  if ! nix build --no-link --impure --expr \
+      "let pkgs = import <nixpkgs> { overlays = [ (import ./$overlay_rel) ]; }; in pkgs.${name}" \
+      >/tmp/bump-overlays-build.$$.log 2>&1; then
+    err "  verification build failed:"
+    tail -30 /tmp/bump-overlays-build.$$.log >&2
+    rm -f /tmp/bump-overlays-build.$$.log
+    git checkout -- "$overlay_rel"
+    return 1
+  fi
+  rm -f /tmp/bump-overlays-build.$$.log
+
+  jq --arg n "$name" --arg v "$new_version" \
+    '(.packages[] | select(.name==$n) | .current_version) = $v' \
+    "$MANIFEST" > "$MANIFEST.tmp" && mv "$MANIFEST.tmp" "$MANIFEST"
+
+  git add "$overlay_rel" "$MANIFEST"
+  git -c core.hooksPath=/dev/null commit -q -m "overlays: update $name to v$new_version"
+  msg "  committed: overlays: update $name to v$new_version"
+  return 0
+}
+
+# Substitute a single anchored `field = "OLD";` assignment. Same
+# exactly-one-match safety net as bump_version_string, generalized to any
+# field name (used for `hash`, `rev`, `vendorHash`).
+bump_field_string() {
+  local file="$1" field="$2" old="$3" new="$4"
+  python3 - "$file" "$field" "$old" "$new" <<'PYEOF'
+import re, sys
+path, field, old, new = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4]
+text = open(path).read()
+pattern = re.compile(re.escape(field) + r'(\s*=\s*")' + re.escape(old) + r'(")')
+matches = list(pattern.finditer(text))
+if len(matches) != 1:
+    print(f"expected exactly 1 {field!r} assignment matching {old!r} in {path}, found {len(matches)}", file=sys.stderr)
+    sys.exit(1)
+open(path, "w").write(pattern.sub(field + r'\g<1>' + new + r'\g<2>', text))
+PYEOF
+}
+
+# vendorHash is sometimes `null` (bare, unquoted) rather than a string (c4's
+# current state) — normalize it to an empty string first so bump_field_string
+# has a quoted literal to anchor on.
+normalize_vendor_hash_to_blank() {
+  local file="$1"
+  python3 - "$file" <<'PYEOF'
+import re, sys
+path = sys.argv[1]
+text = open(path).read()
+text, n = re.subn(r'vendorHash\s*=\s*null\s*;', 'vendorHash = "";', text)
+if n == 0:
+    text, n2 = re.subn(r'vendorHash\s*=\s*"[^"]*"\s*;', 'vendorHash = "";', text)
+    if n2 != 1:
+        print(f"expected exactly 1 vendorHash assignment in {path}, found {n2}", file=sys.stderr)
+        sys.exit(1)
+open(path, "w").write(text)
+PYEOF
+}
+
+resolve_vendor_hash() {
+  local overlay_rel="$1" name="$2" got
+  got="$(nix build --no-link --impure --expr \
+    "let pkgs = import <nixpkgs> { overlays = [ (import ./$overlay_rel) ]; }; in pkgs.${name}" \
+    2>&1 | grep 'got:' | awk '{print $2}' | head -1)"
+  [[ -n "$got" ]] || return 1
+  printf '%s' "$got"
+}
+
+github_full_sha() {
+  local repo="$1" branch="$2"
+  curl -sf --max-time 15 -H 'Accept: application/vnd.github+json' \
+    "https://api.github.com/repos/${repo}/commits/${branch}" 2>/dev/null \
+    | jq -r '.sha // empty'
+}
+
+bump_gosource() {
+  local name="$1"
+  local overlay_rel overlay_file
+  overlay_rel="$(jq -r --arg n "$name" '.packages[] | select(.name==$n) | .overlay' "$MANIFEST")"
+  overlay_file="$FLAKE_DIR/$overlay_rel"
+
+  local new_version new_hash_url current_version current_rev new_rev
+  local check_method repo branch
+  check_method="$(jq -r --arg n "$name" '.packages[] | select(.name==$n) | .check.method' "$MANIFEST")"
+  repo="$(jq -r --arg n "$name" '.packages[] | select(.name==$n) | .check.repo' "$MANIFEST")"
+  current_version="$(jq -r --arg n "$name" '.packages[] | select(.name==$n) | .current_version' "$MANIFEST")"
+
+  if [[ "$check_method" == "github-release" ]]; then
+    # beads: tag-based release.
+    new_version="$(echo "$json" | jq -r --arg n "$name" '.[] | select(.name==$n) | .latest')"
+    new_hash_url="https://github.com/${repo}/archive/refs/tags/v${new_version}.tar.gz"
+    msg "-- $name: $current_version -> $new_version"
+    bump_version_string "$overlay_file" "$current_version" "$new_version" || return 1
+  else
+    # c4 / hey-cli: commit-tracked, no tags.
+    branch="$(jq -r --arg n "$name" '.packages[] | select(.name==$n) | .check.branch' "$MANIFEST")"
+    current_rev="$(jq -r --arg n "$name" '.packages[] | select(.name==$n) | .current_rev' "$MANIFEST")"
+    new_rev="$(github_full_sha "$repo" "$branch")"
+    if [[ -z "$new_rev" ]]; then
+      err "  could not fetch latest commit SHA for $repo@$branch"
+      return 1
+    fi
+    if [[ "$new_rev" == "$current_rev" ]]; then
+      msg "-- $name: already at latest commit ($current_rev), nothing to do"
+      return 0
+    fi
+    new_version="0-unstable-$(date -u +%Y-%m-%d)"
+    new_hash_url="https://github.com/${repo}/archive/${new_rev}.tar.gz"
+    msg "-- $name: $current_rev -> $new_rev ($current_version -> $new_version)"
+    bump_field_string "$overlay_file" "rev" "$current_rev" "$new_rev" || return 1
+    bump_version_string "$overlay_file" "$current_version" "$new_version" || { git checkout -- "$overlay_rel"; return 1; }
+  fi
+
+  local current_src_hash new_src_hash_raw new_src_hash
+  current_src_hash="$(python3 -c '
+import re, sys
+text = open(sys.argv[1]).read()
+m = re.search(r"fetchFromGitHub\s*\{[^}]*?hash\s*=\s*\"([^\"]+)\"", text, re.DOTALL)
+print(m.group(1) if m else "")
+' "$overlay_file")"
+  if [[ -z "$current_src_hash" ]]; then
+    err "  could not locate current fetchFromGitHub hash in $overlay_rel"
+    git checkout -- "$overlay_rel"
+    return 1
+  fi
+  new_src_hash_raw="$(nix-prefetch-url --unpack "$new_hash_url" 2>/dev/null)" || {
+    err "  nix-prefetch-url failed for $new_hash_url"
+    git checkout -- "$overlay_rel"
+    return 1
+  }
+  new_src_hash="$(nix hash convert --hash-algo sha256 --to sri "$new_src_hash_raw")" || {
+    err "  nix hash convert failed for $new_src_hash_raw"
+    git checkout -- "$overlay_rel"
+    return 1
+  }
+  bump_field_string "$overlay_file" "hash" "$current_src_hash" "$new_src_hash" || { git checkout -- "$overlay_rel"; return 1; }
+
+  normalize_vendor_hash_to_blank "$overlay_file" || { git checkout -- "$overlay_rel"; return 1; }
+  local vendor_hash
+  vendor_hash="$(resolve_vendor_hash "$overlay_rel" "$name")"
+  if [[ -z "$vendor_hash" ]]; then
+    err "  could not resolve vendorHash from build error for $name"
+    git checkout -- "$overlay_rel"
+    return 1
+  fi
+  bump_field_string "$overlay_file" "vendorHash" "" "$vendor_hash" || { git checkout -- "$overlay_rel"; return 1; }
+
+  if ! nix build --no-link --impure --expr \
+      "let pkgs = import <nixpkgs> { overlays = [ (import ./$overlay_rel) ]; }; in pkgs.${name}" \
+      >/tmp/bump-overlays-gosrc.$$.log 2>&1; then
+    err "  verification build failed after vendorHash resolution:"
+    tail -30 /tmp/bump-overlays-gosrc.$$.log >&2
+    rm -f /tmp/bump-overlays-gosrc.$$.log
+    git checkout -- "$overlay_rel"
+    return 1
+  fi
+  rm -f /tmp/bump-overlays-gosrc.$$.log
+
+  jq --arg n "$name" --arg v "$new_version" \
+    '(.packages[] | select(.name==$n) | .current_version) = $v' \
+    "$MANIFEST" > "$MANIFEST.tmp" && mv "$MANIFEST.tmp" "$MANIFEST"
+  if [[ "$check_method" != "github-release" ]]; then
+    jq --arg n "$name" --arg r "$new_rev" \
+      '(.packages[] | select(.name==$n) | .current_rev) = $r' \
+      "$MANIFEST" > "$MANIFEST.tmp" && mv "$MANIFEST.tmp" "$MANIFEST"
+  fi
+
+  git add "$overlay_rel" "$MANIFEST"
+  git -c core.hooksPath=/dev/null commit -q -m "overlays: update $name to v$new_version"
+  msg "  committed: overlays: update $name to v$new_version"
+  return 0
+}
+
+# Precondition: never mix with in-progress manual edits.
+if [[ -n "$(git status --porcelain -- overlays/)" ]]; then
+  err "overlays/ has uncommitted changes — commit or stash before running bump-overlays"
+  exit 1
+fi
+
+# ── Detect ──────────────────────────────────────────────────────────────────
+json="$(bash "$FLAKE_DIR/scripts/check-overlay-versions.sh" --json)" || true
+
+declare -a MECH_NAMES=() MECH_VERSIONS=()
+declare -a GOSRC_NAMES_TARGET=()
+declare -a SKIPPED_NAMES=() SKIPPED_REASONS=()
+
+while IFS=$'\t' read -r name latest; do
+  [[ -z "$name" ]] && continue
+  if [[ -n "$ONLY" ]] && [[ ",$ONLY," != *",$name,"* ]]; then
+    continue
+  fi
+  update_type="$(jq -r --arg n "$name" '.packages[] | select(.name==$n) | .update_type' "$MANIFEST")"
+  is_gosrc=0
+  for g in "${GOSRC_NAMES[@]}"; do [[ "$g" == "$name" ]] && is_gosrc=1 && break; done
+
+  if [[ $is_gosrc -eq 1 ]]; then
+    GOSRC_NAMES_TARGET+=("$name")
+  elif [[ "$name" == "go" ]]; then
+    current="$(jq -r --arg n "$name" '.packages[] | select(.name==$n) | .current_version' "$MANIFEST")"
+    cur_mm="${current%.*}"; new_mm="${latest%.*}"
+    if [[ "$cur_mm" != "$new_mm" ]]; then
+      SKIPPED_NAMES+=("$name"); SKIPPED_REASONS+=("minor/major version change ($current -> $latest) needs manual go_1_XX attribute rename")
+      continue
+    fi
+    MECH_NAMES+=("$name"); MECH_VERSIONS+=("$latest")
+  else
+    is_mech=0
+    for t in "${MECHANICAL_TYPES[@]}"; do [[ "$t" == "$update_type" ]] && is_mech=1 && break; done
+    if [[ $is_mech -eq 1 ]]; then
+      MECH_NAMES+=("$name"); MECH_VERSIONS+=("$latest")
+    else
+      SKIPPED_NAMES+=("$name"); SKIPPED_REASONS+=("update_type '$update_type' not automated — see docs/overlay-update-routine.md")
+    fi
+  fi
+done < <(echo "$json" | jq -r '.[] | select(.outdated) | "\(.name)\t\(.latest)"')
+
+if [[ ${#MECH_NAMES[@]} -eq 0 && ${#GOSRC_NAMES_TARGET[@]} -eq 0 ]]; then
+  msg "Nothing to bump."
+  if [[ ${#SKIPPED_NAMES[@]} -gt 0 ]]; then
+    warn "Outdated but not automated:"
+    for i in "${!SKIPPED_NAMES[@]}"; do
+      warn "  ${SKIPPED_NAMES[$i]}: ${SKIPPED_REASONS[$i]}"
+    done
+  fi
+  exit 0
+fi
+
+msg "Planned mechanical bumps: ${MECH_NAMES[*]:-none}"
+msg "Planned go-source bumps: ${GOSRC_NAMES_TARGET[*]:-none}"
+if [[ ${#SKIPPED_NAMES[@]} -gt 0 ]]; then
+  warn "Skipped (not automated):"
+  for i in "${!SKIPPED_NAMES[@]}"; do
+    warn "  ${SKIPPED_NAMES[$i]}: ${SKIPPED_REASONS[$i]}"
+  done
+fi
+
+if [[ $DRY_RUN -eq 1 ]]; then
+  msg "--dry-run: no files touched, nothing built, nothing committed."
+  exit 0
+fi
+
+BUMPED=() FAILED=()
+
+# Task 3 fills in bump_mechanical(); Task 4 fills in bump_gosource().
+for i in "${!MECH_NAMES[@]}"; do
+  name="${MECH_NAMES[$i]}"; new_version="${MECH_VERSIONS[$i]}"
+  if declare -F bump_mechanical >/dev/null && bump_mechanical "$name" "$new_version"; then
+    BUMPED+=("$name")
+  else
+    FAILED+=("$name")
+  fi
+done
+for name in "${GOSRC_NAMES_TARGET[@]}"; do
+  if declare -F bump_gosource >/dev/null && bump_gosource "$name"; then
+    BUMPED+=("$name")
+  else
+    FAILED+=("$name")
+  fi
+done
+
+echo ""
+msg "Bumped: ${#BUMPED[@]} (${BUMPED[*]:-none})"
+[[ ${#FAILED[@]} -gt 0 ]] && err "Failed: ${#FAILED[@]} (${FAILED[*]}) — see docs/overlay-update-routine.md"
+msg "Skipped: ${#SKIPPED_NAMES[@]} (${SKIPPED_NAMES[*]:-none})"
+[[ ${#FAILED[@]} -eq 0 ]]

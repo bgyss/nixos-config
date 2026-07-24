@@ -120,7 +120,7 @@
             #!/usr/bin/env bash
             PATH=${nixpkgs.legacyPackages.${system}.git}/bin:$PATH
             echo "Running ${scriptName} for ${system}"
-            exec ${self}/apps/${system}/${scriptName}
+            exec ${self}/apps/${system}/${scriptName} "$@"
           '')
         }/bin/${scriptName}";
       };
@@ -158,6 +158,10 @@
           "check-keys" = mkApp "check-keys" system;
           "rollback" = mkApp "rollback" system;
           "fix-hashes" = mkApp "fix-hashes" system;
+          # Mechanical overlay version bumps (fetch + substitute + verify +
+          # commit) for the subset where that's fully safe — see
+          # docs/overlay-bump-tutorial.md. Everything else stays manual.
+          "bump-overlays" = mkApp "bump-overlays" system;
           # Read-only previews (§5.3): show what a change WOULD do, no activation.
           "diff" = mkApp "diff" system;
           "dry-activate" = mkApp "dry-activate" system;

@@ -24,7 +24,7 @@ errors=0
 
 # Extract (url, hash) pairs from a nix overlay file.
 # Handles both `hash = "sha256-..."` and `sha256 = "sha256-..."` attribute names.
-# Substitutes the `version` Nix variable into URLs (e.g. ${version} -> "1.2.3").
+# Substitutes the `version` and `base` Nix variables into URLs (e.g. ${version} -> "1.2.3").
 extract_pairs() {
   python3 - "$1" <<'PYEOF'
 import re, sys
@@ -34,10 +34,17 @@ text = open(sys.argv[1]).read()
 version_match = re.search(r'\bversion\s*=\s*"([^"]+)"', text)
 version = version_match.group(1) if version_match else ""
 
+# Resolve the `base` variable so URLs like ${base}/... become concrete.
+base_match = re.search(r'\bbase\s*=\s*"([^"]+)"', text)
+base = base_match.group(1) if base_match else ""
+# Substitute version in base (e.g. base might contain ${version})
+base = base.replace("${version}", version)
+
 urls   = re.findall(r'url\s*=\s*"([^"]+)"', text)
 hashes = re.findall(r'(?:hash|sha256)\s*=\s*"(sha256-[^\s"]+)"', text)
 for u, h in zip(urls, hashes):
     u = u.replace("${version}", version)
+    u = u.replace("${base}", base)
     print(u + "\t" + h)
 PYEOF
 }
@@ -93,7 +100,10 @@ PINNED_OVERLAYS=(
   "40-codex-openai.nix"
   "41-claude-code.nix"
   "50-trailbase.nix"
+  "55-go.nix"
   "70-igir.nix"
+  "91-dcg.nix"
+  "95-aws-cdk-cli.nix"
 )
 
 echo "Checking hashes in prebuilt-binary overlays (this downloads each artifact)..."

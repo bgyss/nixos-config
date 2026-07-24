@@ -18,6 +18,7 @@ nix run .#build-switch   # Build and activate new system generation (requires su
 nix run .#apply          # Apply configuration changes without a full rebuild
 nix run .#rollback       # Rollback: `rollback [<gen>|--list]` (idempotent, macOS)
 nix run .#update         # Full update: prepare (build+commit) then activate HEAD
+nix run .#bump-overlays  # Mechanically bump the automated-subset overlays (see docs/overlay-bump-tutorial.md)
 
 # Preview / propose / activate (agent-friendly; see "Update Workflow" below)
 nix run .#check          # Read-only: preview what `prepare` would change (incremental gating)
@@ -109,7 +110,7 @@ Overlays are **auto-loaded** from `overlays/` by `modules/shared/default.nix` (g
 - `90-svg-term-cli.nix`: npm package with vendored lock file
 
 Step-by-step version-bump recipes for every pinned overlay live in
-[docs/overlay-update-routine.md](docs/overlay-update-routine.md).
+[docs/overlay-update-routine.md](docs/overlay-update-routine.md). claude-code, codex-openai, uv, trailbase, igir, dcg, aws-cdk-cli, mise, go (patch bumps), beads, c4, and hey-cli can be bumped automatically with `nix run .#bump-overlays` — see [docs/overlay-bump-tutorial.md](docs/overlay-bump-tutorial.md); everything else still follows the manual routine.
 
 ## Customization
 
