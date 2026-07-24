@@ -75,7 +75,7 @@ bump_mechanical() {
   rm -f /tmp/bump-overlays-fixhashes.$$.log
 
   if ! nix build --no-link --impure --expr \
-      "let pkgs = import <nixpkgs> { overlays = [ (import ./$overlay_rel) ]; }; in pkgs.${name}" \
+      "let pkgs = import <nixpkgs> { config.allowUnfree = true; overlays = [ (import ./$overlay_rel) ]; }; in pkgs.${name}" \
       >/tmp/bump-overlays-build.$$.log 2>&1; then
     err "  verification build failed:"
     tail -30 /tmp/bump-overlays-build.$$.log >&2
@@ -135,7 +135,7 @@ PYEOF
 resolve_vendor_hash() {
   local overlay_rel="$1" name="$2" got
   got="$(nix build --no-link --impure --expr \
-    "let pkgs = import <nixpkgs> { overlays = [ (import ./$overlay_rel) ]; }; in pkgs.${name}" \
+    "let pkgs = import <nixpkgs> { config.allowUnfree = true; overlays = [ (import ./$overlay_rel) ]; }; in pkgs.${name}" \
     2>&1 | grep 'got:' | awk '{print $2}' | head -1)"
   [[ -n "$got" ]] || return 1
   printf '%s' "$got"
@@ -221,7 +221,7 @@ print(m.group(1) if m else "")
   bump_field_string "$overlay_file" "vendorHash" "" "$vendor_hash" || { git checkout -- "$overlay_rel"; return 1; }
 
   if ! nix build --no-link --impure --expr \
-      "let pkgs = import <nixpkgs> { overlays = [ (import ./$overlay_rel) ]; }; in pkgs.${name}" \
+      "let pkgs = import <nixpkgs> { config.allowUnfree = true; overlays = [ (import ./$overlay_rel) ]; }; in pkgs.${name}" \
       >/tmp/bump-overlays-gosrc.$$.log 2>&1; then
     err "  verification build failed after vendorHash resolution:"
     tail -30 /tmp/bump-overlays-gosrc.$$.log >&2
