@@ -62,7 +62,10 @@ before="$(git rev-parse HEAD 2>/dev/null)"; before_rc=$?
 # bump-overlays rolls back each failed package individually and leaves the
 # successful ones committed, so a partial failure is a real outcome: the
 # successes still get proposed, and the failures get their own notification.
-"$SCRIPT_DIR/bump-overlays" --mechanical-only >"$RUN_LOG" 2>&1
+#
+# --no-public-sync: this script does the mirror push itself, after the full
+# system build below has vouched for the bumps (see the sync call there).
+"$SCRIPT_DIR/bump-overlays" --mechanical-only --no-public-sync >"$RUN_LOG" 2>&1
 bump_rc=$?
 after_bump="$(git rev-parse HEAD 2>/dev/null)"; after_bump_rc=$?
 
@@ -125,6 +128,12 @@ if [[ $prepare_rc -eq 0 ]]; then
       notify "nixos-config update FAILED" \
         "overlay bumps committed but system build FAILED at ${after:0:7} — see $RUN_LOG; 'git reset --hard ${before:0:7}' discards them"
     else
+      # Mirror to the public repo now that the revision has a full build
+      # behind it. `prepare`'s own commit fires the post-commit hook, so this
+      # only has real work to do on a bump-only run (bump-overlays commits
+      # with hooks disabled and, given --no-public-sync above, syncs nothing).
+      "$FLAKE_DIR/scripts/sync-to-public.sh" >>"$RUN_LOG" 2>&1 \
+        || echo "scheduled-check: public mirror sync failed — see $RUN_LOG" >>"$RUN_LOG"
       notify "nixos-config update" "revision ${after:0:7} ready — run 'nix run .#activate -- ${after:0:7}'"
     fi
   fi

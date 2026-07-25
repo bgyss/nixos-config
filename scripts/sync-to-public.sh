@@ -29,6 +29,14 @@ if [[ ! -d "$PUBLIC_REPO/.git" ]]; then
   exit 0
 fi
 
+# This script is itself published, so a copy exists in the public checkout.
+# Running that copy would make source and destination the same repo (and push
+# a redundant commit); refuse instead.
+if [[ "$(cd "$PRIVATE_REPO" && pwd -P)" == "$(cd "$PUBLIC_REPO" && pwd -P)" ]]; then
+  log "source and destination are the same repo ($PUBLIC_REPO) — skipping."
+  exit 0
+fi
+
 # --- Build the denylist matcher ---------------------------------------------
 deny_exact=()   # exact file paths
 deny_prefix=()  # directory prefixes (entries ending in '/')

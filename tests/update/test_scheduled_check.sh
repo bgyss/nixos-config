@@ -59,6 +59,13 @@ setup_scratch() {
   cp "$REPO/apps/aarch64-darwin/_common.sh" "$scratch/apps/aarch64-darwin/_common.sh"
   cp "$REPO/apps/aarch64-darwin/scheduled-check" "$scratch/apps/aarch64-darwin/scheduled-check"
   chmod +x "$scratch/apps/aarch64-darwin/scheduled-check"
+  # Stub the public mirror sync: never touch the real public checkout, just
+  # record that scheduled-check called it (and when).
+  cat > "$scratch/scripts/sync-to-public.sh" <<EOF2
+#!/usr/bin/env bash
+echo called >> "$scratch/sync-calls.log"
+EOF2
+  chmod +x "$scratch/scripts/sync-to-public.sh"
   git -C "$scratch" add -A
   git -C "$scratch" commit -q -m "init" --allow-empty
   printf '%s' "$scratch"
@@ -93,8 +100,10 @@ run_case() {
 $prepare_body
 EOF2
   chmod +x "$scratch/apps/aarch64-darwin/prepare"
+  # Record the flags scheduled-check passes, so a case can assert on them.
   cat > "$scratch/apps/aarch64-darwin/bump-overlays" <<EOF2
 #!/usr/bin/env bash
+echo "\$@" >> "$scratch/bump-args.log"
 $bump_body
 EOF2
   chmod +x "$scratch/apps/aarch64-darwin/bump-overlays"
@@ -180,6 +189,15 @@ fi
 if ! grep -q "full system build" "$scratch_f/logs/nixos-scheduled-check.log"; then
   echo "FAIL: case F must run the full system build as evidence"; fail=1
 fi
+# The bump must be handed --no-public-sync (scheduled-check owns the mirror,
+# so nothing is published before the full build vouches for it) and the mirror
+# must then actually run — otherwise a bump-only run never reaches GitHub.
+if ! grep -q -- "--no-public-sync" "$scratch_f/bump-args.log"; then
+  echo "FAIL: case F must invoke bump-overlays with --no-public-sync"; fail=1
+fi
+if [[ ! -s "$scratch_f/sync-calls.log" ]]; then
+  echo "FAIL: case F must mirror to the public repo after a successful build"; fail=1
+fi
 rm -rf "$scratch_f"
 
 # Case G: bump-overlays commits but the verification build fails -> must NOT
@@ -195,6 +213,9 @@ if ! grep -qi "FAILED" <<<"$out_g"; then
 fi
 if ! grep -q "reset --hard" <<<"$out_g"; then
   echo "FAIL: case G should tell the user how to discard the bump commits: $out_g"; fail=1
+fi
+if [[ -s "$scratch_g/sync-calls.log" ]]; then
+  echo "FAIL: case G must NOT publish bumps the verification build rejected"; fail=1
 fi
 rm -rf "$scratch_g"
 

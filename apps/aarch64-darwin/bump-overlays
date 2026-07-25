@@ -26,10 +26,16 @@ MANIFEST="$FLAKE_DIR/overlays/updates.json"
 DRY_RUN=0
 ONLY=""
 MECHANICAL_ONLY=0
+PUBLIC_SYNC=1
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --dry-run) DRY_RUN=1; shift ;;
     --only) ONLY="${2:-}"; shift 2 ;;
+    # Skip the end-of-run public mirror sync. Used by `scheduled-check`, which
+    # runs the full system build *after* this script and mirrors itself only
+    # once that build passes — publishing bumps that the full build then
+    # rejects would push a revision the user is about to `git reset --hard`.
+    --no-public-sync) PUBLIC_SYNC=0; shift ;;
     # Restrict to the pure value-substitution path, excluding the go-source
     # packages (beads/c4/hey-cli). Used by the unattended `scheduled-check`
     # run: c4 and hey-cli are commit-tracked with no upstream releases, so
@@ -362,4 +368,14 @@ echo ""
 msg "Bumped: ${#BUMPED[@]} (${BUMPED[*]:-none})"
 [[ ${#FAILED[@]} -gt 0 ]] && err "Failed: ${#FAILED[@]} (${FAILED[*]}) — see docs/overlay-update-routine.md"
 msg "Skipped: ${#SKIPPED_NAMES[@]} (${SKIPPED_NAMES[*]:-none})"
+
+# Mirror to the public repo. The per-package commits above deliberately run
+# with `core.hooksPath=/dev/null` so a multi-package run doesn't fire N
+# separate mirror commits + pushes; that means nothing has synced yet, and
+# without this the bumps would sit unpublished until the next hand-made commit
+# (the daily agent's runs are bump-only, so that could be days).
+if [[ $PUBLIC_SYNC -eq 1 && ${#BUMPED[@]} -gt 0 ]]; then
+  "$FLAKE_DIR/scripts/sync-to-public.sh" || warn "public mirror sync failed (bumps are committed locally)"
+fi
+
 [[ ${#FAILED[@]} -eq 0 ]]

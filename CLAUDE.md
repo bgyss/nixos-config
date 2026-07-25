@@ -220,6 +220,12 @@ the public repo receives the hook file but never runs it → no sync loop).
   that must stay private. It lists **itself**, so private filenames never reach the public repo.
   Add a line here *before* committing any new private note — the model is a denylist, so an
   unlisted new file auto-publishes (the hook prints `Publishing NEW files: …` as a safety net).
+- **`bump-overlays` is the one path that bypasses the hook.** Its per-package commits run with
+  `core.hooksPath=/dev/null` so a multi-package run doesn't fire N mirror commits + pushes;
+  instead it calls `sync-to-public.sh` **once at the end** of a successful run. Under
+  `scheduled-check` it's invoked with `--no-public-sync` and the mirror happens there instead,
+  only after the full system build passes — so a bump the build rejects (the one case the
+  notification tells you to `git reset --hard`) is never published.
 
 ## Memories
 
