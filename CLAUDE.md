@@ -1,12 +1,13 @@
 # NixOS Configuration
 
 A unified configuration for macOS (Darwin) and NixOS systems using Nix Flakes and Home
-Manager. This checkout (`~/src/nixos-config`) is the copy pushed to
-[github.com/bgyss/nixos-config](https://github.com/bgyss/nixos-config) (public). The daily
-working copy actually driving system config on this machine is `~/nixos-config`, which has no
-git remote. A **post-commit hook mirrors public-safe files from there into this checkout and
-pushes automatically** — so package/cask/overlay/module changes reach GitHub on every commit
-with no manual sync (see "Public Mirror Sync" below). See `templates/starter/` and the root
+Manager. This file is mirrored into two checkouts, so name them explicitly rather than saying
+"this repo": `~/nixos-config` is the **private daily driver** that actually configures this
+machine and has no git remote; `~/src/nixos-config` is the **public mirror** pushed to
+[github.com/bgyss/nixos-config](https://github.com/bgyss/nixos-config). A **post-commit hook
+mirrors public-safe files from the private checkout into the public one and pushes
+automatically** — so package/cask/overlay/module changes reach GitHub on every commit with no
+manual sync (see "Public Mirror Sync" below). See `templates/starter/` and the root
 `README.md` for the flake-template flow used to bootstrap a *new* machine from this repo.
 
 For agent-specific guidance, see [AGENTS.md](./AGENTS.md) (currently just points back here).
@@ -99,30 +100,16 @@ appear in `overlays/updates.json` (as a `packages[]` pin or a `skip[]` entry) or
 
 ## Architecture
 
-```
-flake.nix              # Flake inputs, outputs, overlay loading
-hosts/darwin/          # macOS system configuration
-hosts/nixos/           # NixOS system configuration
-modules/shared/        # Cross-platform home-manager and system config
-modules/darwin/        # macOS-specific modules
-modules/nixos/         # NixOS-specific modules
-overlays/               # Package overlays and customizations (auto-loaded, see below)
-apps/                  # nix run .#<cmd> entry points (build-switch, apply, rollback, update)
-secrets/                # agenix-encrypted secrets (see Secrets Management below)
-```
-
 Prefer extending `modules/shared/` before diverging per platform.
 
 ## Overlays
 
 Overlays are **auto-loaded** from `overlays/` by `modules/shared/default.nix` (glob scan for
-`*.nix` files) — no need to register them in `flake.nix`. Pinned/notable ones:
-
-- `20-ngrok.nix` / `25-uv.nix` / `30-mise.nix` / `40-codex-openai.nix` / `41-claude-code.nix` / `50-trailbase.nix` / `70-igir.nix` / `96-tmux.nix`: prebuilt binaries or pinned source builds with hashes that go stale (see `docs/troubleshooting.md`)
-- `55-go.nix`: Go version override ahead of nixpkgs
-- `56-c4.nix` / `60-beads.nix`: built from source (git commit / Go module)
-- `80-llm.nix`, `81-python-disable-checks.nix`, `82-fmt.nix`, `83-deno.nix`, `84-nodejs-skip-flaky-tests.nix`: `doCheck = false` workarounds for packages whose tests don't survive the Nix sandbox
-- `90-svg-term-cli.nix`: npm package with vendored lock file
+`*.nix` files) — no need to register them in `flake.nix`. Every overlay is registered in
+`overlays/updates.json` (as a `packages[]` pin or a `skip[]` entry) — read that plus the
+overlay files themselves for what each one pins; the `overlays-manifest` check keeps the two
+in sync. The ones pinning prebuilt binaries carry hashes that go stale when a publisher
+re-uploads a release artifact (see `docs/troubleshooting.md`).
 
 Step-by-step version-bump recipes for every pinned overlay live in
 [docs/overlay-update-routine.md](docs/overlay-update-routine.md). claude-code, codex-openai, uv, trailbase, igir, dcg, aws-cdk-cli, mise, go (patch bumps), beads, c4, and hey-cli can be bumped automatically with `nix run .#bump-overlays` — see [docs/overlay-bump-tutorial.md](docs/overlay-bump-tutorial.md); everything else still follows the manual routine.
@@ -170,25 +157,10 @@ this way a new machine can be bootstrapped without re-encrypting everything from
   place the decrypted secret at a real filesystem path (e.g. `~/.ssh/id_ed25519`); otherwise
   consumers read `/run/agenix/<name>` directly, guarding with `[[ -r ... ]]`.
 
-**Adding a new secret:** clone `nix-secrets`, then from inside it:
-```bash
-# add "<name>.age".publicKeys = allKeys; to secrets.nix, then encrypt directly with age
-# (recipients are raw ssh-ed25519 pubkey strings, so no ssh-to-age/agenix -e round-trip needed):
-age -r "$(cat ~/.ssh/id_ed25519.pub)" -r "<host-ssh-pubkey-string>" -o <name>.age <plaintext-source-file>
-# verify it actually decrypts before pushing:
-age -d -i ~/.ssh/id_ed25519 -o /dev/null <name>.age && echo OK
-git add secrets.nix <name>.age && git commit && git push
-```
-Back in `nixos-config`: wire `age.secrets.<name>` to `"${secrets}/<name>.age"` in the relevant
-host file, run `nix flake lock --update-input secrets` to pick up the new commit, and commit
-the updated `flake.lock` alongside the host-config change. **Untracked `.nix` changes are
-invisible to the flake evaluator**, so stage everything before building.
-
-**Adding a new host as a recipient:** in the `nix-secrets` clone, get the new host's raw
-public key (`cat /etc/ssh/ssh_host_ed25519_key.pub` on that host, or `ssh-keyscan`), add the
-`"ssh-ed25519 AAAA..."` string (not an `ssh-to-age` conversion) to `allKeys` in `secrets.nix`,
-then re-run the `age -r ... -o <name>.age` command above for every existing secret to rekey
-it, and push.
+**Adding a new secret, or adding a new host as a recipient:** step-by-step procedures live in
+the `nix-secrets` skill (`.claude/skills/nix-secrets/SKILL.md`) — invoke it rather than
+improvising. Note while you're there: **untracked `.nix` changes are invisible to the flake
+evaluator**, so stage everything before building.
 
 ## Known Workarounds
 
