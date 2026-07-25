@@ -3,7 +3,7 @@
     {
       "name": "claude-code",
       "overlay": "overlays/41-claude-code.nix",
-      "current_version": "2.1.219",
+      "current_version": "2.1.220",
       "check": {
         "method": "github-release",
         "repo": "anthropics/claude-code"
@@ -35,7 +35,7 @@
     {
       "name": "trailbase",
       "overlay": "overlays/50-trailbase.nix",
-      "current_version": "0.31.0",
+      "current_version": "0.31.1",
       "check": {
         "method": "github-release",
         "repo": "trailbaseio/trailbase"
