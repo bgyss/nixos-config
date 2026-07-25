@@ -31,6 +31,14 @@ STUB="$(mktemp -d)"
 cat > "$STUB/nix" <<EOF
 #!/usr/bin/env bash
 if [[ "\$1" == "registry" && "\$2" == "list" ]]; then exit 1; fi
+# Never let the scheduled-check verification build (or its closure diff) hit
+# the real store: it would try to build this host's actual system closure.
+# \$FAKE_NIX_BUILD_RC lets a case choose whether that build "succeeds".
+if [[ "\$1" == "build" ]]; then
+  touch ./result
+  exit "\${FAKE_NIX_BUILD_RC:-0}"
+fi
+if [[ "\$1" == "store" && "\$2" == "diff-closures" ]]; then exit 0; fi
 exec "$REAL_NIX" "\$@"
 EOF
 chmod +x "$STUB/nix"
@@ -74,17 +82,26 @@ setup_scratch_no_head() {
   printf '%s' "$scratch"
 }
 
+# run_case <scratch> <prepare_body> [bump_body]
+# bump_body defaults to a no-op "nothing to bump" so the pre-existing cases
+# below keep exercising exactly what they used to.
 run_case() {
-  local scratch="$1" prepare_body="$2" notify_log
+  local scratch="$1" prepare_body="$2" bump_body="${3:-exit 0}" notify_log
   notify_log="$(mktemp)"
   cat > "$scratch/apps/aarch64-darwin/prepare" <<EOF2
 #!/usr/bin/env bash
 $prepare_body
 EOF2
   chmod +x "$scratch/apps/aarch64-darwin/prepare"
+  cat > "$scratch/apps/aarch64-darwin/bump-overlays" <<EOF2
+#!/usr/bin/env bash
+$bump_body
+EOF2
+  chmod +x "$scratch/apps/aarch64-darwin/bump-overlays"
   (
     cd "$scratch"
-    NOTIFY_LOG="$notify_log" PATH="$STUB:$PATH" bash "$scratch/apps/aarch64-darwin/scheduled-check"
+    NOTIFY_LOG="$notify_log" FAKE_NIX_BUILD_RC="${FAKE_NIX_BUILD_RC:-0}" \
+      PATH="$STUB:$PATH" bash "$scratch/apps/aarch64-darwin/scheduled-check"
   ) || true
   cat "$notify_log"
   rm -f "$notify_log"
@@ -148,6 +165,91 @@ if [[ "$before_e" != "$after_e" ]]; then
   echo "FAIL: case E (lock contention) must not commit"; fail=1
 fi
 rm -rf "$scratch_e"
+
+# ── Overlay auto-bump cases ─────────────────────────────────────────────────
+
+# Case F: bump-overlays commits, prepare has nothing to do -> the revision is
+# only reachable through the bump, so scheduled-check must run the full system
+# build itself and then notify "ready".
+scratch_f="$(setup_scratch)"
+out_f="$(run_case "$scratch_f" 'exit 0' \
+  'git commit -q --allow-empty -m "overlays: update claude-code to v9.9.9"')"
+if ! grep -q "ready" <<<"$out_f"; then
+  echo "FAIL: case F (bump-only commit) did not notify 'ready': $out_f"; fail=1
+fi
+if ! grep -q "full system build" "$scratch_f/logs/nixos-scheduled-check.log"; then
+  echo "FAIL: case F must run the full system build as evidence"; fail=1
+fi
+rm -rf "$scratch_f"
+
+# Case G: bump-overlays commits but the verification build fails -> must NOT
+# claim the revision is ready; must say the build failed and how to discard.
+scratch_g="$(setup_scratch)"
+out_g="$(FAKE_NIX_BUILD_RC=1 run_case "$scratch_g" 'exit 0' \
+  'git commit -q --allow-empty -m "overlays: update claude-code to v9.9.9"')"
+if grep -q "ready" <<<"$out_g"; then
+  echo "FAIL: case G (verification build failed) must not notify 'ready': $out_g"; fail=1
+fi
+if ! grep -qi "FAILED" <<<"$out_g"; then
+  echo "FAIL: case G did not notify FAILED: $out_g"; fail=1
+fi
+if ! grep -q "reset --hard" <<<"$out_g"; then
+  echo "FAIL: case G should tell the user how to discard the bump commits: $out_g"; fail=1
+fi
+rm -rf "$scratch_g"
+
+# Case H: partial bump failure — one package committed, another failed
+# (exit 1 plus the "Failed: N (names)" summary line). Expect BOTH a "ready"
+# notification for what landed and a bump-FAILED notification naming the
+# package that didn't.
+scratch_h="$(setup_scratch)"
+out_h="$(run_case "$scratch_h" 'exit 0' \
+  'git commit -q --allow-empty -m "overlays: update uv to v9.9.9"
+echo "Failed: 1 (trailbase) — see docs/overlay-update-routine.md"
+exit 1')"
+if ! grep -q "ready" <<<"$out_h"; then
+  echo "FAIL: case H should still propose the successful bump: $out_h"; fail=1
+fi
+if ! grep -q "trailbase" <<<"$out_h"; then
+  echo "FAIL: case H should name the failed package: $out_h"; fail=1
+fi
+rm -rf "$scratch_h"
+
+# Case I: nothing bumped, nothing prepared -> still completely silent (the
+# steady state; a daily notification with no news would train you to ignore
+# them). Also asserts the added bump stage introduced no spurious build.
+scratch_i="$(setup_scratch)"
+out_i="$(run_case "$scratch_i" 'exit 0' 'echo "Nothing to bump."; exit 0')"
+if [[ -n "$out_i" ]]; then
+  echo "FAIL: case I (no bump, no prepare) should not notify, got: $out_i"; fail=1
+fi
+if grep -q "full system build" "$scratch_i/logs/nixos-scheduled-check.log"; then
+  echo "FAIL: case I must not run a system build when nothing changed"; fail=1
+fi
+rm -rf "$scratch_i"
+
+# Case J: bump-overlays hits lock contention (exit 2) and prepare does too ->
+# benign, stay silent. Guards against exit 2 being treated as a bump failure.
+scratch_j="$(setup_scratch)"
+out_j="$(run_case "$scratch_j" 'exit 2' 'exit 2')"
+if [[ -n "$out_j" ]]; then
+  echo "FAIL: case J (lock contention in both stages) should not notify, got: $out_j"; fail=1
+fi
+rm -rf "$scratch_j"
+
+# Case K: prepare itself commits (an input moved) on top of a bump -> prepare
+# already built that exact tree, so scheduled-check must NOT build a second
+# time; one "ready" notification for the combined revision.
+scratch_k="$(setup_scratch)"
+out_k="$(run_case "$scratch_k" 'git commit -q --allow-empty -m "flake.lock: Update"' \
+  'git commit -q --allow-empty -m "overlays: update uv to v9.9.9"')"
+if ! grep -q "ready" <<<"$out_k"; then
+  echo "FAIL: case K did not notify 'ready': $out_k"; fail=1
+fi
+if grep -q "full system build" "$scratch_k/logs/nixos-scheduled-check.log"; then
+  echo "FAIL: case K must not rebuild — prepare already built that tree"; fail=1
+fi
+rm -rf "$scratch_k"
 
 rm -rf "$STUB"
 [[ $fail -eq 0 ]] && echo "PASS: test_scheduled_check" || exit 1

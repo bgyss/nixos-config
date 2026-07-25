@@ -280,13 +280,16 @@ actually bump one.
   ```
 - `pinned_inputs[]` entries (e.g., `"nixpkgs"` today) are always frozen regardless of cadence
   and never auto-update.
-- A daily **launchd agent** (`nixos-update-check`) runs `scheduled-check`, which runs `prepare`
-  itself (propose only: build + commit, no privileged switch) and notifies you via macOS
-  notification of the proposed revision, but never activates. You review and run
-  `nix run .#activate -- <rev>` manually.
+- A daily **launchd agent** (`nixos-update-check`) runs `scheduled-check`, which runs
+  `bump-overlays --mechanical-only` and then `prepare` (propose only: build + commit, no
+  privileged switch) and notifies you via macOS notification of the proposed revision, but never
+  activates. You review and run `nix run .#activate -- <rev>` manually. See
+  [overlay-bump-tutorial.md](overlay-bump-tutorial.md#relationship-to-the-daily-launchd-job) for
+  what the unattended run does and does not touch.
 
-This design separates cheap, safe read-only checks (and flake-input auto-updates, which are
-low-risk and easily reverted) from privileged system activation and from overlay version bumps
-(which require rewriting pinned hashes and so stay a deliberate, manual action). The manual
-overlay update routine above still works unchanged — it's the only way overlay bumps happen now,
-automated or not.
+This design separates cheap, safe read-only checks (and the auto-updates that are low-risk and
+easily reverted — flake-input moves plus the mechanical overlay tier, both of which are built
+before they're proposed) from privileged system activation. The manual routine above is still
+the only path for every overlay outside that mechanical tier: the go-source packages
+(`beads`, `c4`, `hey-cli`) and anything whose bump isn't a single verified value substitution
+(mise's manual paths, yt-dlp, ngrok, tmux, `go` minor/major bumps).

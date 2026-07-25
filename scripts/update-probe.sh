@@ -48,7 +48,15 @@ input_is_due() { # <name> <now_epoch>
 probe_overlays() {
   local repo; repo="$(git rev-parse --show-toplevel 2>/dev/null || echo "$PWD")"
   local json; json="$("$repo/scripts/check-overlay-versions.sh" --json 2>/dev/null || true)"
-  [[ -z "$json" ]] && { printf ''; return 0; }
+  # An empty result means the probe itself failed (network down, registry/API
+  # error) — NOT "everything is current". The empty string returned here is
+  # indistinguishable from "nothing outdated" to callers, which is the safe
+  # direction (never triggers an update), but it must not be silent or a
+  # week of failed probes looks exactly like a week of quiet upstreams.
+  if [[ -z "$json" ]]; then
+    echo "warning: overlay version probe returned nothing (check-overlay-versions.sh failed) — treating as 'nothing outdated'" >&2
+    printf ''; return 0
+  fi
   # record known_latest for successfully-probed overlays
   while IFS=$'\t' read -r name latest; do
     [[ -n "$name" ]] && state_set_overlay "$name" "$latest" "$(now_iso)"

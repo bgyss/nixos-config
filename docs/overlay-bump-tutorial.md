@@ -91,7 +91,32 @@ single shared `version` (as trailbase/igir/dcg/go already do), not an
 
 ## Relationship to the daily launchd job
 
-`bump-overlays` is a separate, manually-triggered command. It is **not**
-wired into the daily `scheduled-check` launchd job — that job still only
-proposes flake-input moves (via `prepare`) and *reports* (never applies)
-outdated overlays, unchanged by this tutorial.
+The daily `scheduled-check` launchd job runs `bump-overlays --mechanical-only`
+**before** `prepare`, so the mechanical tier bumps itself unattended. Details
+that differ from a manual `nix run .#bump-overlays`:
+
+- **`--mechanical-only`** drops the go-source packages (`beads`, `c4`,
+  `hey-cli`) from scope, listing them as skipped. `c4` and `hey-cli` are
+  commit-tracked with no upstream releases, so an unattended run would chase
+  branch HEAD every day with nothing gating it. Run the command by hand to
+  bump those.
+- **Ordering.** The bump runs first so that, if `prepare` then finds a flake
+  input due, its build already covers the bumped overlays. When `prepare` has
+  nothing to do (the normal case while nixpkgs is pinned), `scheduled-check`
+  runs the full `darwinConfigurations.<host>.system` build itself before
+  notifying — `bump-overlays`' own build is scoped to one package and won't
+  catch a system-level eval error or file collision. Every revision the daily
+  job proposes has been built.
+- **Locking.** `bump-overlays` now takes the same `.update-state.json.lock.d`
+  lock as `prepare` and exits **2** on contention, so a manual run and the
+  scheduled run can never interleave. Exit **3** means `overlays/` had
+  uncommitted changes; exit **1** means at least one package failed to bump
+  (the rest still committed).
+- **Notifications.** A partial failure produces two: the normal "revision
+  ready" for what landed, and a bump-FAILED naming the packages that need
+  [the manual routine](overlay-update-routine.md). If the full system build
+  fails, the bump commits are left in place (not auto-reset — a hard reset
+  could take unrelated work with it) and the notification gives you the
+  `git reset --hard <before>` to discard them.
+
+The job still **never activates**; it only proposes.

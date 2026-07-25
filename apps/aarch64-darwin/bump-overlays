@@ -4,6 +4,13 @@
 # value, verify with a scoped build, commit. Everything else — mise,
 # yt-dlp, ngrok, tmux, and `go` on a minor-version bump — stays manual.
 # See docs/overlay-bump-tutorial.md and docs/overlay-update-routine.md.
+#
+# Exit codes (scheduled-check depends on these being distinct):
+#   0  nothing to bump, or every attempted bump succeeded
+#   1  at least one package failed to bump (successful ones stay committed,
+#      failures are rolled back individually via `git checkout --`)
+#   2  another update run holds the state lock — benign, try again later
+#   3  overlays/ has uncommitted changes (refuses to mix with manual edits)
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -18,10 +25,16 @@ MANIFEST="$FLAKE_DIR/overlays/updates.json"
 
 DRY_RUN=0
 ONLY=""
+MECHANICAL_ONLY=0
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --dry-run) DRY_RUN=1; shift ;;
     --only) ONLY="${2:-}"; shift 2 ;;
+    # Restrict to the pure value-substitution path, excluding the go-source
+    # packages (beads/c4/hey-cli). Used by the unattended `scheduled-check`
+    # run: c4 and hey-cli are commit-tracked with no upstream releases, so
+    # auto-bumping them would chase branch HEAD daily with no release gate.
+    --mechanical-only) MECHANICAL_ONLY=1; shift ;;
     *) err "unknown argument: $1"; exit 1 ;;
   esac
 done
@@ -249,8 +262,16 @@ print(m.group(1) if m else "")
 # Precondition: never mix with in-progress manual edits.
 if [[ -n "$(git status --porcelain -- overlays/)" ]]; then
   err "overlays/ has uncommitted changes — commit or stash before running bump-overlays"
-  exit 1
+  exit 3
 fi
+
+# Share `prepare`'s lock: this script rewrites overlay .nix files and
+# overlays/updates.json and commits, so it must never interleave with a
+# concurrent prepare/bump run. Same benign exit code 2 on contention, so
+# scheduled-check can stay silent rather than fire a spurious failure.
+state_init
+if ! state_lock; then err "another update run holds the lock; aborting"; exit 2; fi
+trap 'state_unlock' EXIT
 
 # ── Detect ──────────────────────────────────────────────────────────────────
 json="$(bash "$FLAKE_DIR/scripts/check-overlay-versions.sh" --json)" || true
@@ -269,6 +290,10 @@ while IFS=$'\t' read -r name latest; do
   for g in "${GOSRC_NAMES[@]}"; do [[ "$g" == "$name" ]] && is_gosrc=1 && break; done
 
   if [[ $is_gosrc -eq 1 ]]; then
+    if [[ $MECHANICAL_ONLY -eq 1 ]]; then
+      SKIPPED_NAMES+=("$name"); SKIPPED_REASONS+=("go-source bump excluded by --mechanical-only")
+      continue
+    fi
     GOSRC_NAMES_TARGET+=("$name")
   elif [[ "$name" == "go" ]]; then
     current="$(jq -r --arg n "$name" '.packages[] | select(.name==$n) | .current_version' "$MANIFEST")"

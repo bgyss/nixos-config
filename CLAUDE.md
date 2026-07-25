@@ -58,20 +58,35 @@ activation).
 respecting per-input cadence and frozen `pinned_inputs[]`, caches the result in `.update-state.json`
 (a gitignored, deletable file), and reports which packages have real new versions available.
 `prepare` builds/commits only if a flake input actually moved (per its cadence) — overlay
-version bumps are reported informationally only and are **never** auto-applied by `prepare`;
-bumping a pinned overlay's version still requires the manual routine in
+version bumps are reported informationally only and are **never** auto-applied by `prepare`
+(auto-bumping lives in `bump-overlays` / `scheduled-check` instead, see below); bumping a
+non-mechanical overlay's version still requires the manual routine in
 [docs/overlay-update-routine.md](docs/overlay-update-routine.md) (it has to rewrite the
 overlay's pinned version/hash *and* `updates.json`'s `current_version` together — auto-doing
 only the latter previously left the manifest permanently lying about what's pinned). Per-input
 update cadence is configured in `overlays/updates.json` under `inputs.*` (e.g., `"nixpkgs":
 {"cadence_hours": 168}`) — `pinned_inputs[]` entries are always frozen regardless of cadence. A
-**daily launchd agent** (`nixos-update-check`) runs `scheduled-check`, which runs `prepare`
-itself (propose only: build + commit, no privileged switch) and notifies you via macOS
-notification of the proposed revision, but **never activates** — you review and run `nix run
-.#activate -- <rev>` manually. If `prepare` can't acquire its lock (another run already in
-progress) it exits 2 and `scheduled-check` stays silent rather than firing a failure
-notification. This design separates read-only checks (cheap, safe to automate) from privileged
-activation.
+**daily launchd agent** (`nixos-update-check`) runs `scheduled-check`, which runs
+`bump-overlays --mechanical-only` and then `prepare` (propose only: build + commit, no
+privileged switch) and notifies you via macOS notification of the proposed revision, but
+**never activates** — you review and run `nix run .#activate -- <rev>` manually. If `prepare`
+can't acquire its lock (another run already in progress) it exits 2 and `scheduled-check` stays
+silent rather than firing a failure notification. This design separates read-only checks (cheap,
+safe to automate) from privileged activation.
+
+**Auto-bumped overlays in the daily run.** `scheduled-check` auto-bumps only the *mechanical*
+subset — `prebuilt-binary` / `prebuilt-binary-multiplatform` / `prebuilt-npm` overlays plus `go`
+patch bumps — because those are a pure value substitution verified by a scoped build. The
+go-source packages (`beads`, `c4`, `hey-cli`) are excluded by `--mechanical-only`: `c4` and
+`hey-cli` track a branch with no releases, so auto-bumping would chase HEAD daily with no
+release gate. Run `nix run .#bump-overlays` by hand to include them. Everything else (mise's
+manual paths, yt-dlp, ngrok, tmux, `go` minor bumps) still follows
+[docs/overlay-update-routine.md](docs/overlay-update-routine.md). Because a bump-only run means
+`prepare` had nothing to do and never built, `scheduled-check` runs the full system build itself
+before notifying — **every revision it proposes has been built**. If that build fails, the bump
+commits are left in place (not auto-reset) and the notification tells you the `git reset --hard`
+to discard them. A partial failure notifies twice: "revision ready" for the packages that
+landed, plus a bump-FAILED notification naming the ones that need the manual routine.
 
 **Checks / formatting.** `nix flake check` is the pass/fail gate: `treefmt` (nixfmt-rfc-style +
 statix + deadnix), `overlays-manifest` (`updates.json` ↔ overlays consistency, enforced by

@@ -1,9 +1,22 @@
 #!/usr/bin/env bash
-# launchd entrypoint: run prepare; notify only on a real proposed revision.
-# Never activates/switches the system — propose+notify only (§5.4). On a
-# prepare failure this notifies and leaves the tree exactly as prepare left
-# it (prepare itself only commits after a successful build, so a failure
-# here never leaves a bad commit behind).
+# launchd entrypoint: auto-bump the mechanical overlay subset, then run
+# prepare; notify only on a real proposed revision. Never activates/switches
+# the system — propose+notify only (§5.4). On a prepare failure this notifies
+# and leaves the tree exactly as prepare left it (prepare itself only commits
+# after a successful build, so a failure here never leaves a bad commit
+# behind).
+#
+# Order matters: bump-overlays runs FIRST so that, if prepare then decides an
+# input is due and builds, that build already includes the bumped overlays.
+# When prepare has nothing to do (the common case while nixpkgs is pinned),
+# the only verification an overlay bump has had is bump-overlays' own scoped
+# per-package build — so this script runs the full system build itself before
+# claiming a revision is ready. A revision this script notifies about has
+# always been built.
+#
+# `prepare` deliberately still refuses to touch overlays (see its header):
+# the auto-bump lives here, in the scheduled entrypoint, so the propose
+# primitive stays purely flake-input-scoped for manual/agent use.
 set -uo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=/dev/null
@@ -34,12 +47,49 @@ mkdir -p "$LOG_DIR" 2>/dev/null || true
 : > "$LOG_DIR/nixos-update-check.out.log" 2>/dev/null || true
 : > "$LOG_DIR/nixos-update-check.err.log" 2>/dev/null || true
 
+RUN_LOG="$LOG_DIR/nixos-scheduled-check.log"
+
 before="$(git rev-parse HEAD 2>/dev/null)"; before_rc=$?
-"$SCRIPT_DIR/prepare" >"$LOG_DIR/nixos-scheduled-check.log" 2>&1
+
+# ── Overlay auto-bump ───────────────────────────────────────────────────────
+# Mechanical subset only: prebuilt-binary / prebuilt-npm packages plus `go`
+# patch bumps, i.e. the cases that are a pure value substitution verified by a
+# scoped build. The go-source packages (beads/c4/hey-cli) and the genuinely
+# manual overlays (mise's non-mechanical paths, yt-dlp, ngrok, tmux, `go`
+# minor bumps) are reported as skipped and still follow
+# docs/overlay-update-routine.md.
+#
+# bump-overlays rolls back each failed package individually and leaves the
+# successful ones committed, so a partial failure is a real outcome: the
+# successes still get proposed, and the failures get their own notification.
+"$SCRIPT_DIR/bump-overlays" --mechanical-only >"$RUN_LOG" 2>&1
+bump_rc=$?
+after_bump="$(git rev-parse HEAD 2>/dev/null)"; after_bump_rc=$?
+
+# Extract the package names from bump-overlays' "Failed: N (a b)" summary line
+# so the notification can name them instead of just pointing at the log.
+# Only exit 1 means "some package failed"; 2 (lock contention) and 3 (dirty
+# overlays/) are preconditions that bumped nothing at all, and any other
+# non-zero code is an unexpected crash with no summary line to parse.
+bump_failures=""
+if [[ $bump_rc -eq 1 ]]; then
+  bump_failures="$(sed -n 's/^Failed: [0-9]* (\([^)]*\)).*/\1/p' "$RUN_LOG" | tail -1)"
+  [[ -z "$bump_failures" ]] && bump_failures="see $RUN_LOG"
+elif [[ $bump_rc -ne 0 && $bump_rc -ne 2 ]]; then
+  bump_failures="bump-overlays exited $bump_rc — see $RUN_LOG"
+fi
+notify_bump_failures() {
+  [[ -n "$bump_failures" ]] || return 0
+  notify "nixos-config overlay bump FAILED" \
+    "$bump_failures — bump manually, see docs/overlay-update-routine.md"
+}
+
+# ── Flake inputs (propose) ──────────────────────────────────────────────────
+"$SCRIPT_DIR/prepare" >>"$RUN_LOG" 2>&1
 prepare_rc=$?
 if [[ $prepare_rc -eq 0 ]]; then
   after="$(git rev-parse HEAD 2>/dev/null)"; after_rc=$?
-  if [[ $before_rc -ne 0 || $after_rc -ne 0 ]]; then
+  if [[ $before_rc -ne 0 || $after_rc -ne 0 || $after_bump_rc -ne 0 ]]; then
     # rev-parse itself failed (broken checkout, git missing, FLAKE_DIR not a
     # repo, unborn HEAD, ...). NOTE: on failure `git rev-parse HEAD` still
     # prints the literal string "HEAD" to stdout (not empty), so this must
@@ -48,12 +98,46 @@ if [[ $prepare_rc -eq 0 ]]; then
     # since something is very much wrong with the environment.
     notify "nixos-config update FAILED" "scheduled-check: could not determine git HEAD, check environment"
   elif [[ "$before" != "$after" ]]; then
-    notify "nixos-config update" "revision ${after:0:7} ready — run 'nix run .#activate -- ${after:0:7}'"
+    # `after == after_bump` means prepare committed nothing, so every new
+    # commit came from bump-overlays and no full system build has happened
+    # yet. Build it here as evidence before calling the revision ready —
+    # bump-overlays only builds each bumped package in isolation, which won't
+    # catch a system-level eval error or a file collision it introduces.
+    verify_rc=0
+    if [[ "$after" == "$after_bump" ]]; then
+      {
+        echo "==> full system build (evidence for overlay bumps; no activation)"
+        nix build "${FLAKE_DIR}#${FLAKE_SYSTEM_ATTR}" --out-link ./result
+      } >>"$RUN_LOG" 2>&1 || verify_rc=1
+      if [[ $verify_rc -eq 0 ]]; then
+        {
+          echo "==> closure diff (running system -> proposed)"
+          nix store diff-closures /run/current-system ./result || true
+        } >>"$RUN_LOG" 2>&1
+      fi
+      rm -f ./result
+    fi
+    if [[ $verify_rc -ne 0 ]]; then
+      # The bump commits are left in place rather than auto-reset: a hard
+      # reset here could also discard unrelated work, and the manifest and
+      # overlay were rewritten together so the tree is at least self-
+      # consistent. Tell the user exactly how to discard it themselves.
+      notify "nixos-config update FAILED" \
+        "overlay bumps committed but system build FAILED at ${after:0:7} — see $RUN_LOG; 'git reset --hard ${before:0:7}' discards them"
+    else
+      notify "nixos-config update" "revision ${after:0:7} ready — run 'nix run .#activate -- ${after:0:7}'"
+    fi
   fi
+  notify_bump_failures
 elif [[ $prepare_rc -eq 2 ]]; then
   # Lock contention (another prepare run already in progress, e.g. a manual
-  # one) — benign, not a failure. Stay silent; the other run owns reporting.
-  :
+  # one) — benign, not a failure. Stay silent about the flake-input half; the
+  # other run owns reporting. A bump failure from *this* run is still ours to
+  # report, though (bump-overlays runs before prepare and takes the same lock,
+  # so if prepare lost the race the bump almost certainly exited 2 too and
+  # $bump_failures is empty anyway).
+  notify_bump_failures
 else
-  notify "nixos-config update FAILED" "see $LOG_DIR/nixos-scheduled-check.log"
+  notify "nixos-config update FAILED" "see $RUN_LOG"
+  notify_bump_failures
 fi
