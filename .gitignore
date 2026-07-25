@@ -2,8 +2,14 @@
 result
 result-*
 
-# Local Claude Code tool settings (personal automation permissions, not part of the config)
-.claude/
+# Local Claude Code tool settings (personal automation permissions, not part of the config).
+# `.claude/*` rather than `.claude/` so the negation below can take effect: git cannot
+# re-include anything under a directory that is itself excluded.
+.claude/*
+# Skills ARE part of the config — CLAUDE.md points at them, so they have to travel with it to
+# a fresh clone and to the public mirror. Anything added here auto-publishes to GitHub; put
+# private notes somewhere else, or denylist them in scripts/public-sync-denylist.txt.
+!.claude/skills/
 
 # Incremental-update state cache (non-authoritative)
 .update-state.json
