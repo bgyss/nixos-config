@@ -331,7 +331,8 @@
       "last_verified": "2026-07-21",
       "unpin_when": "Upstream nixpkgs resolves the patch-utility OOM (track NixOS/nixpkgs issue for the libxml2 CVE patch OOM). Re-test by bumping to nixpkgs-unstable HEAD and running `nix run .#build`.",
       "rollback_hint": "If a bump breaks the build, restore this commit in flake.nix nixpkgs.url and run `nix flake lock`.",
-      "retry_cadence_hours": 168
+      "retry_cadence_hours": 168,
+      "unpin_ref": "github:NixOS/nixpkgs/nixpkgs-unstable"
     },
     {
       "name": "home-manager",
@@ -342,7 +343,8 @@
       "last_verified": "2026-07-21",
       "unpin_when": "nixpkgs is unpinned to a commit that contains lib/services/lib.nix (coupled to the nixpkgs unpin above). Then bump home-manager to the matching release branch.",
       "rollback_hint": "Restore this commit in flake.nix home-manager.url and run `nix flake lock`.",
-      "retry_cadence_hours": 168
+      "retry_cadence_hours": 168,
+      "unpin_ref": "github:nix-community/home-manager/master"
     },
     {
       "name": "darwin",
@@ -353,7 +355,8 @@
       "last_verified": "2026-07-21",
       "unpin_when": "nixpkgs is unpinned to a newer release; move darwin to the matching nix-darwin release branch at the same time.",
       "rollback_hint": "Restore darwin.url = github:LnL7/nix-darwin/nix-darwin-26.05 and run `nix flake lock`.",
-      "retry_cadence_hours": 168
+      "retry_cadence_hours": 168,
+      "unpin_ref": "github:LnL7/nix-darwin/master"
     }
   ]
 }

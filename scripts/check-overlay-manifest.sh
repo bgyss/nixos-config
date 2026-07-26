@@ -68,6 +68,20 @@ done < <(
   ' "$MANIFEST" | awk -F'\t' '$2 != ""'
 )
 
+# 5b. Every pinned_inputs[] entry must also carry a non-empty unpin_ref — the
+# machine-readable target ref that `prepare`'s attempt_unpin rewrites
+# flake.nix to and verifies in a throwaway worktree. Without it a pin gets no
+# retry at all (attempt_unpin logs and returns 1, silently, forever).
+while IFS=$'\t' read -r name; do
+  [[ -z "$name" ]] || err "pinned_inputs '$name' missing required field: unpin_ref"
+done < <(
+  jq -r '
+    (.pinned_inputs // [])[]
+    | select((.unpin_ref // "") == "")
+    | .name
+  ' "$MANIFEST"
+)
+
 # 6. Input cadence: each .inputs entry needs cadence_hours (int) or on_demand.
 while IFS= read -r name; do
   [[ -z "$name" ]] && continue

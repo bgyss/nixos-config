@@ -59,46 +59,147 @@ sys.exit(0 if (datetime.datetime.now(datetime.timezone.utc) - t).total_seconds()
 PYEOF
 }
 
-# One speculative unpin attempt: move the input to its tracking ref, build, and
-# keep the result only if the build passes. Exit 0 = unpinned successfully.
-# Any failure restores flake.nix/flake.lock exactly as they were, because a
-# half-unpinned tree would break every later step in the run.
+# Cleanup for the throwaway unpin worktree. Idempotent — safe to call multiple
+# times (explicitly at every return path in attempt_unpin below, AND from the
+# script's own EXIT trap as a safety net for abnormal termination). Uses
+# globals rather than a function-local RETURN trap: this script already owns
+# the process's EXIT trap for commit_ledger/state_unlock (see the two-stage
+# trap below attempt_unpin's definition), and a second independent trap
+# would clobber it rather than compose with it.
+cleanup_unpin_worktree() {
+  [[ -n "${UNPIN_WT:-}" ]] && git -C "$FLAKE_DIR" worktree remove --force "$UNPIN_WT" >/dev/null 2>&1
+  [[ -n "${UNPIN_WT_PARENT:-}" ]] && rm -rf "$UNPIN_WT_PARENT"
+  UNPIN_WT=""
+  UNPIN_WT_PARENT=""
+  return 0
+}
+
+# One speculative unpin attempt, verified entirely inside a throwaway git
+# worktree at HEAD — the live checkout (flake.nix, flake.lock) is NEVER
+# touched. This is deliberate: by the time this runs, probe_flake_inputs
+# apply has already run `nix flake lock --update-input` for every due input,
+# so the live flake.lock is dirty with THIS RUN's real updates. Writing a
+# verified lock back from anywhere else — or `git stash`ing the live tree, as
+# the previous implementation did — would collide with those updates and
+# destroy them. So on success this function reports what a human should do;
+# it never mutates flake.nix/flake.lock/overlays/updates.json itself.
+#
+# Exit 0 = the pin verifiably builds against its tracking ref (unpin_ref) and
+# the human-actionable instructions were printed. Exit 1 = no unpin_ref
+# configured, or the attempt failed at some phase (recorded in the ledger).
 attempt_unpin() { # <input-name>
-  local name="$1" log
+  local name="$1"
+  local unpin_ref pinned_ref cadence log pre_rev post_rev
+
+  unpin_ref="$(jq -r --arg n "$name" '.pinned_inputs[] | select(.name==$n) | .unpin_ref // empty' "$MANIFEST")"
+  if [[ -z "$unpin_ref" ]]; then
+    warn "==> unpin: $name has no unpin_ref configured in pinned_inputs[] — nothing to attempt"
+    return 1
+  fi
+  pinned_ref="$(jq -r --arg n "$name" '.pinned_inputs[] | select(.name==$n) | .pinned_ref' "$MANIFEST")"
+  cadence="$(jq -r --arg n "$name" '.pinned_inputs[] | select(.name==$n) | .retry_cadence_hours // 168' "$MANIFEST")"
+
+  warn "==> speculative unpin attempt: $name -> $unpin_ref"
   log="$(mktemp)"
-  warn "==> speculative unpin attempt: $name"
-  local stashed=1
-  if git -C "$FLAKE_DIR" stash push -q -- flake.nix flake.lock 2>/dev/null; then
-    stashed=0
-  fi
 
-  if ! nix flake update "$name" >"$log" 2>&1; then
-    warn "  unpin: 'nix flake update $name' failed; staying pinned"
-    git -C "$FLAKE_DIR" checkout -- flake.nix flake.lock 2>/dev/null || true
-    [[ $stashed -eq 0 ]] && git -C "$FLAKE_DIR" stash pop -q 2>/dev/null
-    quarantine_record "$name" "input" "unpin-attempt" \
-      "$(jq -r --arg n "$name" '.pinned_inputs[] | select(.name==$n) | .pinned_ref' "$MANIFEST")" \
-      "flake-update" "unpin-failed" "retry-after:$(jq -r --arg n "$name" '.pinned_inputs[] | select(.name==$n) | .retry_cadence_hours // 168' "$MANIFEST")" \
-      "$(tail -40 "$log")"
+  UNPIN_WT_PARENT="$(mktemp -d)"
+  UNPIN_WT="$UNPIN_WT_PARENT/unpin-$name"
+  if ! git -C "$FLAKE_DIR" worktree add -q --detach "$UNPIN_WT" HEAD >"$log" 2>&1; then
+    warn "  unpin: could not create a worktree for $name"
+    quarantine_record "$name" "input" "unpin-attempt" "$pinned_ref" \
+      "flake-update" "unpin-failed" "retry-after:$cadence" "$(tail -40 "$log")"
+    cleanup_unpin_worktree
     rm -f "$log"
     return 1
   fi
 
-  if ! nix build "${FLAKE_DIR}#${FLAKE_SYSTEM_ATTR}" --no-link >>"$log" 2>&1; then
-    warn "  unpin: system build still fails; staying pinned"
-    git -C "$FLAKE_DIR" checkout -- flake.nix flake.lock 2>/dev/null || true
-    [[ $stashed -eq 0 ]] && git -C "$FLAKE_DIR" stash pop -q 2>/dev/null
-    quarantine_record "$name" "input" "unpin-attempt" \
-      "$(jq -r --arg n "$name" '.pinned_inputs[] | select(.name==$n) | .pinned_ref' "$MANIFEST")" \
-      "system-build" "unpin-failed" "retry-after:$(jq -r --arg n "$name" '.pinned_inputs[] | select(.name==$n) | .retry_cadence_hours // 168' "$MANIFEST")" \
-      "$(tail -40 "$log")"
+  # Step 3: record the PRE-attempt locked rev before touching anything, so
+  # step 6 below can assert it actually moved.
+  pre_rev="$(jq -r --arg n "$name" '.nodes[$n].locked.rev // ""' "$UNPIN_WT/flake.lock")"
+
+  # Step 4: rewrite the input's url in the worktree's flake.nix to unpin_ref.
+  # Anchored on the literal pinned_ref text inside a `url = "..."` value
+  # (rather than a fixed `<name>.url = ...` shape) because this repo's inputs
+  # use two different shapes — `nixpkgs.url = "..."` / `home-manager.url =
+  # "..."` on one line, vs. darwin's `url = "...";` nested inside a `darwin =
+  # { ... }` block — and the pinned_ref substring is verified unique across
+  # the whole file for each of the three pins. Mirrors bump_version_string in
+  # bump-overlays: abort unless exactly one match is found.
+  if ! python3 - "$UNPIN_WT/flake.nix" "$pinned_ref" "$unpin_ref" >>"$log" 2>&1 <<'PYEOF'
+import re, sys
+path, pinned, new = sys.argv[1], sys.argv[2], sys.argv[3]
+text = open(path).read()
+pattern = re.compile(r'(url\s*=\s*")([^"]*' + re.escape(pinned) + r'[^"]*)(")')
+matches = list(pattern.finditer(text))
+if len(matches) != 1:
+    print(f"expected exactly 1 url containing {pinned!r} in {path}, found {len(matches)}", file=sys.stderr)
+    sys.exit(1)
+open(path, "w").write(pattern.sub(lambda m: m.group(1) + new + m.group(3), text))
+PYEOF
+  then
+    warn "  unpin: could not rewrite flake.nix url for $name (pinned_ref not found or ambiguous)"
+    quarantine_record "$name" "input" "unpin-attempt" "$pinned_ref" \
+      "flake-update" "unpin-failed" "retry-after:$cadence" "$(tail -40 "$log")"
+    cleanup_unpin_worktree
     rm -f "$log"
     return 1
   fi
 
+  # Step 5: update the lock, inside the worktree only.
+  if ! ( cd "$UNPIN_WT" && nix flake update "$name" ) >>"$log" 2>&1; then
+    warn "  unpin: 'nix flake update $name' failed in the worktree; staying pinned"
+    quarantine_record "$name" "input" "unpin-attempt" "$pinned_ref" \
+      "flake-update" "unpin-failed" "retry-after:$cadence" "$(tail -40 "$log")"
+    cleanup_unpin_worktree
+    rm -f "$log"
+    return 1
+  fi
+
+  # Step 6: the load-bearing assertion. A previous implementation declared
+  # success here without ever checking whether the rev moved at all — for a
+  # rev-pinned url, `nix flake update` re-resolves against the (already
+  # rewritten) url and always "succeeds" whether or not anything changed, so
+  # skipping this check is exactly how a false "pin can be removed" verdict
+  # happened before.
+  post_rev="$(jq -r --arg n "$name" '.nodes[$n].locked.rev // ""' "$UNPIN_WT/flake.lock")"
+  if [[ -z "$post_rev" || "$post_rev" == "$pre_rev" ]]; then
+    warn "  unpin: $name locked rev did not move (still $pre_rev) — treating as failure"
+    quarantine_record "$name" "input" "unpin-attempt" "$pinned_ref" \
+      "flake-update" "unpin-rev-unchanged" "retry-after:$cadence" \
+      "locked rev did not move: $pre_rev"
+    cleanup_unpin_worktree
+    rm -f "$log"
+    return 1
+  fi
+
+  # Step 7: build in the worktree only.
+  if ! nix build "${UNPIN_WT}#${FLAKE_SYSTEM_ATTR}" --no-link >>"$log" 2>&1; then
+    warn "  unpin: system build fails against $unpin_ref (rev $post_rev); staying pinned"
+    quarantine_record "$name" "input" "unpin-attempt" "$pinned_ref" \
+      "system-build" "unpin-failed" "retry-after:$cadence" "$(tail -40 "$log")"
+    cleanup_unpin_worktree
+    rm -f "$log"
+    return 1
+  fi
+
+  # Step 9: success. The live tree is untouched — no flake.nix/flake.lock
+  # edits, no overlays/updates.json edits. Record the attempt (NOT clear it —
+  # quarantine_clear here was the bug that kept the cadence from ever
+  # engaging, since last_attempt was never written and unpin_retry_due always
+  # read "never attempted, due now") so the cadence actually bounds this
+  # expensive path, then print the exact human follow-up.
+  msg "  unpin: $name verified clean against $unpin_ref (locked rev $pre_rev -> $post_rev)"
+  quarantine_record "$name" "input" "unpin-attempt" "$pinned_ref" \
+    "verified" "unpin-verified" "retry-after:$cadence" \
+    "verified $unpin_ref builds clean; locked rev $pre_rev -> $post_rev"
+  msg "  ==> ACTION REQUIRED to lift the '$name' pin:"
+  msg "        1. In flake.nix, replace the pinned url for '$name' with: $unpin_ref"
+  msg "        2. Run: nix flake lock"
+  msg "        3. Delete the '$name' entry from pinned_inputs[] in overlays/updates.json"
+  msg "      (the reason/risk/unpin_when/rollback_hint prose is a human call — not auto-removed)"
+
+  cleanup_unpin_worktree
   rm -f "$log"
-  msg "  unpin: $name builds clean — the pin can be removed"
-  quarantine_clear "$name"
   return 0
 }
 # ---8<--- end unpin-retry helpers ---8<---
@@ -124,11 +225,14 @@ commit_ledger() {
 }
 # Register commit_ledger-only first: this process does not hold the state
 # lock yet, and unconditionally rmdir-ing it in the trap here would release a
-# lock a *different* run legitimately owns.
-trap 'commit_ledger' EXIT
+# lock a *different* run legitimately owns. cleanup_unpin_worktree (defined
+# above, in the unpin-retry helpers block) is composed into the SAME trap
+# rather than given its own, so an abnormal exit mid-attempt_unpin (SIGTERM,
+# a partial failure) can never leak the throwaway worktree or its temp parent.
+trap 'cleanup_unpin_worktree; commit_ledger' EXIT
 if ! state_lock; then err "another update run holds the lock; aborting"; exit 2; fi
 # Now that the lock is actually ours, extend the trap to release it too.
-trap 'commit_ledger; state_unlock' EXIT
+trap 'cleanup_unpin_worktree; commit_ledger; state_unlock' EXIT
 
 warn "==> overlay probe"
 overlays_outdated="$(probe_overlays)"
@@ -157,34 +261,21 @@ state_set_last_gate "$(now_iso)"
 
 quarantine_init
 # Speculative unpin attempts. Each is expensive (a full build against a new
-# nixpkgs), so at most ONE per run: the pins are ordered by risk in the
-# manifest and unpinning nixpkgs is what unblocks the other two anyway.
-# DISABLED — attempt_unpin is broken in three ways (found in review, all
-# reproduced). Do not re-enable without rebuilding it:
-#
-#  1. It cannot unpin anything. nixpkgs/home-manager pin the rev INSIDE the
-#     flake.nix url ("github:NixOS/nixpkgs/af45a5c..."), and `nix flake update
-#     <input>` re-resolves against the url as written, so an immutable rev
-#     cannot move. Measured: the locked rev is byte-identical afterwards. It
-#     then builds the same known-good tree, passes, and advises removing a pin
-#     that was never tested.
-#  2. It DESTROYS the run's real flake updates. probe_flake_inputs already ran
-#     `nix flake lock --update-input` for every due input before the gate, so
-#     flake.lock is always dirty here. `git stash push` reverts it, the success
-#     path never pops, and the updates are orphaned in a stash while prepare
-#     reports "No changes to commit" — with the cadence clock already advanced,
-#     so they are not retried for a full window.
-#  3. The cadence never engages: the success path calls quarantine_clear, so
-#     last_attempt is never recorded and the pin reads as "never attempted,
-#     due now" on every single run.
-#
-# A correct implementation needs a machine-readable unpin target ref per pin,
-# the attempt done in a git worktree (as scripts/escalate.sh does) rather than
-# by stashing the live tree, and an assertion that the locked rev actually
-# CHANGED before declaring success.
-#
-# unpin_retry_due, the retry_cadence_hours manifest keys, the ledger/trap work
-# and tests/update/test_unpin_retry.sh are sound and stay.
+# nixpkgs, in a throwaway worktree), so at most ONE per run: the pins are
+# ordered by risk in the manifest and unpinning nixpkgs is what unblocks the
+# other two anyway. This runs AFTER the cadence gate above, so it never fires
+# on a run where nothing else moved either — but it is independent of that
+# gate's outcome otherwise, since a pin's own retry cadence is what governs it.
+pin_names="$(jq -r '(.pinned_inputs // [])[].name' "$MANIFEST")"
+while IFS= read -r pin; do
+  [[ -z "$pin" ]] && continue
+  if unpin_retry_due "$pin"; then
+    if attempt_unpin "$pin"; then
+      warn "==> unpin: $pin verified against its tracking ref — see the ACTION REQUIRED message above"
+    fi
+    break
+  fi
+done <<< "$pin_names"
 
 warn "==> build ${FLAKE_SYSTEM_ATTR} (evidence; no activation)"
 nix build "${FLAKE_DIR}#${FLAKE_SYSTEM_ATTR}" --out-link ./result "$@"

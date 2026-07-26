@@ -44,4 +44,168 @@ unpin_retry_due nixpkgs || fail "a stale pin attempt was not due again"
 # An unknown input is never due (nothing to unpin).
 if unpin_retry_due not-a-real-input; then fail "unknown input reported due"; fi
 
+echo "PASS: test_unpin_retry (unpin_retry_due)"
+
+# ─── attempt_unpin: pure-probe worktree verification ───────────────────────
+# Hermetic: no real `nix flake update`, no real `nix build`, no network, no
+# commit against this checkout. A scratch git repo stands in for the live
+# checkout; `nix` is stubbed on PATH — `flake update <name>` simulates the
+# lock update by directly rewriting the worktree's flake.lock via jq
+# (controlled by $UNPIN_TEST_MOVE_REV), and `build` succeeds/fails per
+# $UNPIN_TEST_BUILD_OK. Everything else falls through to the real `nix`
+# (needed by `git`'s own machinery indirectly, and harmless since attempt_unpin
+# never calls anything else on `nix`).
+#
+# shellcheck source=/dev/null
+source "$REPO/apps/aarch64-darwin/_common.sh"
+
+REAL_NIX="$(command -v nix)"
+PINNED_REF="deadbeef0000000000000000000000000000dead"
+UNPIN_REF="github:NixOS/nixpkgs/nixpkgs-unstable"
+NEW_REV="cafebabe1111111111111111111111111111cafe"
+
+# <scratch-dir> -> writes a fresh scratch git repo with a fake pinned input.
+setup_scratch() {
+  local d; d="$TMP/scratch-$RANDOM-$RANDOM"
+  mkdir -p "$d/overlays"
+  cat > "$d/flake.nix" <<EOF
+{
+  inputs = {
+    nixpkgs.url = "github:NixOS/nixpkgs/$PINNED_REF";
+  };
+}
+EOF
+  cat > "$d/flake.lock" <<EOF
+{
+  "nodes": {
+    "nixpkgs": {
+      "locked": {
+        "type": "github", "owner": "NixOS", "repo": "nixpkgs", "rev": "$PINNED_REF"
+      }
+    }
+  },
+  "root": "root",
+  "version": 7
+}
+EOF
+  cat > "$d/overlays/updates.json" <<EOF
+{
+  "packages": [], "skip": [], "inputs": {},
+  "pinned_inputs": [
+    {
+      "name": "nixpkgs",
+      "flake_input": "nixpkgs",
+      "pinned_ref": "$PINNED_REF",
+      "unpin_ref": "$UNPIN_REF",
+      "reason": "test fixture",
+      "risk": "high",
+      "last_verified": "2026-07-21",
+      "unpin_when": "never",
+      "rollback_hint": "n/a",
+      "retry_cadence_hours": 168
+    }
+  ]
+}
+EOF
+  git -C "$d" init -q
+  git -C "$d" config user.email t@example.com
+  git -C "$d" config user.name Test
+  git -C "$d" add -A && git -C "$d" commit -qm init
+  printf '%s' "$d"
+}
+
+write_unpin_nix_stub() { # <stub-dir> <move_rev:0|1> <build_ok:0|1>
+  local stub="$1" move="$2" ok="$3"
+  cat > "$stub/nix" <<EOF
+#!/usr/bin/env bash
+case "\$1 \$2" in "registry list") exit 1 ;; esac
+if [[ "\$1" == "flake" && "\$2" == "update" ]]; then
+  if [[ "$move" == "1" ]]; then
+    jq --arg r "$NEW_REV" '.nodes.nixpkgs.locked.rev = \$r' flake.lock > flake.lock.tmp && mv flake.lock.tmp flake.lock
+  fi
+  exit 0
+fi
+if [[ "\$1" == "build" ]]; then
+  if [[ "$ok" == "1" ]]; then exit 0; else echo "error: build failed" >&2; exit 1; fi
+fi
+exec "$REAL_NIX" "\$@"
+EOF
+  chmod +x "$stub/nix"
+}
+
+run_attempt_unpin() { # <scratch-dir> <move_rev> <build_ok> -> sets $out $rc
+  local d="$1" move="$2" ok="$3" stub
+  stub="$TMP/stub-$RANDOM-$RANDOM"; mkdir -p "$stub"
+  write_unpin_nix_stub "$stub" "$move" "$ok"
+  export FLAKE_DIR="$d"
+  export MANIFEST="$d/overlays/updates.json"
+  export QUARANTINE_FILE="$d/overlays/quarantine.json"
+  export FLAKE_SYSTEM_ATTR="fakeSystem"
+  printf '{"comment":"t","entries":[]}\n' > "$QUARANTINE_FILE"
+  set +e
+  out="$(PATH="$stub:$PATH" attempt_unpin nixpkgs 2>&1)"
+  rc=$?
+  set -e
+  rm -rf "$stub"
+}
+
+assert_no_worktree_leak() { # <scratch-dir>
+  local d="$1" wt
+  wt="$(git -C "$d" worktree list | wc -l | tr -d ' ')"
+  [[ "$wt" == "1" ]] || fail "worktree leaked for $d: $(git -C "$d" worktree list)"
+}
+
+# --- Case: rev did not move -> failure (the original false-success bug) ----
+D1="$(setup_scratch)"
+run_attempt_unpin "$D1" 0 1
+[[ $rc -eq 1 ]] || fail "rev-unchanged case: expected return 1, got $rc"
+echo "$out" | grep -qi "success\|can be removed\|ACTION REQUIRED" \
+  && fail "rev-unchanged case: must NOT report success: $out"
+n_entries="$(jq '.entries | length' "$QUARANTINE_FILE")"
+[[ "$n_entries" == "1" ]] || fail "rev-unchanged case: expected a ledger entry, got $n_entries"
+assert_no_worktree_leak "$D1"
+echo "PASS: test_unpin_retry (rev-did-not-move -> failure, no false success)"
+
+# --- Case: rev moved + build passes -> success ------------------------------
+D2="$(setup_scratch)"
+FLAKE_NIX_SNAPSHOT="$(cat "$D2/flake.nix")"
+FLAKE_LOCK_SNAPSHOT="$(cat "$D2/flake.lock")"
+run_attempt_unpin "$D2" 1 1
+[[ $rc -eq 0 ]] || fail "rev-moved+build-ok case: expected return 0, got $rc: $out"
+last_attempt="$(jq -r '.entries[] | select(.name=="nixpkgs") | .last_attempt' "$QUARANTINE_FILE")"
+[[ -n "$last_attempt" && "$last_attempt" != "null" ]] || fail "success case: last_attempt not recorded"
+# Data-loss regression guard: the live scratch checkout's flake.nix/flake.lock
+# must be BYTE-IDENTICAL after a successful verification — the whole point of
+# the worktree redesign is that success never touches the live tree.
+[[ "$(cat "$D2/flake.nix")" == "$FLAKE_NIX_SNAPSHOT" ]] || fail "success case: live flake.nix was modified"
+[[ "$(cat "$D2/flake.lock")" == "$FLAKE_LOCK_SNAPSHOT" ]] || fail "success case: live flake.lock was modified"
+assert_no_worktree_leak "$D2"
+echo "PASS: test_unpin_retry (rev-moved + build passes -> success, live tree untouched)"
+
+# --- Case: rev moved + build fails -> failure -------------------------------
+D3="$(setup_scratch)"
+FLAKE_NIX_SNAPSHOT3="$(cat "$D3/flake.nix")"
+FLAKE_LOCK_SNAPSHOT3="$(cat "$D3/flake.lock")"
+run_attempt_unpin "$D3" 1 0
+[[ $rc -eq 1 ]] || fail "rev-moved+build-fail case: expected return 1, got $rc"
+n_entries3="$(jq '.entries | length' "$QUARANTINE_FILE")"
+[[ "$n_entries3" == "1" ]] || fail "rev-moved+build-fail case: expected a ledger entry, got $n_entries3"
+[[ "$(cat "$D3/flake.nix")" == "$FLAKE_NIX_SNAPSHOT3" ]] || fail "build-fail case: live flake.nix was modified"
+[[ "$(cat "$D3/flake.lock")" == "$FLAKE_LOCK_SNAPSHOT3" ]] || fail "build-fail case: live flake.lock was modified"
+assert_no_worktree_leak "$D3"
+echo "PASS: test_unpin_retry (rev-moved + build fails -> failure, live tree untouched)"
+
+# --- Case: missing unpin_ref -> returns 1 without attempting anything ------
+D4="$(setup_scratch)"
+jq 'del(.pinned_inputs[0].unpin_ref)' "$D4/overlays/updates.json" > "$D4/overlays/updates.json.tmp" \
+  && mv "$D4/overlays/updates.json.tmp" "$D4/overlays/updates.json"
+run_attempt_unpin "$D4" 1 1
+[[ $rc -eq 1 ]] || fail "missing unpin_ref case: expected return 1, got $rc"
+if [[ -f "$QUARANTINE_FILE" ]]; then
+  n_entries4="$(jq '.entries | length' "$QUARANTINE_FILE" 2>/dev/null || echo 0)"
+  [[ "$n_entries4" == "0" ]] || fail "missing unpin_ref case: must not attempt/record anything, got $n_entries4 entries"
+fi
+assert_no_worktree_leak "$D4"
+echo "PASS: test_unpin_retry (missing unpin_ref -> no attempt)"
+
 echo "PASS: test_unpin_retry"
