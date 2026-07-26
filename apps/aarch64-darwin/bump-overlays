@@ -291,7 +291,10 @@ try:
     t = datetime.datetime.strptime(last, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=datetime.timezone.utc)
 except ValueError:
     sys.exit(0)   # unparseable -> treat as due
-due = (datetime.datetime.now(datetime.timezone.utc) - t).total_seconds() >= hours * 3600
+# -3600 slack: the agent fires at a fixed wall-clock time but bumped_at is
+# stamped mid-run, so elapsed always lands just under the nominal window and
+# a strict >= would defer a full extra day every time.
+due = (datetime.datetime.now(datetime.timezone.utc) - t).total_seconds() >= hours * 3600 - 3600
 sys.exit(0 if due else 1)
 PYEOF
 }
@@ -325,11 +328,29 @@ record_bump_failure() { # <name> <new_version> <phase> <logfile>
   printf '%s' "$fp"
 }
 
-# Precondition: never mix with in-progress manual edits.
+# Precondition: never mix with in-progress manual edits. MUST run before
+# quarantine_init below — a genuinely dirty tree still has to be rejected.
 if [[ -n "$(git status --porcelain -- overlays/)" ]]; then
   err "overlays/ has uncommitted changes — commit or stash before running bump-overlays"
   exit 3
 fi
+
+# Commit the ledger from the EXIT trap, not just at the end of a successful
+# run. overlays/quarantine.json lives under overlays/, and this script refuses
+# to start when overlays/ is dirty — so ANY path that writes the ledger and
+# exits without committing (--dry-run creating it, nothing-to-bump, lock
+# contention, an operator Ctrl-C mid-build) wedges every future run at exit 3.
+# `-o overlays/quarantine.json` scopes the commit so it can never sweep in
+# unrelated staged work (the precondition above only inspects overlays/, so
+# staged changes elsewhere are possible). Guarded so a failure here — this
+# runs inside an EXIT trap under `set -e` — can never itself fail the script.
+commit_ledger() {
+  git status --porcelain -- overlays/quarantine.json 2>/dev/null | grep -q . || return 0
+  git add overlays/quarantine.json 2>/dev/null || true
+  git -c core.hooksPath=/dev/null commit -q -o overlays/quarantine.json \
+    -m "quarantine: update ledger" 2>/dev/null || true
+  return 0
+}
 
 # Share `prepare`'s lock: this script rewrites overlay .nix files and
 # overlays/updates.json and commits, so it must never interleave with a
@@ -337,8 +358,15 @@ fi
 # scheduled-check can stay silent rather than fire a spurious failure.
 state_init
 quarantine_init
+# Register commit_ledger-only first: quarantine_init above may already have
+# written the ledger, so even the lock-contention exit below must commit it.
+# state_unlock must NOT be in this trap yet — this process doesn't hold the
+# lock until state_lock succeeds, and unconditionally rmdir-ing it here would
+# release a lock a *different* run legitimately owns.
+trap 'commit_ledger' EXIT
 if ! state_lock; then err "another update run holds the lock; aborting"; exit 2; fi
-trap 'state_unlock' EXIT
+# Now that the lock is actually ours, extend the trap to release it too.
+trap 'commit_ledger; state_unlock' EXIT
 
 # ── Detect ──────────────────────────────────────────────────────────────────
 json="$(bash "$FLAKE_DIR/scripts/check-overlay-versions.sh" --json)" || true
@@ -445,6 +473,7 @@ for i in "${!MECH_NAMES[@]}"; do
     quarantine_clear "$name"
   else
     FAILED+=("$name")
+    tail -30 "$bump_log" >&2
     fp="$(record_bump_failure "$name" "$new_version" "package-build" "$bump_log")"
     err "  quarantined $name@$new_version as '$fp'"
   fi
@@ -459,22 +488,15 @@ for name in "${GOSRC_NAMES_TARGET[@]}"; do
     quarantine_clear "$name"
   else
     FAILED+=("$name")
+    tail -30 "$bump_log" >&2
     fp="$(record_bump_failure "$name" "$new_version" "package-build" "$bump_log")"
     err "  quarantined $name as '$fp'"
   fi
 done
 
-# Commit any quarantine-ledger changes (record/clear) so overlays/ is clean
-# again for the next run — the precondition above rejects a dirty overlays/,
-# and quarantine.json lives under overlays/ but isn't touched by the
-# per-package commits inside bump_mechanical/bump_gosource (those only
-# `git add` the overlay file + manifest, since a failed bump never reaches
-# its own commit and a cleared quarantine happens after the fact in this
-# loop, not inside the function).
-if [[ -n "$(git status --porcelain -- overlays/quarantine.json)" ]]; then
-  git add overlays/quarantine.json
-  git -c core.hooksPath=/dev/null commit -q -m "quarantine: update ledger"
-fi
+# Ledger commit (record/clear from the loops above) happens in the EXIT trap
+# via commit_ledger, so every exit path — not just this successful tail —
+# leaves overlays/ clean for the next run.
 
 echo ""
 msg "Bumped: ${#BUMPED[@]} (${BUMPED[*]:-none})"

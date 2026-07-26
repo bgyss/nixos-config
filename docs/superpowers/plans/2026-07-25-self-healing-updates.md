@@ -978,7 +978,10 @@ try:
     t = datetime.datetime.strptime(last, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=datetime.timezone.utc)
 except ValueError:
     sys.exit(0)   # unparseable -> treat as due
-due = (datetime.datetime.now(datetime.timezone.utc) - t).total_seconds() >= hours * 3600
+# -3600 slack: the agent fires at a fixed wall-clock time but bumped_at is
+# stamped mid-run, so elapsed always lands just under the nominal window and
+# a strict >= would defer a full extra day every time.
+due = (datetime.datetime.now(datetime.timezone.utc) - t).total_seconds() >= hours * 3600 - 3600
 sys.exit(0 if due else 1)
 PYEOF
 }
@@ -2063,7 +2066,11 @@ try:
     t = datetime.datetime.strptime(last, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=datetime.timezone.utc)
 except ValueError:
     sys.exit(0)
-sys.exit(0 if (datetime.datetime.now(datetime.timezone.utc) - t).total_seconds() >= hours * 3600 else 1)
+# Subtract an hour of slack. The agent fires at a fixed wall-clock time but
+# the timestamp is written mid-run, so elapsed is always a few minutes SHORT
+# of the nominal window -- a strict >= would defer by a full extra day, every
+# time, for any package touched the previous run.
+sys.exit(0 if (datetime.datetime.now(datetime.timezone.utc) - t).total_seconds() >= hours * 3600 - 3600 else 1)
 PYEOF
 }
 
@@ -2323,6 +2330,28 @@ grep -qi "roll" "$d/notify.log" || { cat "$d/notify.log"; fail "case4: no rollba
   || fail "case4: no revision-kind quarantine entry written"
 rm -rf "$d" "$s"
 
+# === Case 4b: a ledger-only commit is NOT a revision ======================
+# bump-overlays commits overlays/quarantine.json on any run that records or
+# clears an entry, including runs where every bump FAILED. That must never
+# trigger a build+activate: the whole content is JSON bookkeeping.
+d="$(setup nothing ok ok)"; s="$(stubs "$d" ok)"
+cat > "$d/apps/aarch64-darwin/bump-overlays" <<EOF
+#!/usr/bin/env bash
+echo "bump-overlays" >> "$d/order.log"
+jq '.entries = [{name:"demo",kind:"overlay",blocked_version:"9.9.9"}]' \
+  "$d/overlays/quarantine.json" > "$d/q" && mv "$d/q" "$d/overlays/quarantine.json"
+git add overlays/quarantine.json
+git -c core.hooksPath=/dev/null commit -q -m "quarantine: update ledger"
+exit 1
+EOF
+chmod +x "$d/apps/aarch64-darwin/bump-overlays"
+run "$d" "$s" || true
+grep -q "activate" "$d/order.log" && fail "case4b: activated on a ledger-only commit"
+grep -q "sync" "$d/order.log" && fail "case4b: mirrored a ledger-only commit"
+grep -qi "ready\|activated" "$d/notify.log" 2>/dev/null \
+  && fail "case4b: announced a revision for ledger-only churn"
+rm -rf "$d" "$s"
+
 # === Case 5: --no-activate stays propose-only ============================
 d="$(setup bumped ok ok)"; s="$(stubs "$d" ok)"
 ( cd "$d" && PATH="$s:$PATH" UPDATE_STATE_FILE="$d/.state.json" \
@@ -2446,8 +2475,18 @@ fi
 after="$(git rev-parse HEAD 2>/dev/null)"
 
 # Nothing moved: stay completely silent (invariant 4).
-if [[ "$before" == "$after" ]]; then
-  echo "scheduled-check: nothing changed" >>"$RUN_LOG"
+#
+# "Nothing moved" must also cover the case where the ONLY thing that changed is
+# the quarantine ledger. bump-overlays commits the ledger on every run that
+# records or clears an entry — including a run where every bump FAILED and no
+# package moved at all. Treating that as a real revision would run a full
+# system build and then ACTIVATE a switch whose entire content is a JSON
+# metadata change, and notify about it, while the user simultaneously gets the
+# correct bump-failure notification. Ledger churn is bookkeeping, not a system
+# change.
+changed_paths="$(git diff --name-only "$before" "$after" 2>/dev/null)"
+if [[ "$before" == "$after" ]] || [[ "$changed_paths" == "overlays/quarantine.json" ]]; then
+  echo "scheduled-check: nothing changed (ledger-only churn ignored)" >>"$RUN_LOG"
   exit $exit_code
 fi
 

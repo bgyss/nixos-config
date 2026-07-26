@@ -115,6 +115,29 @@ got_fp="$(jq -r '.entries[] | select(.name=="demo") | .fingerprint' "$d/overlays
 [[ "$got_fp" == "compile-failure" ]] || fail "case1: fingerprint is '$got_fp', expected compile-failure"
 got_good="$(jq -r '.entries[] | select(.name=="demo") | .known_good_version' "$d/overlays/quarantine.json")"
 [[ "$got_good" == "1.0.0" ]] || fail "case1: known_good_version is '$got_good', expected 1.0.0"
+# A mutating run (even one with a failed bump) must leave overlays/ clean —
+# the precondition rejects a dirty overlays/, so anything left dirty here
+# wedges every future run at exit 3.
+[[ -z "$(git -C "$d" status --porcelain -- overlays/)" ]] \
+  || fail "case1: mutating run left overlays/ dirty — next run will exit 3"
+( cd "$d" && PATH="$stub:$PATH" UPDATE_STATE_FILE="$d/.state.json" \
+    bash apps/aarch64-darwin/bump-overlays --no-public-sync >"$d/out2.log" 2>&1 ) && rc2=0 || rc2=$?
+[[ $rc2 -ne 3 ]] || { cat "$d/out2.log"; fail "case1: second run wedged at exit 3"; }
+rm -rf "$d" "$stub"
+
+# === Case 6: --dry-run with an ABSENT ledger must not wedge the next run ===
+d="$(setup_repo)"; stub="$(mktemp -d)"
+setup_stubs "$stub" "1.1.0" "ok"
+git -C "$d" rm -q overlays/quarantine.json
+git -C "$d" commit -qam "remove quarantine ledger (simulate pre-ledger state)"
+( cd "$d" && PATH="$stub:$PATH" UPDATE_STATE_FILE="$d/.state.json" \
+    bash apps/aarch64-darwin/bump-overlays --dry-run --no-public-sync >"$d/out.log" 2>&1 ) && rc=0 || rc=$?
+[[ $rc -eq 0 ]] || { cat "$d/out.log"; fail "case6: expected exit 0 on --dry-run, got $rc"; }
+[[ -z "$(git -C "$d" status --porcelain -- overlays/)" ]] \
+  || fail "case6: --dry-run with absent ledger left overlays/ dirty — next run will exit 3"
+( cd "$d" && PATH="$stub:$PATH" UPDATE_STATE_FILE="$d/.state.json" \
+    bash apps/aarch64-darwin/bump-overlays --no-public-sync >"$d/out2.log" 2>&1 ) && rc2=0 || rc2=$?
+[[ $rc2 -ne 3 ]] || { cat "$d/out2.log"; fail "case6: following run wedged at exit 3"; }
 rm -rf "$d" "$stub"
 
 # === Case 2: a quarantined version is skipped, not retried =================
