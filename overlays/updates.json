@@ -195,7 +195,8 @@
         "branch": "master"
       },
       "update_type": "go-source",
-      "notes": "No tagged releases. Check for new commits on master. Update rev to new commit SHA, update version date string (0-unstable-YYYY-MM-DD), update src hash, then blank vendorHash to get new hash."
+      "notes": "No tagged releases. Check for new commits on master. Update rev to new commit SHA, update version date string (0-unstable-YYYY-MM-DD), update src hash, then blank vendorHash to get new hash. Weekly cadence: tracks a branch with no releases, so a daily bump would chase HEAD with no release gate.",
+      "cadence_hours": 168
     },
     {
       "name": "hey-cli",
@@ -208,7 +209,8 @@
         "branch": "main"
       },
       "update_type": "go-source",
-      "notes": "No tagged releases. Update rev to new commit SHA, update version date string (0-unstable-YYYY-MM-DD), update src hash, then blank vendorHash to get new hash."
+      "notes": "No tagged releases. Update rev to new commit SHA, update version date string (0-unstable-YYYY-MM-DD), update src hash, then blank vendorHash to get new hash. Weekly cadence: tracks a branch with no releases, so a daily bump would chase HEAD with no release gate.",
+      "cadence_hours": 168
     },
     {
       "name": "tmux",

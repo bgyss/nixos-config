@@ -77,6 +77,16 @@ while IFS= read -r name; do
   [[ "$ok" == "true" ]] || err "inputs '$name' needs cadence_hours (number) or on_demand:true"
 done < <(jq -r '(.inputs // {}) | keys[]' "$MANIFEST")
 
+# 7. cadence_hours, when present, must be a positive integer. An absent value
+# means "daily" (the default in scripts/update-probe.sh). A malformed one
+# would silently disable bumping for that package, so it is a hard error.
+while IFS=$'\t' read -r name cadence; do
+  [[ -z "$name" ]] && continue
+  if ! [[ "$cadence" =~ ^[0-9]+$ ]] || [[ "$cadence" -le 0 ]]; then
+    err "package '$name' has invalid cadence_hours '$cadence' (want a positive integer)"
+  fi
+done < <(jq -r '.packages[] | select(has("cadence_hours")) | "\(.name)\t\(.cadence_hours)"' "$MANIFEST")
+
 if [[ $fail -ne 0 ]]; then
   echo "overlay manifest consistency: FAILED" >&2
   exit 1
