@@ -100,38 +100,56 @@
   # on actual overlay/input drift) and posts an osascript notification when a
   # new revision lands or the run fails.
   #
-  # This is a root DAEMON, not a user agent, specifically to avoid a
-  # passwordless-sudo rule for `darwin-rebuild switch`: that rule would
-  # convert any code execution as ${user} into silent root, because
-  # `switch --flake` runs arbitrary activation scripts as root. Running the
-  # pipeline as root and dropping to ${user} for the unprivileged 90% (bump,
-  # build, commit, mirror, escalation, via `scheduled-check --propose-only`)
-  # keeps the privileged path — activation, health check, rollback, via
-  # `scheduled-check --activate-only <sha>` — a root-owned script instead,
-  # with no standing sudo grant.
+  # This is a USER agent, not a root daemon. An earlier revision of this
+  # block ran the whole pipeline as a root LaunchDaemon specifically to avoid
+  # a passwordless-sudo rule for `darwin-rebuild switch` — but that rule
+  # already exists, and predates this work: see `security.sudo.extraConfig`
+  # above, which grants ${user} NOPASSWD sudo on
+  # /run/current-system/sw/bin/darwin-rebuild. The root daemon therefore
+  # bought no security it wasn't already implicitly relying on, while
+  # introducing three concrete problems:
   #
-  # Root already has /var/root/.ssh/config -> /run/agenix/ssh-key wired up
-  # (see system.activationScripts.postActivation above), so it can fetch the
-  # private `secrets` flake input.
+  #   1. `quarantine_record` in `run_activate_only` (apps/*/scheduled-check)
+  #      writes overlays/quarantine.json as root on the activate path, and
+  #      nothing commits it there — leaving a root-owned dirty file under
+  #      overlays/ that wedges `bump-overlays` at exit 3 and can't be cleaned
+  #      up without sudo.
+  #   2. `sync-to-public.sh` running as root would create root-owned git
+  #      objects in ~/src/nixos-config and push with root's SSH identity,
+  #      not the user's.
+  #   3. `osascript` notifications sent from a root LaunchDaemon do not reach
+  #      the logged-in user's GUI session — they silently vanish. That
+  #      includes the health-check-failed-and-rolled-back notification, the
+  #      single most important message this system sends.
+  #
+  # Running everything as ${user} and activating through the pre-existing
+  # NOPASSWD darwin-rebuild sudoers rule avoids all three: no privilege drop
+  # needed, `sudo` inside `activate` uses the existing grant, ordinary files
+  # stay user-owned, and `osascript` reaches the user's session directly.
+  # This couples the agent to that sudoers rule staying in place — removing
+  # it would break unattended activation (the propose half would still run,
+  # but `nix run .#scheduled-check -- --activate-only <sha>` would then
+  # prompt for a password that has nowhere to go in a launchd agent, and the
+  # daily run would fail at that step).
   #
   # Deliberately an ABSOLUTE path into the live checkout rather than
   # `nix run nixos-config#scheduled-check` via the flake registry: launchd
-  # daemons run with a minimal environment (bare NSGlobalDomain-ish PATH, no
+  # agents run with a minimal environment (bare NSGlobalDomain-ish PATH, no
   # guarantee the interactive shell's `nix registry add` state is what a
-  # from-scratch daemon process sees), and the rest of this file already
+  # from-scratch agent process sees), and the rest of this file already
   # hardcodes `/Users/${user}/...` for exactly this kind of
   # environment-independence (see the ssh-key/aws-credentials paths above).
   # `nix` itself is still invoked by absolute store path, same as the emacs
   # agent does for `pkgs.emacs`.
-  launchd.daemons.nixos-auto-update = {
+  launchd.user.agents.nixos-auto-update = {
     script = ''
       set -uo pipefail
       REPO=/Users/${user}/nixos-config
-      /usr/bin/sudo -u ${user} ${pkgs.nix}/bin/nix run "$REPO#scheduled-check" -- --propose-only
+      ${pkgs.nix}/bin/nix run "$REPO#scheduled-check" -- --propose-only
       rc=$?
-      [[ $rc -ne 0 ]] && exit $rc
+      [ $rc -ne 0 ] && exit $rc
       rev="$(cat "$REPO/logs/proposed-revision" 2>/dev/null)"
-      [[ -z "$rev" ]] && exit 0   # nothing proposed; nothing to activate
+      [ -z "$rev" ] && exit 0   # nothing proposed; nothing to activate
       exec ${pkgs.nix}/bin/nix run "$REPO#scheduled-check" -- --activate-only "$rev"
     '';
     serviceConfig = {

@@ -165,21 +165,37 @@ promoted to `frozen`; a health check failed and the system was rolled back.
 
 ## 3. Privilege, Health Check, Rollback
 
-### Privilege — root daemon, not a sudoers hole
+### Privilege — user agent, via the pre-existing sudoers rule
 
-A `/etc/sudoers.d/` rule granting passwordless `darwin-rebuild switch` would convert
-*any* code execution as `briangyss` into silent root, because `switch --flake` runs
-arbitrary activation scripts as root. Rejected.
+An earlier revision of this spec argued for a root `launchd.daemons.nixos-auto-update`
+specifically to avoid a passwordless-sudo rule for `darwin-rebuild switch`, on the
+reasoning that such a rule would convert *any* code execution as `briangyss` into
+silent root (since `switch --flake` runs arbitrary activation scripts as root). That
+argument turned out to be moot: `hosts/darwin/default.nix` already carries
 
-Instead, `launchd.user.agents.nixos-update-check` is replaced by
-**`launchd.daemons.nixos-auto-update`** (root, 09:00), which drops privilege via
-`sudo -u briangyss` for the unprivileged ~90% — bump, build, commit, mirror sync, and
-the Claude escalation — and stays root only for `darwin-rebuild switch` and rollback.
-No standing passwordless-root grant, and the privileged path is a root-owned script
-rather than anything invocable ad hoc.
+```
+briangyss ALL=(root) NOPASSWD: /run/current-system/sw/bin/darwin-rebuild
+```
+
+predating this work, for unrelated reasons. The root daemon therefore bought no
+security beyond what this repo's config already implicitly relies on, while causing
+three concrete problems: (1) `quarantine_record` on the activate path writes
+`overlays/quarantine.json` as root with nothing to commit it, leaving a root-owned
+dirty file that wedges `bump-overlays`; (2) `sync-to-public.sh` running as root would
+create root-owned git objects and push with root's SSH identity in the user's own
+checkouts; (3) `osascript` notifications sent from a root LaunchDaemon never reach the
+logged-in user's GUI session, so the failed-health-check-and-rolled-back
+notification — the most important one this system sends — would silently vanish.
+
+The pipeline instead runs as **`launchd.user.agents.nixos-auto-update`** (09:00,
+${user}), for both halves — propose and activate — with no privilege drop. Activation
+goes through the pre-existing passwordless `darwin-rebuild` sudoers rule above. This
+couples the two: the agent depends on that rule staying in place for unattended
+activation to work, so removing it would break the daily run at the activate step.
 
 Root already has the `/var/root/.ssh/config` → `/run/agenix/ssh-key` wiring needed to
-fetch the `secrets` flake input, so flake evaluation is unaffected.
+fetch the `secrets` flake input, so flake evaluation during `darwin-rebuild switch` is
+unaffected even though the agent invoking it runs as the user.
 
 ### Health check
 
