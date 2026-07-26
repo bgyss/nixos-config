@@ -278,18 +278,46 @@ actually bump one.
     "home-manager": { "cadence_hours": 168 }
   }
   ```
-- `pinned_inputs[]` entries (e.g., `"nixpkgs"` today) are always frozen regardless of cadence
-  and never auto-update.
-- A daily **launchd agent** (`nixos-update-check`) runs `scheduled-check`, which runs
-  `bump-overlays --mechanical-only` and then `prepare` (propose only: build + commit, no
-  privileged switch) and notifies you via macOS notification of the proposed revision, but never
-  activates. You review and run `nix run .#activate -- <rev>` manually. See
-  [overlay-bump-tutorial.md](overlay-bump-tutorial.md#relationship-to-the-daily-launchd-job) for
-  what the unattended run does and does not touch.
+- `pinned_inputs[]` entries (`nixpkgs`, `home-manager`, `darwin`) are no longer a permanent
+  freeze: each carries `unpin_ref`/`retry_cadence_hours`, and `prepare` makes one speculative
+  unpin attempt per window in a throwaway git worktree. A passing build there never rewrites the
+  live `flake.nix` — it prints the exact edit for a human to make. See
+  `docs/self-healing-updates.md`.
+- A daily **user launchd agent** (`nixos-auto-update`, label `org.nixos.nixos-auto-update`) runs
+  `scheduled-check` in two steps: `--propose-only` (`bump-overlays` for every overlay whose
+  quarantine/cadence gates allow it, then `prepare`, then a full build as evidence), and, if a
+  revision was built, `--activate-only <sha>` — the only path that runs `sudo darwin-rebuild
+  switch`, which also health-checks and automatically rolls back + quarantines on failure. A
+  healthy day is silent; see `docs/self-healing-updates.md` for the full operator runbook,
+  including how to read `overlays/quarantine.json` and un-stick a frozen package.
 
-This design separates cheap, safe read-only checks (and the auto-updates that are low-risk and
-easily reverted — flake-input moves plus the mechanical overlay tier, both of which are built
-before they're proposed) from privileged system activation. The manual routine above is still
-the only path for every overlay outside that mechanical tier: the go-source packages
-(`beads`, `c4`, `hey-cli`) and anything whose bump isn't a single verified value substitution
-(mise's manual paths, yt-dlp, ngrok, tmux, `go` minor/major bumps).
+This design separates cheap, safe read-only checks from privileged system activation, and the
+manual routine above is still the only path for every overlay outside the automated set:
+anything whose bump isn't a single verified value substitution (mise's manual paths, yt-dlp,
+ngrok, tmux, `go` minor/major bumps).
+
+## Quarantine and the automated bump path
+
+`nix run .#bump-overlays` (used both by hand and by the daily agent) skips any package/version
+currently blocked in `overlays/quarantine.json` — see `docs/self-healing-updates.md` for the
+full ledger schema and the `retry_policy` values. Two things worth knowing when following this
+manual routine:
+
+- **A quarantined package is silently skipped by a bare `bump-overlays` run.** If you've just
+  fixed the underlying problem (or want to retry immediately rather than wait for the next
+  cadence/retry window), bypass both the quarantine and cadence gates explicitly:
+  ```bash
+  nix run .#bump-overlays -- --only <pkg>
+  ```
+  A successful bump through this path clears the package's ledger entry automatically.
+- **If you bump a package by hand** (editing the overlay directly, outside `bump-overlays`),
+  nothing clears its quarantine entry for you. Clear it explicitly once the fix is verified:
+  ```bash
+  QUARANTINE_FILE=overlays/quarantine.json bash -c \
+    'source scripts/update-state.sh; source scripts/quarantine.sh; quarantine_clear <pkg>'
+  ```
+  Then `git add overlays/quarantine.json` and commit — this only edits the file, it does not
+  commit for you.
+- `bump-overlays` refuses to run at all (`exit 3`) whenever `overlays/` has any uncommitted
+  changes, including a dirty `overlays/quarantine.json` left over from an interrupted run.
+  `git status --porcelain -- overlays/` and commit or discard whatever's there before retrying.

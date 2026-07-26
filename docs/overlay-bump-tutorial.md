@@ -91,32 +91,39 @@ single shared `version` (as trailbase/igir/dcg/go already do), not an
 
 ## Relationship to the daily launchd job
 
-The daily `scheduled-check` launchd job runs `bump-overlays --mechanical-only`
-**before** `prepare`, so the mechanical tier bumps itself unattended. Details
-that differ from a manual `nix run .#bump-overlays`:
+The daily `nixos-auto-update` launchd agent runs `bump-overlays` (no
+`--mechanical-only` flag — that exclusion was removed once go-source bumps
+gained their own cadence gating) **before** `prepare`, as the first step of
+`scheduled-check --propose-only`. Details that differ from a manual
+`nix run .#bump-overlays`:
 
-- **`--mechanical-only`** drops the go-source packages (`beads`, `c4`,
-  `hey-cli`) from scope, listing them as skipped. `c4` and `hey-cli` are
-  commit-tracked with no upstream releases, so an unattended run would chase
-  branch HEAD every day with nothing gating it. Run the command by hand to
-  bump those.
+- **Go-source packages are included, cadence-gated instead of excluded.**
+  `beads`, `c4`, and `hey-cli` are attempted like any other package, subject
+  to the quarantine gate and each package's `cadence_hours` in
+  `overlays/updates.json`. `c4` and `hey-cli` declare `cadence_hours: 168`
+  (weekly) because they're commit-tracked with no upstream releases — a daily
+  bump would chase branch HEAD with nothing gating it; `beads` follows the
+  default daily cadence like the mechanical tier.
 - **Ordering.** The bump runs first so that, if `prepare` then finds a flake
-  input due, its build already covers the bumped overlays. When `prepare` has
-  nothing to do (the normal case while nixpkgs is pinned), `scheduled-check`
-  runs the full `darwinConfigurations.<host>.system` build itself before
-  notifying — `bump-overlays`' own build is scoped to one package and won't
-  catch a system-level eval error or file collision. Every revision the daily
-  job proposes has been built.
-- **Locking.** `bump-overlays` now takes the same `.update-state.json.lock.d`
-  lock as `prepare` and exits **2** on contention, so a manual run and the
-  scheduled run can never interleave. Exit **3** means `overlays/` had
-  uncommitted changes; exit **1** means at least one package failed to bump
-  (the rest still committed).
-- **Notifications.** A partial failure produces two: the normal "revision
-  ready" for what landed, and a bump-FAILED naming the packages that need
-  [the manual routine](overlay-update-routine.md). If the full system build
-  fails, the bump commits are left in place (not auto-reset — a hard reset
-  could take unrelated work with it) and the notification gives you the
-  `git reset --hard <before>` to discard them.
+  input due, its build already covers the bumped overlays. `scheduled-check`
+  also runs a full `darwinConfigurations.<host>.system` build itself as a
+  final evidence step whenever anything moved — `bump-overlays`' own build is
+  scoped to one package and won't catch a system-level eval error or file
+  collision. Every revision the daily job proposes has been built.
+- **Locking.** `bump-overlays` takes the same state lock as `prepare` and
+  exits **2** on contention, so a manual run and the scheduled run can never
+  interleave. Exit **3** means `overlays/` had uncommitted changes; exit **1**
+  means at least one package failed to bump (the rest still committed).
+- **Escalation.** Up to 3 packages freshly quarantined this run get a
+  budgeted headless Claude repair session (`scripts/escalate.sh`) before
+  `prepare` runs — see `docs/self-healing-updates.md` for the token brakes.
+- **Notifications.** A healthy day is silent. A package newly promoted to
+  `frozen`, a Claude repair landing, or a build/health-check failure each
+  notify — see `docs/self-healing-updates.md`.
 
-The job still **never activates**; it only proposes.
+Unlike the earlier propose-only design, the job **does now activate**: after
+a successful `--propose-only` build, the same launchd script runs
+`scheduled-check --activate-only <sha>`, which switches the system, runs the
+post-activation health check, and rolls back + quarantines on failure. See
+`docs/self-healing-updates.md` for the full pipeline and how to run a
+propose-only pass by hand.

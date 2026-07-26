@@ -54,40 +54,42 @@ does the single privileged switch, consuming that *specific committed revision* 
 working tree. Preview first with `nix run .#diff` / `nix run .#dry-activate` (both read-only, no
 activation).
 
-**Smart incremental updates (new).** `nix run .#check` is a read-only gate that previews what
+**Smart incremental updates.** `nix run .#check` is a read-only gate that previews what
 `prepare` would actually change — it probes each flake input and overlay against upstream,
-respecting per-input cadence and frozen `pinned_inputs[]`, caches the result in `.update-state.json`
-(a gitignored, deletable file), and reports which packages have real new versions available.
-`prepare` builds/commits only if a flake input actually moved (per its cadence) — overlay
-version bumps are reported informationally only and are **never** auto-applied by `prepare`
-(auto-bumping lives in `bump-overlays` / `scheduled-check` instead, see below); bumping a
-non-mechanical overlay's version still requires the manual routine in
-[docs/overlay-update-routine.md](docs/overlay-update-routine.md) (it has to rewrite the
-overlay's pinned version/hash *and* `updates.json`'s `current_version` together — auto-doing
-only the latter previously left the manifest permanently lying about what's pinned). Per-input
-update cadence is configured in `overlays/updates.json` under `inputs.*` (e.g., `"nixpkgs":
-{"cadence_hours": 168}`) — `pinned_inputs[]` entries are always frozen regardless of cadence. A
-**daily launchd agent** (`nixos-update-check`) runs `scheduled-check`, which runs
-`bump-overlays --mechanical-only` and then `prepare` (propose only: build + commit, no
-privileged switch) and notifies you via macOS notification of the proposed revision, but
-**never activates** — you review and run `nix run .#activate -- <rev>` manually. If `prepare`
-can't acquire its lock (another run already in progress) it exits 2 and `scheduled-check` stays
-silent rather than firing a failure notification. This design separates read-only checks (cheap,
-safe to automate) from privileged activation.
+respecting per-input cadence, caches the result in `.update-state.json` (a gitignored,
+deletable file), and reports which packages have real new versions available. `prepare`
+builds/commits only if a flake input actually moved (per its cadence) — overlay version bumps
+are reported informationally only by `prepare` itself and are applied instead by
+`bump-overlays` (see below). Per-input update cadence is configured in `overlays/updates.json`
+under `inputs.*` (e.g., `"nixpkgs": {"cadence_hours": 168}`). `pinned_inputs[]` entries
+(`nixpkgs`, `home-manager`, `darwin`) are no longer a permanent freeze: each carries an
+`unpin_ref` and `retry_cadence_hours`, and `prepare` makes one speculative unpin attempt per
+window in a throwaway git worktree — a passing build never rewrites the live `flake.nix`, it
+only prints the exact edit a human should make (see `docs/self-healing-updates.md`).
 
-**Auto-bumped overlays in the daily run.** `scheduled-check` auto-bumps only the *mechanical*
-subset — `prebuilt-binary` / `prebuilt-binary-multiplatform` / `prebuilt-npm` overlays plus `go`
-patch bumps — because those are a pure value substitution verified by a scoped build. The
-go-source packages (`beads`, `c4`, `hey-cli`) are excluded by `--mechanical-only`: `c4` and
-`hey-cli` track a branch with no releases, so auto-bumping would chase HEAD daily with no
-release gate. Run `nix run .#bump-overlays` by hand to include them. Everything else (mise's
-manual paths, yt-dlp, ngrok, tmux, `go` minor bumps) still follows
-[docs/overlay-update-routine.md](docs/overlay-update-routine.md). Because a bump-only run means
-`prepare` had nothing to do and never built, `scheduled-check` runs the full system build itself
-before notifying — **every revision it proposes has been built**. If that build fails, the bump
-commits are left in place (not auto-reset) and the notification tells you the `git reset --hard`
-to discard them. A partial failure notifies twice: "revision ready" for the packages that
-landed, plus a bump-FAILED notification naming the ones that need the manual routine.
+**The daily pipeline now activates itself.** A **user** launchd agent
+(`launchd.user.agents.nixos-auto-update`, label `org.nixos.nixos-auto-update`) runs
+`scheduled-check` at 09:00 in two steps: `scheduled-check --propose-only` (also the bare
+default — bump every eligible overlay via `bump-overlays`, escalate up to 3 freshly-quarantined
+packages to a budgeted Claude repair session, run `prepare`, build as evidence), then, if a
+revision was built, `scheduled-check --activate-only <sha>` — the only path that ever runs
+`sudo darwin-rebuild switch`. That step health-checks the activation
+(`scripts/post-activate-health.sh`) and automatically rolls back and quarantines the revision on
+failure. **A healthy day is completely silent — no notification at all**; check
+`logs/nixos-scheduled-check.log` to confirm the agent ran. Notifications fire only for build
+failures, health-check failures (rollback triggered), a package newly frozen, or a Claude repair
+landing for review. Activation relies on the pre-existing passwordless-sudo `darwin-rebuild`
+rule in `hosts/darwin/default.nix`'s `security.sudo.extraConfig` — removing that rule breaks
+unattended activation. If `prepare`/`bump-overlays` can't acquire the shared state lock (another
+run already in progress) they exit 2 and `scheduled-check` stays silent rather than firing a
+failure notification.
+
+Failures are recorded per-version in `overlays/quarantine.json` (self-healing: a quarantine
+blocks exactly the failing version/pin-ref, so anything newer is retried automatically) and
+`bump-overlays`/`prepare` both skip whatever it currently blocks. Full operator runbook —
+reading the ledger, un-sticking a frozen package, the five escalation token brakes, disabling
+the agent, recovering from a bad activation — lives in
+[docs/self-healing-updates.md](docs/self-healing-updates.md).
 
 **Checks / formatting.** `nix flake check` is the pass/fail gate: `treefmt` (nixfmt-rfc-style +
 statix + deadnix), `overlays-manifest` (`updates.json` ↔ overlays consistency, enforced by
@@ -214,3 +216,8 @@ the public repo receives the hook file but never runs it → no sync loop).
 - Commits in `~/nixos-config` auto-mirror + push to the public repo via a post-commit hook
   (see "Public Mirror Sync"). Before committing a **new private note**, add its path to
   `scripts/public-sync-denylist.txt` or it will be published to GitHub.
+- The daily 09:00 user agent (`nixos-auto-update`) auto-bumps every overlay, builds, activates,
+  health-checks, and rolls back on failure. Breakage is recorded per-version in
+  `overlays/quarantine.json` — a quarantine blocks exactly the failing version, so anything
+  newer is retried automatically. A healthy run is silent. See
+  `docs/self-healing-updates.md`.
