@@ -63,6 +63,10 @@ REAL_NIX="$(command -v nix)"
 PINNED_REF="deadbeef0000000000000000000000000000dead"
 UNPIN_REF="github:NixOS/nixpkgs/nixpkgs-unstable"
 NEW_REV="cafebabe1111111111111111111111111111cafe"
+# Decoy plain `nixpkgs` node's rev — must NEVER change across any case below;
+# a fix that reads it instead of the real `nixpkgs_2` node would incorrectly
+# see this as "did not move".
+DECOY_REV="0000decoy0000decoy0000decoy0000decoy000"
 
 # <scratch-dir> -> writes a fresh scratch git repo with a fake pinned input.
 setup_scratch() {
@@ -75,10 +79,25 @@ setup_scratch() {
   };
 }
 EOF
+  # Mirrors the real repo's flake.lock shape: agenix's own transitive
+  # nixpkgs/home-manager/darwin already claim the plain node names, so nix
+  # suffixes ours (`nixpkgs` -> `nixpkgs_2`). root.inputs.nixpkgs therefore
+  # points at node `nixpkgs_2`, and a decoy plain `nixpkgs` node (unrelated,
+  # never touched by `nix flake update nixpkgs`) sits alongside it holding a
+  # DIFFERENT rev that never changes. A test reading `.nodes.nixpkgs` instead
+  # of resolving through root.inputs would silently pass against the decoy.
   cat > "$d/flake.lock" <<EOF
 {
   "nodes": {
+    "root": {
+      "inputs": { "nixpkgs": "nixpkgs_2" }
+    },
     "nixpkgs": {
+      "locked": {
+        "type": "github", "owner": "NixOS", "repo": "nixpkgs", "rev": "$DECOY_REV"
+      }
+    },
+    "nixpkgs_2": {
       "locked": {
         "type": "github", "owner": "NixOS", "repo": "nixpkgs", "rev": "$PINNED_REF"
       }
@@ -121,7 +140,7 @@ write_unpin_nix_stub() { # <stub-dir> <move_rev:0|1> <build_ok:0|1>
 case "\$1 \$2" in "registry list") exit 1 ;; esac
 if [[ "\$1" == "flake" && "\$2" == "update" ]]; then
   if [[ "$move" == "1" ]]; then
-    jq --arg r "$NEW_REV" '.nodes.nixpkgs.locked.rev = \$r' flake.lock > flake.lock.tmp && mv flake.lock.tmp flake.lock
+    jq --arg r "$NEW_REV" '.nodes.nixpkgs_2.locked.rev = \$r' flake.lock > flake.lock.tmp && mv flake.lock.tmp flake.lock
   fi
   exit 0
 fi
@@ -207,5 +226,25 @@ if [[ -f "$QUARANTINE_FILE" ]]; then
 fi
 assert_no_worktree_leak "$D4"
 echo "PASS: test_unpin_retry (missing unpin_ref -> no attempt)"
+
+# --- Case: root.inputs lacks the input entirely -> locked_rev_for_input ----
+# ---   returns empty -> treated as failure, never success ------------------
+D5="$(setup_scratch)"
+# attempt_unpin's worktree is created from committed HEAD, not the working
+# tree, so the edit must be committed for the worktree to see it.
+jq 'del(.nodes.root.inputs.nixpkgs)' "$D5/flake.lock" > "$D5/flake.lock.tmp" \
+  && mv "$D5/flake.lock.tmp" "$D5/flake.lock"
+git -C "$D5" commit -qam "test: drop nixpkgs from root.inputs"
+FLAKE_NIX_SNAPSHOT5="$(cat "$D5/flake.nix")"
+FLAKE_LOCK_SNAPSHOT5="$(cat "$D5/flake.lock")"
+run_attempt_unpin "$D5" 1 1
+[[ $rc -eq 1 ]] || fail "unresolvable root.inputs node case: expected return 1, got $rc: $out"
+echo "$out" | grep -qi "success\|can be removed\|ACTION REQUIRED" \
+  && fail "unresolvable root.inputs node case: must NOT report success: $out"
+n_entries5="$(jq '.entries | length' "$QUARANTINE_FILE")"
+[[ "$n_entries5" == "1" ]] || fail "unresolvable root.inputs node case: expected a ledger entry, got $n_entries5"
+[[ "$(cat "$D5/flake.nix")" == "$FLAKE_NIX_SNAPSHOT5" ]] || fail "unresolvable node case: live flake.nix was modified"
+assert_no_worktree_leak "$D5"
+echo "PASS: test_unpin_retry (root.inputs missing the input entirely -> failure, not success)"
 
 echo "PASS: test_unpin_retry"

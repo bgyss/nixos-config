@@ -66,6 +66,25 @@ PYEOF
 # the process's EXIT trap for commit_ledger/state_unlock (see the two-stage
 # trap below attempt_unpin's definition), and a second independent trap
 # would clobber it rather than compose with it.
+# Resolve an input's flake.lock NODE name before reading its rev. The node key
+# is NOT the input name in general: when a transitive dependency already claims
+# the plain name, nix suffixes ours (`nixpkgs` -> `nixpkgs_2`). In this repo all
+# three pinned inputs are suffixed because agenix's own nixpkgs/home-manager/
+# darwin take the plain keys, so reading `.nodes[$name]` silently inspects an
+# unrelated dependency that `nix flake update <name>` never touches.
+#
+# .nodes.root.inputs[$n] is normally a string (the node name) but can be an
+# array for a `follows` chain; jq then renders it as JSON rather than a node
+# name, the node lookup misses, and this returns empty -- which fails closed
+# correctly (see callers) but is not a resolved rev, so `follows`-chained
+# inputs are not actually handled here.
+locked_rev_for_input() { # <flake.lock path> <input-name>
+  local lock="$1" name="$2" node
+  node="$(jq -r --arg n "$name" '.nodes.root.inputs[$n] // empty' "$lock" 2>/dev/null)"
+  [[ -z "$node" ]] && { printf ''; return 0; }
+  jq -r --arg node "$node" '.nodes[$node].locked.rev // empty' "$lock" 2>/dev/null
+}
+
 cleanup_unpin_worktree() {
   [[ -n "${UNPIN_WT:-}" ]] && git -C "$FLAKE_DIR" worktree remove --force "$UNPIN_WT" >/dev/null 2>&1
   [[ -n "${UNPIN_WT_PARENT:-}" ]] && rm -rf "$UNPIN_WT_PARENT"
@@ -115,7 +134,7 @@ attempt_unpin() { # <input-name>
 
   # Step 3: record the PRE-attempt locked rev before touching anything, so
   # step 6 below can assert it actually moved.
-  pre_rev="$(jq -r --arg n "$name" '.nodes[$n].locked.rev // ""' "$UNPIN_WT/flake.lock")"
+  pre_rev="$(locked_rev_for_input "$UNPIN_WT/flake.lock" "$name")"
 
   # Step 4: rewrite the input's url in the worktree's flake.nix to unpin_ref.
   # Anchored on the literal pinned_ref text inside a `url = "..."` value
@@ -161,8 +180,8 @@ PYEOF
   # rewritten) url and always "succeeds" whether or not anything changed, so
   # skipping this check is exactly how a false "pin can be removed" verdict
   # happened before.
-  post_rev="$(jq -r --arg n "$name" '.nodes[$n].locked.rev // ""' "$UNPIN_WT/flake.lock")"
-  if [[ -z "$post_rev" || "$post_rev" == "$pre_rev" ]]; then
+  post_rev="$(locked_rev_for_input "$UNPIN_WT/flake.lock" "$name")"
+  if [[ -z "$pre_rev" || -z "$post_rev" || "$post_rev" == "$pre_rev" ]]; then
     warn "  unpin: $name locked rev did not move (still $pre_rev) — treating as failure"
     quarantine_record "$name" "input" "unpin-attempt" "$pinned_ref" \
       "flake-update" "unpin-rev-unchanged" "retry-after:$cadence" \
