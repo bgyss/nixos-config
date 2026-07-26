@@ -200,11 +200,13 @@ package to `updates.json` prompts adding its smoke assertion. The
 ### Rollback
 
 Health failure calls the existing idempotent `rollback` app, then writes a
-`kind: revision` quarantine entry. That entry escalates with a specific job: bisect
-the bump commits, identify the offending package, quarantine that one alone, and
-re-propose the rest. This is the one escalation permitted a larger per-session budget
-(`--max-turns 80`, 1800s), since it is also the only one where the machine is in a
-degraded state. It still consumes one of the three escalation slots in §5.2.
+`kind: revision` quarantine entry with `retry_policy: frozen` and notifies, naming the
+commit range. It does **not** escalate: after a multi-package bump the culprit is
+ambiguous, and a bisect-and-attribute mode is real additional scope for the rarest
+failure path — one that leaves the machine already rolled back and healthy. Bisecting
+`before..after` by hand takes a few minutes, and the frozen entry stops the pipeline
+from re-proposing the same revision meanwhile. Escalation stays scoped to per-package
+repair, where the culprit is unambiguous by construction. It still consumes one of the three escalation slots in §5.2.
 
 ### Ordering fix
 

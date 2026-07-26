@@ -1016,7 +1016,8 @@ for i in "${!MECH_NAMES[@]}"; do
   # per-package log is the difference between a precise brief and dumping the
   # whole run log at the model.
   bump_log="$FLAKE_DIR/logs/bump-${name}.log"
-  if declare -F bump_mechanical >/dev/null && bump_mechanical "$name" "$new_version" 2>&1 | tee "$bump_log"; then
+  if declare -F bump_mechanical >/dev/null && bump_mechanical "$name" "$new_version" >"$bump_log" 2>&1; then
+    cat "$bump_log"
     BUMPED+=("$name")
     quarantine_clear "$name"
   else
@@ -1029,7 +1030,8 @@ for name in "${GOSRC_NAMES_TARGET[@]}"; do
   state_set_overlay_bumped_at "$name" "$(now_iso)"
   new_version="$(jq -r --arg n "$name" '.packages[] | select(.name==$n) | .current_version' "$MANIFEST")"
   bump_log="$FLAKE_DIR/logs/bump-${name}.log"
-  if declare -F bump_gosource >/dev/null && bump_gosource "$name" 2>&1 | tee "$bump_log"; then
+  if declare -F bump_gosource >/dev/null && bump_gosource "$name" >"$bump_log" 2>&1; then
+    cat "$bump_log"
     BUMPED+=("$name")
     quarantine_clear "$name"
   else
@@ -1042,13 +1044,7 @@ done
 
 Note the removed `rm -f "$bump_log"`: these logs are deliberately kept for the escalation brief. `logs/*` is gitignored and `scheduled-check` truncates its own logs each run, so they do not accumulate meaningfully.
 
-**Important:** `bump_mechanical` and `bump_gosource` currently `return 1` on failure, and piping into `tee` makes the pipeline's exit status that of `tee`. Add `set -o pipefail` verification — the script already has `set -euo pipefail` at the top, so `PIPESTATUS[0]` propagates correctly through `if`. Confirm with the test in Step 9; if case 1 reports exit 0 instead of 1, replace the `if ... | tee ...` form with:
-
-```bash
-  if declare -F bump_mechanical >/dev/null && bump_mechanical "$name" "$new_version" >"$bump_log" 2>&1; then
-```
-
-and `cat "$bump_log"` afterwards, which avoids the pipeline entirely.
+**Note on the redirect-then-`cat` form:** deliberately not `| tee`. Piping would run `bump_mechanical` in a subshell, and its exit status would come from `tee` unless `pipefail` semantics happen to line up. Redirecting to the log and `cat`-ing it afterwards keeps the function in the current shell and makes its `return 1` the value the `if` tests. Do not "simplify" this back to a pipeline.
 
 - [ ] **Step 9: Run the test to verify it passes**
 
@@ -2241,12 +2237,21 @@ grep -q "activate" "$d/order.log" && fail "case2: activated with nothing to do"
 [[ ! -s "$d/notify.log" ]] || { cat "$d/notify.log"; fail "case2: notified on a no-op run"; }
 rm -rf "$d" "$s"
 
-# === Case 3: build fails -> no activation, escalation attempted ===========
+# === Case 3: build fails -> no activation, revision quarantined, notified ==
+# A system-build failure after per-package builds passed is a collision or eval
+# problem, not one package's fault, so it is NOT escalated (spec §3): it is
+# frozen and reported, and the notification names the range to bisect by hand.
 d="$(setup bumped broken ok)"; s="$(stubs "$d" broken)"
 run "$d" "$s" && rc=0 || rc=$?
+[[ $rc -eq 1 ]] || fail "case3: expected exit 1, got $rc"
 grep -q "activate" "$d/order.log" && fail "case3: activated after a failed build"
-grep -q "escalate" "$d/order.log" || { cat "$d/order.log"; fail "case3: did not escalate"; }
+grep -q "escalate" "$d/order.log" && fail "case3: escalated a revision-level failure"
+grep -q "sync" "$d/order.log" && fail "case3: mirrored a revision that failed to build"
 grep -qi "fail" "$d/notify.log" || fail "case3: no failure notification"
+[[ "$(jq -r '[.entries[] | select(.kind=="revision")] | length' "$d/overlays/quarantine.json")" == "1" ]] \
+  || fail "case3: no revision-kind quarantine entry written"
+[[ "$(jq -r '.entries[] | select(.kind=="revision") | .retry_policy' "$d/overlays/quarantine.json")" == "frozen" ]] \
+  || fail "case3: revision entry not frozen"
 rm -rf "$d" "$s"
 
 # === Case 4: health check fails -> rollback, notify, no mirror ============
@@ -2697,6 +2702,13 @@ Run all of these before considering the plan complete:
 - [ ] One full live daily run observed: `sudo launchctl kickstart -k system/<label>` then read `logs/nixos-scheduled-check.log`
 
 ## Known Deviations From the Spec
+
+- **Revision-level failures notify but do not escalate.** An earlier spec draft had a
+  health-check failure escalate with a bisect-and-attribute job. That is deliberately
+  deferred: after a multi-package bump the culprit is ambiguous, the machine is already
+  rolled back and healthy, and the `frozen` revision entry stops the pipeline from
+  re-proposing it. Escalation stays scoped to per-package repair, where the culprit is
+  unambiguous by construction. The spec has been corrected to match.
 
 - **§8's "automated `vendorHash` refetch for go-source"** is already implemented (`bump_gosource` in `apps/aarch64-darwin/bump-overlays:170`). Task 4 only removes the `--mechanical-only` exclusion and adds cadence gating. The spec has been corrected.
 - **Successful unpin is a half-step (Task 7).** A passing speculative build leaves the bumped `flake.lock` and *reports* that `flake.nix`'s `url` and the `pinned_inputs[]` entry need editing, rather than rewriting them — deleting a pin's `reason`/`risk`/`unpin_when` prose automatically would silently discard the documented reason it existed.
