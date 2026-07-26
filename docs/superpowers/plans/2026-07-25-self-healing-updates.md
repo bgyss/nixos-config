@@ -640,7 +640,10 @@ for pkg in data["packages"]:
             "would chase HEAD with no release gate."
         )
 with open(p, "w") as f:
-    json.dump(data, f, indent=2)
+    # ensure_ascii=False is required: without it Python re-escapes the em-dashes
+    # and arrows already present in several notes fields into \uXXXX, producing a
+    # large spurious diff across packages this change never touched.
+    json.dump(data, f, indent=2, ensure_ascii=False)
     f.write("\n")
 PYEOF
 ```
@@ -1944,7 +1947,10 @@ with open(p) as f:
 for pin in data["pinned_inputs"]:
     pin["retry_cadence_hours"] = 168
 with open(p, "w") as f:
-    json.dump(data, f, indent=2)
+    # ensure_ascii=False is required: without it Python re-escapes the em-dashes
+    # and arrows already present in several notes fields into \uXXXX, producing a
+    # large spurious diff across packages this change never touched.
+    json.dump(data, f, indent=2, ensure_ascii=False)
     f.write("\n")
 PYEOF
 ```
