@@ -379,8 +379,10 @@ New:
 Modified:
 
 - `apps/*/scheduled-check` → the full pipeline including activate + health + rollback
-- `apps/*/bump-overlays` → `--all`, per-package cadence, quarantine-aware skipping,
-  automated `vendorHash` refetch for go-source
+- `apps/*/bump-overlays` → per-package cadence, quarantine-aware skipping, quarantine
+  writes on failure. (Note: go-source bumping incl. automated `vendorHash` refetch is
+  **already implemented** in `bump_gosource`; it is merely excluded by
+  `--mechanical-only`. Dropping that flag from the scheduled run is the whole change.)
 - `apps/*/prepare` → unpin-retry for `pinned_inputs[]`
 - `hosts/darwin/default.nix` → `launchd.user.agents.nixos-update-check` becomes
   `launchd.daemons.nixos-auto-update`
