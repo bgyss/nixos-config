@@ -1359,7 +1359,19 @@ while IFS=$'\t' read -r pkg cmd regex tmo skip; do
     continue
   fi
 
-  if [[ "$observed" != *"$expected"* && "$expected" != *"$observed"* ]]; then
+  # EXACT equality, deliberately not a substring test. Substring matching
+  # false-passes on any prefix relationship, and this manifest has live cases:
+  # mise and yt-dlp pin date-shaped versions where the day component varies in
+  # width, so expected 2026.7.1 would "match" observed 2026.7.14 — two
+  # different releases. Ditto tmux 3.7 vs 3.7b. This check is the sole gate
+  # deciding whether to roll back an activated system; it cannot be loose.
+  #
+  # This means every version_regex must extract ONLY the version, with no
+  # surrounding text. Note `grep -oE` prints the WHOLE match and ignores
+  # capture groups, so a regex like `go([0-9.]+)` yields "go1.26.5", not
+  # "1.26.5" — write `[0-9]+\.[0-9]+\.[0-9]+` instead and let it match inside
+  # the larger line.
+  if [[ "$observed" != "$expected" ]]; then
     echo "FAIL: $pkg — expected version '$expected', binary reports '$observed'" >&2
     failures=$((failures + 1))
     continue

@@ -64,6 +64,15 @@ printf '#!/usr/bin/env bash\nexit 0\n' > "$STUB/launchctl"; chmod +x "$STUB/laun
 run_health '{"assertions":[],"agents":["com.example.present"]}' \
   || fail "loaded agent was rejected"
 
+# --- prefix versions must NOT pass (exact equality, not substring) --------
+# mise/yt-dlp pin date versions where the day width varies, so a substring
+# check would treat 2026.7.1 and 2026.7.14 as the same release.
+printf '#!/usr/bin/env bash\necho "demo 1.2.34"\n' > "$STUB/prefixdemo"
+chmod +x "$STUB/prefixdemo"
+if run_health '{"assertions":[{"package":"demo","command":"prefixdemo --version","version_regex":"[0-9]+\\.[0-9]+\\.[0-9]+","timeout":10}],"agents":[]}'; then
+  cat "$TMP/out"; fail "observed 1.2.34 wrongly accepted against expected 1.2.3"
+fi
+
 # --- every pinned package in the REAL manifest has an assertion or a skip
 missing=""
 while read -r p; do
