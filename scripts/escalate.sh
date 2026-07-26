@@ -52,6 +52,28 @@ if ! quarantine_should_escalate "$PACKAGE" "$fingerprint"; then
   exit 2
 fi
 
+# ── Safety net: install before any ledger write ──────────────────────────
+# Installed before quarantine_record below writes anything, not after. If the
+# script died between a ledger write and trap installation -- mktemp -d
+# failing, a brief-write failure, SIGTERM from the launchd agent -- the
+# ledger would be left modified and uncommitted, and bump-overlays refuses to
+# start (exit 3) on every future run, forever. $wt/$branch/$wt_parent are not
+# assigned until the worktree section further down, so cleanup guards them.
+commit_ledger() {
+  git -C "$REPO" status --porcelain -- overlays/quarantine.json 2>/dev/null | grep -q . || return 0
+  git -C "$REPO" add overlays/quarantine.json 2>/dev/null || true
+  git -C "$REPO" -c core.hooksPath=/dev/null commit -q -o overlays/quarantine.json \
+    -m "quarantine: record escalation outcome" 2>/dev/null || true
+  return 0
+}
+cleanup() {
+  [[ -n "${wt:-}" ]] && git -C "$REPO" worktree remove --force "$wt" >/dev/null 2>&1
+  [[ -n "${branch:-}" ]] && git -C "$REPO" branch -D "$branch" >/dev/null 2>&1
+  [[ -n "${wt_parent:-}" ]] && rm -rf "$wt_parent"
+  commit_ledger
+}
+trap cleanup EXIT
+
 # ── Assemble the brief ────────────────────────────────────────────────────
 # Deliberately small (target <3k tokens) and pre-digested. Handing over the
 # repo to explore is where tokens go to die.
@@ -71,8 +93,12 @@ prior="$(quarantine_field "$PACKAGE" escalation_verdict)"
 # attempts, and attempts>=3 auto-promotes to `frozen`, which blocks EVERY
 # version forever — so two real failures would permanently freeze the package
 # instead of three. Only create an entry here when nothing recorded the
-# failure first (i.e. this script invoked directly).
-if [[ -z "$(quarantine_field "$PACKAGE" blocked_version)" ]]; then
+# failure first (i.e. this script invoked directly). Keyed on the blocked
+# VERSION, not mere presence: a stale entry for an older version (e.g.
+# blocked_version 0.9.0 while we're now escalating for 1.1.0) must still be
+# refreshed here, or the verdict attaches to the wrong version and the ledger
+# never reflects the version actually being escalated.
+if [[ "$(quarantine_field "$PACKAGE" blocked_version)" != "$VERSION" ]]; then
   quarantine_record "$PACKAGE" overlay "$VERSION" "$(jq -r '.current_version' <<<"$pkg_json")" \
     "$PHASE" "$fingerprint" next-version-only "$(tail -c 500 "$LOG" 2>/dev/null | quarantine_sanitize)"
 fi
@@ -111,7 +137,7 @@ $(tail -80 "$LOG" 2>/dev/null | quarantine_sanitize)
    pinned version/hash AND overlays/updates.json's current_version together.
 3. Verify with a scoped build:
    nix build --no-link --impure --expr 'let pkgs = import <nixpkgs> { config.allowUnfree = true; overlays = [ (import ./$overlay_rel) ]; }; in pkgs.$PACKAGE'
-4. Write verdict.json in the repo root (schema in the skill). Do NOT commit.
+4. Write verdict.json in the worktree root (schema in the skill). Do NOT commit.
 
 If two attempts do not work, write status "gave-up" with a precise diagnosis.
 A wrong-but-building overlay is worse than a frozen one.
@@ -122,25 +148,11 @@ EOF
 # start when overlays/ is dirty (exit 3). bump-overlays runs BEFORE this
 # script in the daily pipeline, so its own trap cannot clean up after us: any
 # ledger write we leave uncommitted wedges every future run, permanently and
-# silently.
-commit_ledger() {
-  git -C "$REPO" status --porcelain -- overlays/quarantine.json 2>/dev/null | grep -q . || return 0
-  git -C "$REPO" add overlays/quarantine.json 2>/dev/null || true
-  git -C "$REPO" -c core.hooksPath=/dev/null commit -q -o overlays/quarantine.json \
-    -m "quarantine: record escalation outcome" 2>/dev/null || true
-  return 0
-}
-
+# silently. (commit_ledger/cleanup/trap are installed above, before the
+# quarantine_record call, so this section only needs to assign the paths.)
 wt_parent="$(mktemp -d)"
 wt="$wt_parent/repair"
 branch="escalate/${PACKAGE}-${ts}"
-cleanup() {
-  git -C "$REPO" worktree remove --force "$wt" >/dev/null 2>&1 || true
-  git -C "$REPO" branch -D "$branch" >/dev/null 2>&1 || true
-  rm -rf "$wt_parent"
-  commit_ledger
-}
-trap cleanup EXIT
 if ! git -C "$REPO" worktree add -q -b "$branch" "$wt" HEAD; then
   echo "escalate: could not create worktree" >&2
   quarantine_set_escalation "$PACKAGE" "gave-up" "wrapper could not create a git worktree"
@@ -194,6 +206,51 @@ if [[ -z "$(git -C "$wt" status --porcelain)" ]]; then
   exit 1
 fi
 
+# Scope the staging now (rather than at commit time below) so the landing
+# gates that follow can inspect the cached diff. `git add -A` would sweep in
+# any scratch file the model left behind, and everything from here through
+# the cherry-pick fires the post-commit mirror hook, which publishes to a
+# PUBLIC repo on a denylist basis — so an unlisted stray file auto-publishes
+# with no human in the loop.
+git -C "$wt" add -- overlays/
+
+# The worktree starts from the rolled-back, KNOWN-GOOD tree, so both builds
+# below pass trivially for any change that doesn't break them. Without these
+# gates a model could write overlays/NOTES.md, claim "fixed", and get it
+# committed and published while the overlay still pins the broken version --
+# and because success clears the ledger, that loop repeats daily forever.
+# "Verified" has to mean the bump actually landed.
+if ! git -C "$wt" diff --cached --name-only | grep -qx "$overlay_rel"; then
+  echo "escalate: 'fixed' but $overlay_rel itself was not modified" >&2
+  quarantine_set_escalation "$PACKAGE" "gave-up" \
+    "claimed fixed without touching $overlay_rel: $verdict"
+  log_cost "gave-up"
+  exit 1
+fi
+if ! grep -qF "$VERSION" "$wt/$overlay_rel"; then
+  echo "escalate: 'fixed' but $overlay_rel does not pin $VERSION" >&2
+  quarantine_set_escalation "$PACKAGE" "gave-up" \
+    "overlay does not pin $VERSION after repair: $verdict"
+  log_cost "gave-up"
+  exit 1
+fi
+manifest_version="$(jq -r --arg n "$PACKAGE" \
+  '.packages[] | select(.name==$n) | .current_version' "$wt/overlays/updates.json")"
+if [[ "$manifest_version" != "$VERSION" ]]; then
+  echo "escalate: 'fixed' but updates.json still says $manifest_version, not $VERSION" >&2
+  quarantine_set_escalation "$PACKAGE" "gave-up" \
+    "updates.json current_version is $manifest_version, expected $VERSION: $verdict"
+  log_cost "gave-up"
+  exit 1
+fi
+if ! bash "$wt/scripts/check-overlay-manifest.sh" "$wt" >>"$session_log" 2>&1; then
+  echo "escalate: 'fixed' but the overlay manifest check failed" >&2
+  quarantine_set_escalation "$PACKAGE" "gave-up" \
+    "repair left overlays/updates.json inconsistent with the overlay: $verdict"
+  log_cost "gave-up"
+  exit 1
+fi
+
 overlay_rel_wt="$overlay_rel"
 if ! ( cd "$wt" && nix build --no-link --impure --expr \
         "let pkgs = import <nixpkgs> { config.allowUnfree = true; overlays = [ (import ./$overlay_rel_wt) ]; }; in pkgs.${PACKAGE}" ) \
@@ -219,11 +276,9 @@ if ! ( cd "$wt" && nix build ".#darwinConfigurations.garmonbozia.system" --no-li
 fi
 
 # ── Commit in the worktree, cherry-pick into the real checkout ────────────
-# Scope the staging. `git add -A` would sweep in any scratch file the model
-# left behind, and the cherry-pick below fires the post-commit mirror hook,
-# which publishes to a PUBLIC repo on a denylist basis — so an unlisted stray
-# file auto-publishes with no human in the loop.
-git -C "$wt" add -- overlays/
+# overlays/ was already staged above so the landing gates could inspect it;
+# this is a final belt-and-suspenders check (should be unreachable given the
+# gates above already require $overlay_rel to be staged).
 if [[ -z "$(git -C "$wt" diff --cached --name-only)" ]]; then
   echo "escalate: verdict claimed 'fixed' but nothing under overlays/ changed" >&2
   quarantine_set_escalation "$PACKAGE" "gave-up" "claimed fixed but touched nothing under overlays/: $verdict"

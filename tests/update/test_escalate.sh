@@ -13,7 +13,8 @@ setup() { # -> scratch repo path
   local d; d="$(mktemp -d)"
   mkdir -p "$d/overlays" "$d/scripts" "$d/logs"
   cp "$REPO/scripts/quarantine.sh" "$REPO/scripts/update-state.sh" \
-     "$REPO/scripts/classify-failure.sh" "$REPO/scripts/escalate.sh" "$d/scripts/"
+     "$REPO/scripts/classify-failure.sh" "$REPO/scripts/escalate.sh" \
+     "$REPO/scripts/check-overlay-manifest.sh" "$d/scripts/"
   cat > "$d/overlays/updates.json" <<'EOF'
 { "packages": [ { "name": "demo", "overlay": "overlays/99-demo.nix",
     "current_version": "1.0.0", "update_type": "prebuilt-binary",
@@ -22,6 +23,9 @@ setup() { # -> scratch repo path
 EOF
   printf '_final: _prev: { demo = { version = "1.0.0"; }; }\n' > "$d/overlays/99-demo.nix"
   printf '{"comment":"t","entries":[]}\n' > "$d/overlays/quarantine.json"
+  cat > "$d/overlays/health-checks.json" <<'EOF'
+{ "assertions": [ { "package": "demo", "skip": "no binary to smoke-test in the test fixture" } ] }
+EOF
   printf "error: builder for '/nix/store/x-demo.drv' failed with exit code 1\n" > "$d/logs/build.log"
   git -C "$d" init -q
   git -C "$d" config user.email t@example.com
@@ -34,11 +38,15 @@ EOF
 stub_claude_fixed() { # <stub-dir>
   cat > "$1/claude" <<'EOF'
 #!/usr/bin/env bash
-# The prompt arrives as the last positional arg; cwd is the worktree.
+# The prompt arrives as the last positional arg; cwd is the worktree. A
+# genuine fix bumps the overlay's pinned version AND updates.json's
+# current_version together, matching what the brief instructs (and what the
+# post-Finding-1 landing gates require).
 sed -i.bak 's/1\.0\.0/1.1.0/' overlays/99-demo.nix && rm -f overlays/99-demo.nix.bak
+sed -i.bak 's/"current_version": "1\.0\.0"/"current_version": "1.1.0"/' overlays/updates.json && rm -f overlays/updates.json.bak
 cat > verdict.json <<'JSON'
 {"status":"fixed","package":"demo","fingerprint":"compile-failure",
- "verdict":"widened the version bound","files_changed":["overlays/99-demo.nix"]}
+ "verdict":"widened the version bound","files_changed":["overlays/99-demo.nix","overlays/updates.json"]}
 JSON
 EOF
   chmod +x "$1/claude"
@@ -143,7 +151,7 @@ grep -q "1.0.0" "$d/overlays/99-demo.nix" || fail "case3: committed a fix whose 
 # One new commit expected: the ledger commit recording the gave-up verdict.
 [[ "$(git -C "$d" log --oneline | wc -l | tr -d ' ')" == "2" ]] \
   || fail "case3: expected exactly one new commit (ledger only)"
-grep -qi "did not reproduce\|verification" "$d/esc.log" \
+grep -qi "did not reproduce\|verification\|does not pin" "$d/esc.log" \
   || { cat "$d/esc.log"; fail "case3: discrepancy not reported"; }
 [[ -z "$(git -C "$d" status --porcelain -- overlays/quarantine.json)" ]] \
   || fail "case3: quarantine.json left uncommitted — wedges the next bump-overlays run"
@@ -196,9 +204,66 @@ grep -q "1.0.0" "$d/overlays/99-demo.nix" || fail "case6: committed despite full
 [[ "$(cd "$d" && QUARANTINE_FILE="$d/overlays/quarantine.json" bash -c \
   'source scripts/update-state.sh; source scripts/quarantine.sh; quarantine_field demo escalation_status')" == "gave-up" ]] \
   || fail "case6: gave-up not recorded"
+grep -q "scoped build passed but the full system build failed" "$d/esc.log" \
+  || fail "case6: failed for the wrong reason"
 [[ -z "$(git -C "$d" status --porcelain -- overlays/quarantine.json)" ]] \
   || fail "case6: quarantine.json left uncommitted — wedges the next bump-overlays run"
 [[ "$(git -C "$d" worktree list | wc -l | tr -d ' ')" == "1" ]] || fail "case6: worktree leaked"
+rm -rf "$d" "$stub"
+
+# A stub claude that LIES a different way: writes an unrelated scratch note
+# under overlays/ and claims fixed, without ever touching the pinned overlay
+# itself. Both wrapper builds pass trivially because the worktree starts from
+# the rolled-back, known-good tree (Finding 1, exploit A).
+stub_claude_scratch_note() { # <stub-dir>
+  cat > "$1/claude" <<'EOF'
+#!/usr/bin/env bash
+echo "# investigated, looks fine now" > overlays/REPAIR-NOTES.md
+cat > verdict.json <<'JSON'
+{"status":"fixed","package":"demo","fingerprint":"compile-failure",
+ "verdict":"left notes for a human","files_changed":["overlays/REPAIR-NOTES.md"]}
+JSON
+EOF
+  chmod +x "$1/claude"
+}
+
+# A stub claude that does the "half-fix": bumps only updates.json's
+# current_version, never the overlay file itself, and claims fixed
+# (Finding 1, exploit B — the half-fix SKILL.md warns about).
+stub_claude_half_fix() { # <stub-dir>
+  cat > "$1/claude" <<'EOF'
+#!/usr/bin/env bash
+sed -i.bak 's/1\.0\.0/1.1.0/' overlays/updates.json && rm -f overlays/updates.json.bak
+cat > verdict.json <<'JSON'
+{"status":"fixed","package":"demo","fingerprint":"compile-failure",
+ "verdict":"bumped the manifest version","files_changed":["overlays/updates.json"]}
+JSON
+EOF
+  chmod +x "$1/claude"
+}
+
+# === Case 7: 'fixed' but the overlay itself was never touched =============
+d="$(setup)"; stub="$(mktemp -d)"; stub_claude_scratch_note "$stub"; stub_nix "$stub" ok
+run_escalate "$d" "$stub" && rc=0 || rc=$?
+[[ $rc -eq 1 ]] || { cat "$d/esc.log"; fail "case7: a scratch-note 'fixed' verdict was accepted (exit $rc)"; }
+grep -q "1.0.0" "$d/overlays/99-demo.nix" || fail "case7: overlay still claims a bump landed"
+[[ ! -f "$d/overlays/REPAIR-NOTES.md" ]] \
+  || fail "case7: scratch note leaked into the real repo — got published to the public mirror"
+[[ "$(git -C "$d" log --oneline | wc -l | tr -d ' ')" == "2" ]] \
+  || fail "case7: expected exactly one new commit (ledger only), scratch note got committed"
+[[ "$(cd "$d" && QUARANTINE_FILE="$d/overlays/quarantine.json" bash -c \
+  'source scripts/update-state.sh; source scripts/quarantine.sh; quarantine_field demo escalation_status')" == "gave-up" ]] \
+  || fail "case7: gave-up not recorded"
+rm -rf "$d" "$stub"
+
+# === Case 8: 'fixed' but only updates.json's current_version was bumped ===
+d="$(setup)"; stub="$(mktemp -d)"; stub_claude_half_fix "$stub"; stub_nix "$stub" ok
+run_escalate "$d" "$stub" && rc=0 || rc=$?
+[[ $rc -eq 1 ]] || { cat "$d/esc.log"; fail "case8: a manifest-only half-fix was accepted (exit $rc)"; }
+grep -q '"current_version": "1.0.0"' "$d/overlays/updates.json" \
+  || fail "case8: half-fix landed in the real repo — manifest/tree now permanently drifted"
+[[ "$(git -C "$d" log --oneline | wc -l | tr -d ' ')" == "2" ]] \
+  || fail "case8: expected exactly one new commit (ledger only), half-fix got committed"
 rm -rf "$d" "$stub"
 
 echo "PASS: test_escalate"
