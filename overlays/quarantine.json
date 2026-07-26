@@ -1,0 +1,4 @@
+{
+  "comment": "Machine-written quarantine ledger. See docs/superpowers/specs/2026-07-25-self-healing-updates-design.md §2. Do not hand-edit while the daily pipeline may be running; use scripts/quarantine.sh.",
+  "entries": []
+}
