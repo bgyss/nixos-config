@@ -1,7 +1,10 @@
 # Self-Healing Daily Updates — Design
 
 **Date:** 2026-07-25
-**Status:** Approved, not yet implemented
+**Status:** Implemented on branch `feat/self-healing-updates`; not yet activated on the host.
+**Amendments:** §1/§3 privilege model corrected (user agent, not root daemon — see §3);
+revision-level failures are notify-only, not escalated; the unpin retry is a worktree
+probe with no carry-back (see §8 notes).
 
 ## Problem
 
@@ -45,17 +48,20 @@ Secondary goal: token frugality. Clean days must cost nothing.
 
 ### Layer 1 — deterministic pipeline (zero tokens)
 
-A root `launchd.daemons.nixos-auto-update` fires at 09:00 and runs, in order:
+A `launchd.user.agents.nixos-auto-update` fires at 09:00 and runs, in order:
 
-1. **`bump-overlays --all`**, with per-package `cadence_hours` honoured, skipping any
-   package whose upstream-offered version is quarantined.
+1. **`bump-overlays`** (no flag — the old `--mechanical-only` restriction is simply
+   dropped), with per-package `cadence_hours` honoured, skipping any package whose
+   upstream-offered version is quarantined.
 2. **`prepare`** for flake inputs, including **unpin retry**: any `pinned_inputs[]`
-   entry past its retry cadence gets a speculative bump attempt.
+   entry past its retry cadence gets a speculative attempt, verified entirely inside a
+   throwaway git worktree with no carry-back into the live tree (§8).
 3. **Full system build** as evidence.
-4. **Activate** (`darwin-rebuild switch`) — the only root-privileged step besides
-   rollback.
+4. **Activate** (`darwin-rebuild switch` via the pre-existing passwordless sudoers
+   rule) — the only privileged step besides rollback.
 5. **Health check** (§3).
-6. On health failure: **rollback**, quarantine the revision, escalate.
+6. On health failure: **rollback**, quarantine the revision as `frozen`, and notify.
+   Deliberately NOT escalated — see §3.
 
 Failures in steps 1–3 are attributed to a specific package, quarantined, and the
 pipeline **continues with the remaining packages**. This is the core of "stay on the
@@ -403,7 +409,7 @@ Modified:
   `--mechanical-only`. Dropping that flag from the scheduled run is the whole change.)
 - `apps/*/prepare` → unpin-retry for `pinned_inputs[]`
 - `hosts/darwin/default.nix` → `launchd.user.agents.nixos-update-check` becomes
-  `launchd.daemons.nixos-auto-update`
+  `launchd.user.agents.nixos-auto-update` (a root daemon was tried and reverted, §3)
 - `overlays/updates.json` → per-package `cadence_hours`
 - `scripts/check-overlay-manifest.sh` → require a health assertion per pinned package
 - `scripts/sync-to-public.sh` invocation point → after health check
