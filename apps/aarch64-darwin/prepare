@@ -159,18 +159,32 @@ quarantine_init
 # Speculative unpin attempts. Each is expensive (a full build against a new
 # nixpkgs), so at most ONE per run: the pins are ordered by risk in the
 # manifest and unpinning nixpkgs is what unblocks the other two anyway.
-UNPINNED=""
-while read -r pin; do
-  [[ -z "$pin" ]] && continue
-  if unpin_retry_due "$pin"; then
-    if attempt_unpin "$pin"; then
-      UNPINNED="$pin"
-      warn "  ACTION NEEDED: remove the '$pin' entry from pinned_inputs[] and"
-      warn "  update flake.nix's $pin.url — this run kept the bumped flake.lock."
-    fi
-    break
-  fi
-done < <(jq -r '.pinned_inputs[].name' "$MANIFEST")
+# DISABLED — attempt_unpin is broken in three ways (found in review, all
+# reproduced). Do not re-enable without rebuilding it:
+#
+#  1. It cannot unpin anything. nixpkgs/home-manager pin the rev INSIDE the
+#     flake.nix url ("github:NixOS/nixpkgs/af45a5c..."), and `nix flake update
+#     <input>` re-resolves against the url as written, so an immutable rev
+#     cannot move. Measured: the locked rev is byte-identical afterwards. It
+#     then builds the same known-good tree, passes, and advises removing a pin
+#     that was never tested.
+#  2. It DESTROYS the run's real flake updates. probe_flake_inputs already ran
+#     `nix flake lock --update-input` for every due input before the gate, so
+#     flake.lock is always dirty here. `git stash push` reverts it, the success
+#     path never pops, and the updates are orphaned in a stash while prepare
+#     reports "No changes to commit" — with the cadence clock already advanced,
+#     so they are not retried for a full window.
+#  3. The cadence never engages: the success path calls quarantine_clear, so
+#     last_attempt is never recorded and the pin reads as "never attempted,
+#     due now" on every single run.
+#
+# A correct implementation needs a machine-readable unpin target ref per pin,
+# the attempt done in a git worktree (as scripts/escalate.sh does) rather than
+# by stashing the live tree, and an assertion that the locked rev actually
+# CHANGED before declaring success.
+#
+# unpin_retry_due, the retry_cadence_hours manifest keys, the ledger/trap work
+# and tests/update/test_unpin_retry.sh are sound and stay.
 
 warn "==> build ${FLAKE_SYSTEM_ATTR} (evidence; no activation)"
 nix build "${FLAKE_DIR}#${FLAKE_SYSTEM_ATTR}" --out-link ./result "$@"
