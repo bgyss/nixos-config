@@ -615,6 +615,11 @@ reject() { # <jq-filter> <label>
 reject '(.packages[] | select(.name=="c4") | .cadence_hours) = "weekly"' "a string cadence_hours"
 reject '(.packages[] | select(.name=="c4") | .cadence_hours) = 0' "a zero cadence_hours"
 reject '(.packages[] | select(.name=="c4") | .cadence_hours) = -5' "a negative cadence_hours"
+# A NUMERIC STRING is the trap: it interpolates identically to the integer, so
+# a bash-regex check on the rendered text accepts it. Must be rejected by type.
+reject '(.packages[] | select(.name=="c4") | .cadence_hours) = "168"' "a numeric-string cadence_hours"
+reject '(.packages[] | select(.name=="c4") | .cadence_hours) = 24.5' "a fractional cadence_hours"
+reject '(.packages[] | select(.name=="c4") | .cadence_hours) = null' "a null cadence_hours"
 
 echo "PASS: test_manifest_cadence"
 ```
@@ -665,12 +670,22 @@ Append this block immediately before the script's final exit/summary, adapting `
 # cadence_hours, when present, must be a positive integer. An absent value means
 # "daily" (the default in scripts/update-probe.sh). A malformed one would
 # silently disable bumping for that package, so it is a hard error.
+# Validate the JSON TYPE in jq, not the rendered text in bash: `"168"` as a
+# string interpolates identically to the integer 168, so a bash regex on
+# \(.cadence_hours) silently accepts it. This mirrors the existing inputs{}
+# cadence check above, which already uses type=="number".
 while IFS=$'\t' read -r name cadence; do
   [[ -z "$name" ]] && continue
-  if ! [[ "$cadence" =~ ^[0-9]+$ ]] || [[ "$cadence" -le 0 ]]; then
-    fail "package '$name' has invalid cadence_hours '$cadence' (want a positive integer)"
-  fi
-done < <(jq -r '.packages[] | select(has("cadence_hours")) | "\(.name)\t\(.cadence_hours)"' "$MANIFEST")
+  err "package '$name' has invalid cadence_hours '$cadence' (want a positive integer)"
+done < <(jq -r '
+  .packages[]
+  | select(has("cadence_hours"))
+  | select(
+      (.cadence_hours | type) != "number"
+      or .cadence_hours <= 0
+      or (.cadence_hours | floor) != .cadence_hours
+    )
+  | "\(.name)\t\(.cadence_hours)"' "$MANIFEST")
 ```
 
 - [ ] **Step 6: Run the test to verify it passes**

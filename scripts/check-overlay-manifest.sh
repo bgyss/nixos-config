@@ -80,12 +80,23 @@ done < <(jq -r '(.inputs // {}) | keys[]' "$MANIFEST")
 # 7. cadence_hours, when present, must be a positive integer. An absent value
 # means "daily" (the default in scripts/update-probe.sh). A malformed one
 # would silently disable bumping for that package, so it is a hard error.
+#
+# Validate the JSON TYPE in jq, not the rendered text in bash: `"168"` as a
+# string interpolates identically to the integer 168, so a bash regex on
+# \(.cadence_hours) silently accepts it. This mirrors the existing inputs{}
+# cadence check above, which already uses type=="number".
 while IFS=$'\t' read -r name cadence; do
   [[ -z "$name" ]] && continue
-  if ! [[ "$cadence" =~ ^[0-9]+$ ]] || [[ "$cadence" -le 0 ]]; then
-    err "package '$name' has invalid cadence_hours '$cadence' (want a positive integer)"
-  fi
-done < <(jq -r '.packages[] | select(has("cadence_hours")) | "\(.name)\t\(.cadence_hours)"' "$MANIFEST")
+  err "package '$name' has invalid cadence_hours '$cadence' (want a positive integer)"
+done < <(jq -r '
+  .packages[]
+  | select(has("cadence_hours"))
+  | select(
+      (.cadence_hours | type) != "number"
+      or .cadence_hours <= 0
+      or (.cadence_hours | floor) != .cadence_hours
+    )
+  | "\(.name)\t\(.cadence_hours)"' "$MANIFEST")
 
 if [[ $fail -ne 0 ]]; then
   echo "overlay manifest consistency: FAILED" >&2

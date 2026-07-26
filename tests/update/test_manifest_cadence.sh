@@ -34,4 +34,10 @@ reject '(.packages[] | select(.name=="c4") | .cadence_hours) = "weekly"' "a stri
 reject '(.packages[] | select(.name=="c4") | .cadence_hours) = 0' "a zero cadence_hours"
 reject '(.packages[] | select(.name=="c4") | .cadence_hours) = -5' "a negative cadence_hours"
 
+# A NUMERIC STRING is the trap: it interpolates identically to the integer, so
+# a bash-regex check on the rendered text accepts it. Must be rejected by type.
+reject '(.packages[] | select(.name=="c4") | .cadence_hours) = "168"' "a numeric-string cadence_hours"
+reject '(.packages[] | select(.name=="c4") | .cadence_hours) = 24.5' "a fractional cadence_hours"
+reject '(.packages[] | select(.name=="c4") | .cadence_hours) = null' "a null cadence_hours"
+
 echo "PASS: test_manifest_cadence"
