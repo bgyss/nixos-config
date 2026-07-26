@@ -95,7 +95,7 @@
     {
       "name": "mise",
       "overlay": "overlays/30-mise.nix",
-      "current_version": "2026.7.13",
+      "current_version": "2026.7.14",
       "check": {
         "method": "github-release",
         "repo": "jdx/mise"
