@@ -31,6 +31,14 @@ worktree silently wedges every future run.
   demonstrably a sandbox-only test issue, and say so explicitly in the verdict.
 - **Do not widen scope.** Repair this one package. Do not refactor, reformat
   unrelated files, or "improve" neighbouring overlays.
+- **Only files under `overlays/` may be modified.** The wrapper only ever
+  stages and commits `overlays/`, but its verification build is `--impure`
+  against the whole worktree — so a fix needing a file elsewhere (a patch
+  file, a shared module, anything outside `overlays/`) would "verify" and
+  then get committed without that file. The wrapper refuses this outright
+  (exit 1, `gave-up`) rather than ship an incomplete repair. If a real fix
+  needs something outside `overlays/`, write `status: "gave-up"` and say so
+  precisely — don't attempt it, the wrapper will only reject it anyway.
 
 ## Getting a hash
 

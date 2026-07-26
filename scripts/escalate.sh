@@ -85,6 +85,10 @@ pkg_json="$(jq --arg n "$PACKAGE" '.packages[] | select(.name==$n)' "$MANIFEST")
 overlay_rel="$(jq -r '.overlay' <<<"$pkg_json")"
 update_type="$(jq -r '.update_type' <<<"$pkg_json")"
 prior="$(quarantine_field "$PACKAGE" escalation_verdict)"
+# The pre-repair pinned version, i.e. what the overlay pins right now (the
+# worktree starts from this rolled-back, known-good tree). Used below as the
+# load-bearing "did the bump actually land" check (Finding 1).
+known_good="$(jq -r '.current_version' <<<"$pkg_json")"
 
 # Record this attempt in the ledger now, so quarantine_set_escalation below has
 # an entry to attach status/verdict to — quarantine_set_escalation only updates
@@ -153,16 +157,31 @@ EOF
 wt_parent="$(mktemp -d)"
 wt="$wt_parent/repair"
 branch="escalate/${PACKAGE}-${ts}"
+session_log="$REPO/logs/escalation-${PACKAGE}-${ts}.session.log"
 if ! git -C "$REPO" worktree add -q -b "$branch" "$wt" HEAD; then
   echo "escalate: could not create worktree" >&2
   quarantine_set_escalation "$PACKAGE" "gave-up" "wrapper could not create a git worktree"
   exit 1
 fi
 
+# Run the manifest-consistency check against the PRISTINE worktree, before the
+# model touches anything. check-overlay-manifest.sh validates the ENTIRE
+# manifest (every package's overlay/skip coverage, cadence fields, etc.), not
+# just $PACKAGE. In the daily pipeline bump-overlays commits earlier in the
+# same run with no `nix flake check` gate, so drift it introduces for package
+# X must not turn a genuine repair of package Y into a misleading gave-up. If
+# the manifest is already broken here, that's pre-existing and not
+# attributable to this repair, so the later gate is skipped (never silently
+# weakened — just scoped to what this repair could plausibly have caused).
+pristine_manifest_ok=1
+if ! bash "$REPO/scripts/check-overlay-manifest.sh" "$wt" >>"$session_log" 2>&1; then
+  pristine_manifest_ok=0
+  echo "escalate: overlay manifest check already failing before repair started (pre-existing drift unrelated to $PACKAGE) — post-repair manifest gate will be skipped" >>"$session_log"
+fi
+
 # ── Run the model ─────────────────────────────────────────────────────────
 # Allowed tools ARE the contract: no sudo, no git commit, no git push, no
 # network fetch beyond the two prefetch commands.
-session_log="$REPO/logs/escalation-${PACKAGE}-${ts}.session.log"
 start_epoch="$(date +%s)"
 ( cd "$wt" && timeout "$TIMEOUT" "$CLAUDE_BIN" -p --model sonnet \
     --max-turns "$MAX_TURNS" \
@@ -214,6 +233,23 @@ fi
 # with no human in the loop.
 git -C "$wt" add -- overlays/
 
+# The scoped build below uses `--impure --expr` against the live worktree
+# filesystem, so it validates a tree that includes any file the model wrote
+# ANYWHERE, not just what we stage. A repair that (also) needs a file outside
+# overlays/ would therefore be "verified" and then committed WITHOUT that
+# file — an incomplete repair, published. Refuse loudly and attributably
+# instead of silently shipping it. Cheap filesystem check, so it runs before
+# either build.
+stray="$(git -C "$wt" status --porcelain -- . ':(exclude)overlays/')"
+if [[ -n "$stray" ]]; then
+  echo "escalate: repair touched files outside overlays/ (not supported):" >&2
+  printf '%s\n' "$stray" >&2
+  quarantine_set_escalation "$PACKAGE" "gave-up" \
+    "repair needs files outside overlays/ (not supported): $(printf '%s' "$stray" | tr '\n' ' ')"
+  log_cost "gave-up"
+  exit 1
+fi
+
 # The worktree starts from the rolled-back, KNOWN-GOOD tree, so both builds
 # below pass trivially for any change that doesn't break them. Without these
 # gates a model could write overlays/NOTES.md, claim "fixed", and get it
@@ -234,6 +270,32 @@ if ! grep -qF "$VERSION" "$wt/$overlay_rel"; then
   log_cost "gave-up"
   exit 1
 fi
+# "Version present" is not "version pinned": a comment mentioning the new
+# version satisfies the substring test above while `version = "<old>"` sits
+# untouched. The load-bearing check is that the OLD version is gone — which
+# also catches the realistic case of a multi-platform overlay (ngrok/mise/uv
+# pin the version in several per-platform URLs) where only some entries were
+# bumped.
+#
+# Comment lines are excluded from this check (audited against every overlay
+# in the repo): 55-go.nix, 20-ngrok.nix and 96-tmux.nix each carry a header
+# comment that hardcodes the currently-pinned version in prose ("bump to
+# 1.26.5 until nixpkgs catches up"), and 91-yt-dlp.nix's yt-dlp-ejs section
+# has narrative comments hardcoding its current version ("Bump yt-dlp-ejs to
+# 0.8.0 ..."). Nothing in the routine or in bump-overlays keeps those header
+# comments in sync with the pinned version on every bump (50-trailbase.nix's
+# and 30-mise.nix's headers are ALREADY stale relative to their real pinned
+# versions, proving it) — so requiring the old version to vanish from prose
+# comments would fail a fully correct functional repair. The old version must
+# still vanish from actual code (including every per-platform entry), which
+# is what makes this catch real partial bumps.
+if grep -v '^[[:space:]]*#' "$wt/$overlay_rel" | grep -qF "$known_good"; then
+  echo "escalate: 'fixed' but $overlay_rel still references the old version $known_good" >&2
+  quarantine_set_escalation "$PACKAGE" "gave-up" \
+    "overlay still references $known_good after repair — a partial bump: $verdict"
+  log_cost "gave-up"
+  exit 1
+fi
 manifest_version="$(jq -r --arg n "$PACKAGE" \
   '.packages[] | select(.name==$n) | .current_version' "$wt/overlays/updates.json")"
 if [[ "$manifest_version" != "$VERSION" ]]; then
@@ -243,12 +305,20 @@ if [[ "$manifest_version" != "$VERSION" ]]; then
   log_cost "gave-up"
   exit 1
 fi
-if ! bash "$wt/scripts/check-overlay-manifest.sh" "$wt" >>"$session_log" 2>&1; then
-  echo "escalate: 'fixed' but the overlay manifest check failed" >&2
-  quarantine_set_escalation "$PACKAGE" "gave-up" \
-    "repair left overlays/updates.json inconsistent with the overlay: $verdict"
-  log_cost "gave-up"
-  exit 1
+# Skipped when the manifest was already broken before the repair started
+# (recorded pristine, above) — that drift is not attributable to this repair,
+# and blaming it on $PACKAGE would produce a misleading gave-up verdict for
+# an unrelated package's problem.
+if [[ "$pristine_manifest_ok" -eq 1 ]]; then
+  if ! bash "$wt/scripts/check-overlay-manifest.sh" "$wt" >>"$session_log" 2>&1; then
+    echo "escalate: 'fixed' but the overlay manifest check failed" >&2
+    quarantine_set_escalation "$PACKAGE" "gave-up" \
+      "repair left overlays/updates.json inconsistent with the overlay: $verdict"
+    log_cost "gave-up"
+    exit 1
+  fi
+else
+  echo "escalate: skipping post-repair manifest gate — check-overlay-manifest.sh already failed before repair started (pre-existing drift, not attributable to $PACKAGE)" >>"$session_log"
 fi
 
 overlay_rel_wt="$overlay_rel"
@@ -278,19 +348,14 @@ fi
 # ── Commit in the worktree, cherry-pick into the real checkout ────────────
 # overlays/ was already staged above so the landing gates could inspect it;
 # this is a final belt-and-suspenders check (should be unreachable given the
-# gates above already require $overlay_rel to be staged).
+# gates above already require $overlay_rel to be staged), and the stray-file
+# gate above (Finding 2) already guarantees the working tree has nothing
+# outside overlays/ left to worry about.
 if [[ -z "$(git -C "$wt" diff --cached --name-only)" ]]; then
   echo "escalate: verdict claimed 'fixed' but nothing under overlays/ changed" >&2
   quarantine_set_escalation "$PACKAGE" "gave-up" "claimed fixed but touched nothing under overlays/: $verdict"
   log_cost "gave-up"
   exit 1
-fi
-stray="$(git -C "$wt" status --porcelain -- . ':(exclude)overlays/')"
-if [[ -n "$stray" ]]; then
-  {
-    echo "escalate: files outside overlays/ left by the model (not staged/committed):"
-    echo "$stray"
-  } >>"$session_log"
 fi
 git -C "$wt" -c core.hooksPath=/dev/null commit -q \
   -m "overlays: repair $PACKAGE bump to $VERSION

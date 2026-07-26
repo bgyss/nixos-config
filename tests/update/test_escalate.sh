@@ -266,4 +266,108 @@ grep -q '"current_version": "1.0.0"' "$d/overlays/updates.json" \
   || fail "case8: expected exactly one new commit (ledger only), half-fix got committed"
 rm -rf "$d" "$stub"
 
+# A stub claude that does a COMPLETE, correct bump (mirrors stub_claude_fixed)
+# — used to reach the scoped-build-failure branch, which the "lies" stub in
+# case 3 no longer reaches now that it exits earlier at the "does not pin"
+# gate (Finding 3: that branch had gone uncovered).
+# === Case 9: all landing gates pass, but the scoped build genuinely fails ==
+d="$(setup)"; stub="$(mktemp -d)"; stub_claude_fixed "$stub"; stub_nix "$stub" broken
+run_escalate "$d" "$stub" && rc=0 || rc=$?
+[[ $rc -eq 1 ]] || { cat "$d/esc.log"; fail "case9: expected exit 1 (scoped build failure), got $rc"; }
+grep -q "1.0.0" "$d/overlays/99-demo.nix" || fail "case9: committed despite scoped build failure"
+[[ "$(git -C "$d" log --oneline | wc -l | tr -d ' ')" == "2" ]] \
+  || fail "case9: expected exactly one new commit (ledger only)"
+grep -q "did not reproduce" "$d/esc.log" \
+  || { cat "$d/esc.log"; fail "case9: failed for the wrong reason — expected the scoped-build message"; }
+[[ -z "$(git -C "$d" status --porcelain -- overlays/quarantine.json)" ]] \
+  || fail "case9: quarantine.json left uncommitted"
+rm -rf "$d" "$stub"
+
+# A stub claude that bumps the primary version field AND updates.json
+# correctly, but leaves a second, real (non-comment) pin of the OLD version
+# in the overlay — simulating a multi-platform overlay (ngrok/mise/uv) where
+# only some per-platform entries were bumped (Finding 1).
+stub_claude_partial_multi_pin() { # <stub-dir>
+  cat > "$1/claude" <<'EOF'
+#!/usr/bin/env bash
+sed -i.bak 's/1\.0\.0/1.1.0/' overlays/99-demo.nix && rm -f overlays/99-demo.nix.bak
+sed -i.bak 's/"current_version": "1\.0\.0"/"current_version": "1.1.0"/' overlays/updates.json && rm -f overlays/updates.json.bak
+# A second, un-bumped pin of the OLD version — e.g. a missed platform entry.
+printf '_final: _prev: { demoLinux = { version = "1.0.0"; }; }\n' >> overlays/99-demo.nix
+cat > verdict.json <<'JSON'
+{"status":"fixed","package":"demo","fingerprint":"compile-failure",
+ "verdict":"bumped darwin entry","files_changed":["overlays/99-demo.nix","overlays/updates.json"]}
+JSON
+EOF
+  chmod +x "$1/claude"
+}
+
+# === Case 10: old version still pinned elsewhere in real code (not a comment)
+d="$(setup)"; stub="$(mktemp -d)"; stub_claude_partial_multi_pin "$stub"; stub_nix "$stub" ok
+run_escalate "$d" "$stub" && rc=0 || rc=$?
+[[ $rc -eq 1 ]] || { cat "$d/esc.log"; fail "case10: a partial multi-pin bump was accepted (exit $rc)"; }
+grep -q '"current_version": "1.0.0"' "$d/overlays/updates.json" \
+  || fail "case10: partial bump landed in the real repo"
+grep -q "still references the old version" "$d/esc.log" \
+  || { cat "$d/esc.log"; fail "case10: failed for the wrong reason"; }
+[[ "$(git -C "$d" log --oneline | wc -l | tr -d ' ')" == "2" ]] \
+  || fail "case10: expected exactly one new commit (ledger only)"
+rm -rf "$d" "$stub"
+
+# A stub claude that does a complete, correct bump, but also leaves the OLD
+# version mentioned only in a comment — the realistic case go/ngrok/tmux/
+# yt-dlp-ejs hit in the real repo, where narrative header comments are not
+# part of the bump routine. This must still succeed: the gate only cares
+# about code, not prose.
+stub_claude_fixed_with_stale_comment() { # <stub-dir>
+  cat > "$1/claude" <<'EOF'
+#!/usr/bin/env bash
+sed -i.bak 's/1\.0\.0/1.1.0/' overlays/99-demo.nix && rm -f overlays/99-demo.nix.bak
+sed -i.bak 's/"current_version": "1\.0\.0"/"current_version": "1.1.0"/' overlays/updates.json && rm -f overlays/updates.json.bak
+sed -i.bak '1s/^/# previously pinned 1.0.0, bumped for CVE-nnnn\n/' overlays/99-demo.nix && rm -f overlays/99-demo.nix.bak
+cat > verdict.json <<'JSON'
+{"status":"fixed","package":"demo","fingerprint":"compile-failure",
+ "verdict":"bumped version, left a historical comment","files_changed":["overlays/99-demo.nix","overlays/updates.json"]}
+JSON
+EOF
+  chmod +x "$1/claude"
+}
+
+# === Case 11: old version survives only in a comment — must still succeed ==
+d="$(setup)"; stub="$(mktemp -d)"; stub_claude_fixed_with_stale_comment "$stub"; stub_nix "$stub" ok
+run_escalate "$d" "$stub" && rc=0 || rc=$?
+[[ $rc -eq 0 ]] || { cat "$d/esc.log"; fail "case11: a correct bump with a stale comment was rejected (exit $rc)"; }
+grep -q "1.1.0" "$d/overlays/99-demo.nix" || fail "case11: fix not cherry-picked into the repo"
+rm -rf "$d" "$stub"
+
+# A stub claude that does a complete, correct bump but ALSO writes a file
+# outside overlays/ — the scoped `--impure` build would validate a tree
+# including it, but the wrapper only ever stages/commits overlays/ (Finding 2).
+stub_claude_stray_file() { # <stub-dir>
+  cat > "$1/claude" <<'EOF'
+#!/usr/bin/env bash
+sed -i.bak 's/1\.0\.0/1.1.0/' overlays/99-demo.nix && rm -f overlays/99-demo.nix.bak
+sed -i.bak 's/"current_version": "1\.0\.0"/"current_version": "1.1.0"/' overlays/updates.json && rm -f overlays/updates.json.bak
+mkdir -p patches
+echo "some patch content" > patches/demo-fix.patch
+cat > verdict.json <<'JSON'
+{"status":"fixed","package":"demo","fingerprint":"compile-failure",
+ "verdict":"bumped version and added a supporting patch","files_changed":["overlays/99-demo.nix","overlays/updates.json","patches/demo-fix.patch"]}
+JSON
+EOF
+  chmod +x "$1/claude"
+}
+
+# === Case 12: a repair needing files outside overlays/ is refused =========
+d="$(setup)"; stub="$(mktemp -d)"; stub_claude_stray_file "$stub"; stub_nix "$stub" broken
+run_escalate "$d" "$stub" && rc=0 || rc=$?
+[[ $rc -eq 1 ]] || { cat "$d/esc.log"; fail "case12: a repair touching files outside overlays/ was accepted (exit $rc)"; }
+[[ ! -f "$d/patches/demo-fix.patch" ]] \
+  || fail "case12: stray file leaked into the real repo — got published to the public mirror"
+grep -q "outside overlays/" "$d/esc.log" \
+  || { cat "$d/esc.log"; fail "case12: failed for the wrong reason"; }
+[[ "$(git -C "$d" log --oneline | wc -l | tr -d ' ')" == "2" ]] \
+  || fail "case12: expected exactly one new commit (ledger only)"
+rm -rf "$d" "$stub"
+
 echo "PASS: test_escalate"
