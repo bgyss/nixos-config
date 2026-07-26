@@ -66,12 +66,16 @@ prior="$(quarantine_field "$PACKAGE" escalation_verdict)"
 
 # Record this attempt in the ledger now, so quarantine_set_escalation below has
 # an entry to attach status/verdict to — quarantine_set_escalation only updates
-# an EXISTING entry, it never creates one. In the normal pipeline the caller
-# that detected the failure has usually already called quarantine_record, but
-# this upsert is idempotent (same blocked_version just increments attempts)
-# so it is always safe to call here too.
-quarantine_record "$PACKAGE" overlay "$VERSION" "$(jq -r '.current_version' <<<"$pkg_json")" \
-  "$PHASE" "$fingerprint" next-version-only "$(tail -c 500 "$LOG" 2>/dev/null | quarantine_sanitize)"
+# an EXISTING entry, it never creates one. bump-overlays already recorded this
+# failure in the normal pipeline; recording it again would double-count
+# attempts, and attempts>=3 auto-promotes to `frozen`, which blocks EVERY
+# version forever — so two real failures would permanently freeze the package
+# instead of three. Only create an entry here when nothing recorded the
+# failure first (i.e. this script invoked directly).
+if [[ -z "$(quarantine_field "$PACKAGE" blocked_version)" ]]; then
+  quarantine_record "$PACKAGE" overlay "$VERSION" "$(jq -r '.current_version' <<<"$pkg_json")" \
+    "$PHASE" "$fingerprint" next-version-only "$(tail -c 500 "$LOG" 2>/dev/null | quarantine_sanitize)"
+fi
 
 cat > "$brief" <<EOF
 Use the overlay-repair skill.
@@ -114,19 +118,34 @@ A wrong-but-building overlay is worse than a frozen one.
 EOF
 
 # ── Throwaway worktree ────────────────────────────────────────────────────
-wt="$(mktemp -d)/repair"
+# overlays/quarantine.json lives under overlays/, and bump-overlays refuses to
+# start when overlays/ is dirty (exit 3). bump-overlays runs BEFORE this
+# script in the daily pipeline, so its own trap cannot clean up after us: any
+# ledger write we leave uncommitted wedges every future run, permanently and
+# silently.
+commit_ledger() {
+  git -C "$REPO" status --porcelain -- overlays/quarantine.json 2>/dev/null | grep -q . || return 0
+  git -C "$REPO" add overlays/quarantine.json 2>/dev/null || true
+  git -C "$REPO" -c core.hooksPath=/dev/null commit -q -o overlays/quarantine.json \
+    -m "quarantine: record escalation outcome" 2>/dev/null || true
+  return 0
+}
+
+wt_parent="$(mktemp -d)"
+wt="$wt_parent/repair"
 branch="escalate/${PACKAGE}-${ts}"
+cleanup() {
+  git -C "$REPO" worktree remove --force "$wt" >/dev/null 2>&1 || true
+  git -C "$REPO" branch -D "$branch" >/dev/null 2>&1 || true
+  rm -rf "$wt_parent"
+  commit_ledger
+}
+trap cleanup EXIT
 if ! git -C "$REPO" worktree add -q -b "$branch" "$wt" HEAD; then
   echo "escalate: could not create worktree" >&2
   quarantine_set_escalation "$PACKAGE" "gave-up" "wrapper could not create a git worktree"
   exit 1
 fi
-cleanup() {
-  git -C "$REPO" worktree remove --force "$wt" >/dev/null 2>&1 || true
-  git -C "$REPO" branch -D "$branch" >/dev/null 2>&1 || true
-  rm -rf "$(dirname "$wt")"
-}
-trap cleanup EXIT
 
 # ── Run the model ─────────────────────────────────────────────────────────
 # Allowed tools ARE the contract: no sudo, no git commit, no git push, no
@@ -150,13 +169,20 @@ if [[ -f "$wt/verdict.json" ]] && jq empty "$wt/verdict.json" 2>/dev/null; then
 fi
 rm -f "$wt/verdict.json"
 
-printf '%s\t%s\t%s\t%s\t%s\n' "$ts" "$PACKAGE" "$status" "$duration" \
-  "$(grep -oE '[0-9]+ tokens' "$session_log" 2>/dev/null | tail -1 | tr -d ' tokens')" \
-  >> "$REPO/logs/escalation-costs.tsv"
+# Logged AFTER verification, with the wrapper's own final outcome — never the
+# model's claimed status. Logging the claim here would let a lying run record
+# "fixed" in the very TSV that's the stated input for retuning the token
+# brakes, over-reporting successes.
+log_cost() { # <outcome>
+  printf '%s\t%s\t%s\t%s\t%s\n' "$ts" "$PACKAGE" "$1" "$duration" \
+    "$(grep -oE '[0-9]+ tokens' "$session_log" 2>/dev/null | tail -1 | tr -d ' tokens')" \
+    >> "$REPO/logs/escalation-costs.tsv"
+}
 
 if [[ "$status" != "fixed" ]]; then
   echo "escalate: $PACKAGE gave up — $verdict"
   quarantine_set_escalation "$PACKAGE" "gave-up" "$verdict"
+  log_cost "gave-up"
   exit 1
 fi
 
@@ -164,6 +190,7 @@ fi
 if [[ -z "$(git -C "$wt" status --porcelain)" ]]; then
   echo "escalate: verdict claimed 'fixed' but nothing changed — treating as gave-up" >&2
   quarantine_set_escalation "$PACKAGE" "gave-up" "claimed fixed but produced no diff: $verdict"
+  log_cost "gave-up"
   exit 1
 fi
 
@@ -174,6 +201,7 @@ if ! ( cd "$wt" && nix build --no-link --impure --expr \
   echo "escalate: 'fixed' verdict did not reproduce — scoped build failed. Treating as gave-up." >&2
   quarantine_set_escalation "$PACKAGE" "gave-up" \
     "verdict claimed fixed but the wrapper's scoped build failed to reproduce it: $verdict"
+  log_cost "gave-up"
   exit 1
 fi
 
@@ -186,11 +214,29 @@ if ! ( cd "$wt" && nix build ".#darwinConfigurations.garmonbozia.system" --no-li
   echo "escalate: scoped build passed but the full system build failed. Treating as gave-up." >&2
   quarantine_set_escalation "$PACKAGE" "gave-up" \
     "verification: scoped build passed, full system build failed: $verdict"
+  log_cost "gave-up"
   exit 1
 fi
 
 # ── Commit in the worktree, cherry-pick into the real checkout ────────────
-git -C "$wt" add -A
+# Scope the staging. `git add -A` would sweep in any scratch file the model
+# left behind, and the cherry-pick below fires the post-commit mirror hook,
+# which publishes to a PUBLIC repo on a denylist basis — so an unlisted stray
+# file auto-publishes with no human in the loop.
+git -C "$wt" add -- overlays/
+if [[ -z "$(git -C "$wt" diff --cached --name-only)" ]]; then
+  echo "escalate: verdict claimed 'fixed' but nothing under overlays/ changed" >&2
+  quarantine_set_escalation "$PACKAGE" "gave-up" "claimed fixed but touched nothing under overlays/: $verdict"
+  log_cost "gave-up"
+  exit 1
+fi
+stray="$(git -C "$wt" status --porcelain -- . ':(exclude)overlays/')"
+if [[ -n "$stray" ]]; then
+  {
+    echo "escalate: files outside overlays/ left by the model (not staged/committed):"
+    echo "$stray"
+  } >>"$session_log"
+fi
 git -C "$wt" -c core.hooksPath=/dev/null commit -q \
   -m "overlays: repair $PACKAGE bump to $VERSION
 
@@ -202,15 +248,18 @@ if ! git -C "$REPO" cherry-pick "$fix_sha" >>"$session_log" 2>&1; then
   git -C "$REPO" cherry-pick --abort >/dev/null 2>&1 || true
   echo "escalate: cherry-pick of the verified fix failed" >&2
   quarantine_set_escalation "$PACKAGE" "gave-up" "verified fix could not be cherry-picked cleanly"
+  log_cost "gave-up"
   exit 1
 fi
 
-quarantine_set_escalation "$PACKAGE" "fixed" "$verdict"
-# Deliberately NOT quarantine_clear here: quarantine_clear removes the whole
-# entry (there is no "unblock but keep escalation" op), which would erase the
-# escalation_status="fixed" record we just wrote. blocked_version staying on
-# the ledger is harmless — it only blocks that exact (now-superseded) version,
-# per quarantine_is_blocked's next-version-only semantics.
+# Clear the ledger entry entirely: a repaired package must not carry a live
+# entry forward, because escalation_status="fixed" is not a dedup brake
+# (quarantine_should_escalate only refuses on "gave-up") — an unfrozen entry
+# left in place would get escalated again the next day, hit attempts>=3, and
+# freeze against every future version. The durable record of this repair
+# lives in logs/escalation-costs.tsv and in the commit itself.
+quarantine_clear "$PACKAGE"
+log_cost "fixed"
 echo "escalate: $PACKAGE repaired and committed as $(git -C "$REPO" rev-parse --short HEAD)"
 echo "escalate: verdict — $verdict"
 exit 0

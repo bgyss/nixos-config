@@ -2484,7 +2484,14 @@ while IFS=$'\t' read -r qname qver qphase; do
         --phase "$qphase" --log "$pkg_log" >>"$RUN_LOG" 2>&1; then
     fixed_by_claude+=("$qname")
   fi
-done < <(jq -r '.entries[] | select(.kind=="overlay") | select(.escalation.status // "" == "") | "\(.name)\t\(.blocked_version)\t\(.phase)"' \
+# NOTE the parenthesisation. `select(.escalation.status // "" == "")` is a
+# precedence trap: jq binds `==` tighter than `//`, so it reads as
+# `.escalation.status // ("" == "")` — which selects the WRONG set entirely.
+# The parens below are load-bearing.
+done < <(jq -r '.entries[]
+                | select(.kind=="overlay")
+                | select((.escalation.status // "") == "")
+                | "\(.name)\t\(.blocked_version)\t\(.phase)"' \
            "$FLAKE_DIR/overlays/quarantine.json")
 
 # ── 3. Flake inputs (propose) ─────────────────────────────────────────────

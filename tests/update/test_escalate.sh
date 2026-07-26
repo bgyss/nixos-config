@@ -96,11 +96,20 @@ d="$(setup)"; stub="$(mktemp -d)"; stub_claude_fixed "$stub"; stub_nix "$stub" o
 run_escalate "$d" "$stub" && rc=0 || rc=$?
 [[ $rc -eq 0 ]] || { cat "$d/esc.log"; fail "case1: expected exit 0, got $rc"; }
 grep -q "1.1.0" "$d/overlays/99-demo.nix" || fail "case1: fix not cherry-picked into the repo"
-[[ "$(git -C "$d" log --oneline | wc -l | tr -d ' ')" == "2" ]] \
-  || fail "case1: expected exactly one new commit"
-[[ "$(cd "$d" && QUARANTINE_FILE="$d/overlays/quarantine.json" bash -c \
-  'source scripts/update-state.sh; source scripts/quarantine.sh; quarantine_field demo escalation_status')" == "fixed" ]] \
-  || fail "case1: escalation_status not recorded as fixed"
+# The fix commit, plus the ledger commit that records the quarantine clear
+# (Finding 1/2: the ledger write must always be committed, or the next
+# bump-overlays run wedges at exit 3).
+[[ "$(git -C "$d" log --oneline | wc -l | tr -d ' ')" == "3" ]] \
+  || fail "case1: expected exactly two new commits (fix + ledger)"
+[[ -z "$(cd "$d" && QUARANTINE_FILE="$d/overlays/quarantine.json" bash -c \
+  'source scripts/update-state.sh; source scripts/quarantine.sh; quarantine_field demo blocked_version')" ]] \
+  || fail "case1: ledger entry not cleared on verified success — would freeze after 3 successes"
+grep -q "	demo	fixed	" "$d/logs/escalation-costs.tsv" \
+  || { cat "$d/logs/escalation-costs.tsv" 2>/dev/null; fail "case1: cost log missing a 'fixed' row for demo"; }
+# The ledger write (or clear) must be committed, or the next bump-overlays run
+# wedges at exit 3 (overlays/ dirty).
+[[ -z "$(git -C "$d" status --porcelain -- overlays/quarantine.json)" ]] \
+  || fail "case1: quarantine.json left uncommitted"
 # No worktrees may be left behind.
 [[ "$(git -C "$d" worktree list | wc -l | tr -d ' ')" == "1" ]] \
   || fail "case1: worktree leaked"
@@ -110,11 +119,18 @@ rm -rf "$d" "$stub"
 d="$(setup)"; stub="$(mktemp -d)"; stub_claude_gaveup "$stub"; stub_nix "$stub" ok
 run_escalate "$d" "$stub" && rc=0 || rc=$?
 [[ $rc -eq 1 ]] || fail "case2: expected exit 1, got $rc"
-[[ "$(git -C "$d" log --oneline | wc -l | tr -d ' ')" == "1" ]] \
-  || fail "case2: gave-up produced a commit"
+grep -q "1.0.0" "$d/overlays/99-demo.nix" || fail "case2: gave-up produced an overlay change"
+# One new commit is expected here: the ledger commit recording the gave-up
+# verdict (Finding 1) — but never an overlay fix commit.
+[[ "$(git -C "$d" log --oneline | wc -l | tr -d ' ')" == "2" ]] \
+  || fail "case2: expected exactly one new commit (ledger only)"
 [[ "$(cd "$d" && QUARANTINE_FILE="$d/overlays/quarantine.json" bash -c \
   'source scripts/update-state.sh; source scripts/quarantine.sh; quarantine_field demo escalation_status')" == "gave-up" ]] \
   || fail "case2: gave-up not recorded"
+[[ -z "$(git -C "$d" status --porcelain -- overlays/quarantine.json)" ]] \
+  || fail "case2: quarantine.json left uncommitted — wedges the next bump-overlays run"
+grep -q "	demo	gave-up	" "$d/logs/escalation-costs.tsv" \
+  || { cat "$d/logs/escalation-costs.tsv" 2>/dev/null; fail "case2: cost log missing a 'gave-up' row for demo"; }
 [[ "$(git -C "$d" worktree list | wc -l | tr -d ' ')" == "1" ]] || fail "case2: worktree leaked"
 rm -rf "$d" "$stub"
 
@@ -123,10 +139,14 @@ rm -rf "$d" "$stub"
 d="$(setup)"; stub="$(mktemp -d)"; stub_claude_lies "$stub"; stub_nix "$stub" broken
 run_escalate "$d" "$stub" && rc=0 || rc=$?
 [[ $rc -eq 1 ]] || fail "case3: an unverifiable 'fixed' verdict was accepted (exit $rc)"
-[[ "$(git -C "$d" log --oneline | wc -l | tr -d ' ')" == "1" ]] \
-  || fail "case3: committed a fix whose build failed"
+grep -q "1.0.0" "$d/overlays/99-demo.nix" || fail "case3: committed a fix whose build failed"
+# One new commit expected: the ledger commit recording the gave-up verdict.
+[[ "$(git -C "$d" log --oneline | wc -l | tr -d ' ')" == "2" ]] \
+  || fail "case3: expected exactly one new commit (ledger only)"
 grep -qi "did not reproduce\|verification" "$d/esc.log" \
   || { cat "$d/esc.log"; fail "case3: discrepancy not reported"; }
+[[ -z "$(git -C "$d" status --porcelain -- overlays/quarantine.json)" ]] \
+  || fail "case3: quarantine.json left uncommitted — wedges the next bump-overlays run"
 rm -rf "$d" "$stub"
 
 # === Case 4: a missing verdict.json is treated as gave-up ===============
@@ -145,6 +165,40 @@ d="$(setup)"; stub="$(mktemp -d)"; stub_claude_fixed "$stub"; stub_nix "$stub" o
 run_escalate "$d" "$stub" && rc=0 || rc=$?
 [[ $rc -eq 2 ]] || fail "case5: expected exit 2 (skipped by dedup), got $rc"
 grep -q "1.0.0" "$d/overlays/99-demo.nix" || fail "case5: overlay was modified despite dedup"
+rm -rf "$d" "$stub"
+
+# A `nix` stub whose scoped `--expr` build passes but whose flake-attribute
+# (full system) build fails — distinguished by whether --expr is among the args.
+stub_nix_scoped_pass_full_fail() { # <stub-dir>
+  cat > "$1/nix" <<EOF
+#!/usr/bin/env bash
+case "\$1 \$2" in "registry list") exit 1 ;; esac
+if [[ "\$1" == "build" ]]; then
+  for a in "\$@"; do
+    if [[ "\$a" == "--expr" ]]; then exit 0; fi
+  done
+  echo "error: full system build still broken" >&2
+  exit 1
+fi
+exec "$REAL_NIX" "\$@"
+EOF
+  chmod +x "$1/nix"
+}
+
+# === Case 6: scoped build passes, full system build fails =================
+d="$(setup)"; stub="$(mktemp -d)"; stub_claude_fixed "$stub"; stub_nix_scoped_pass_full_fail "$stub"
+run_escalate "$d" "$stub" && rc=0 || rc=$?
+[[ $rc -eq 1 ]] || fail "case6: expected exit 1 (full system build failure), got $rc"
+grep -q "1.0.0" "$d/overlays/99-demo.nix" || fail "case6: committed despite full system build failure"
+# One new commit expected: the ledger commit recording the gave-up verdict.
+[[ "$(git -C "$d" log --oneline | wc -l | tr -d ' ')" == "2" ]] \
+  || fail "case6: expected exactly one new commit (ledger only)"
+[[ "$(cd "$d" && QUARANTINE_FILE="$d/overlays/quarantine.json" bash -c \
+  'source scripts/update-state.sh; source scripts/quarantine.sh; quarantine_field demo escalation_status')" == "gave-up" ]] \
+  || fail "case6: gave-up not recorded"
+[[ -z "$(git -C "$d" status --porcelain -- overlays/quarantine.json)" ]] \
+  || fail "case6: quarantine.json left uncommitted — wedges the next bump-overlays run"
+[[ "$(git -C "$d" worktree list | wc -l | tr -d ' ')" == "1" ]] || fail "case6: worktree leaked"
 rm -rf "$d" "$stub"
 
 echo "PASS: test_escalate"

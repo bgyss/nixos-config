@@ -5,9 +5,16 @@ description: Use when repairing a failed nixos-config overlay version bump — i
 
 # Overlay Repair
 
-You are repairing ONE failed overlay version bump in `~/nixos-config`. The brief
-names the package, the attempted version, the overlay file, its `update_type`,
-and the classified failure. You are running in a throwaway git worktree.
+You are repairing ONE failed overlay version bump in the throwaway git worktree
+that is your current working directory. The brief names the package, the
+attempted version, the overlay file, its `update_type`, and the classified
+failure.
+
+**Never use absolute paths, and never edit outside this worktree.** In
+particular, do not touch `~/nixos-config` or any other absolute path to the
+daily-driver checkout — that repo refuses to start its next automated run
+while `overlays/` is dirty, so an edit landing there instead of in this
+worktree silently wedges every future run.
 
 ## Hard rules
 
