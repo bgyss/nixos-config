@@ -32,6 +32,8 @@ mkdir -p "$scratch/scripts" "$scratch/apps/aarch64-darwin" "$scratch/overlays"
 : > "$scratch/flake.nix"
 cp "$REPO/apps/aarch64-darwin/_common.sh" "$scratch/apps/aarch64-darwin/_common.sh"
 cp "$REPO/scripts/update-state.sh" "$scratch/scripts/update-state.sh"
+cp "$REPO/scripts/quarantine.sh" "$scratch/scripts/quarantine.sh"
+cp "$REPO/scripts/classify-failure.sh" "$scratch/scripts/classify-failure.sh"
 cp "$REPO/apps/aarch64-darwin/bump-overlays" "$scratch/apps/aarch64-darwin/bump-overlays"
 chmod +x "$scratch/apps/aarch64-darwin/bump-overlays"
 
@@ -59,6 +61,8 @@ cat > "$scratch/overlays/updates.json" <<'EOF'
   "pinned_inputs": []
 }
 EOF
+
+printf '{"comment":"test","entries":[]}\n' > "$scratch/overlays/quarantine.json"
 
 git -C "$scratch" add -A
 git -C "$scratch" commit -q -m "init"

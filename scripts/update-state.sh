@@ -46,6 +46,16 @@ state_set_overlay() {
   _state_write --arg n "$1" --arg v "$2" --arg t "$3" \
     '.overlays[$n] = {known_latest:$v, checked_at:$t}'
 }
+# Last time a bump was ATTEMPTED for this package (success or failure). Drives
+# per-package cadence gating in bump-overlays. Distinct from
+# state_set_overlay's known_latest, which records what upstream is offering.
+state_get_overlay_bumped_at() {
+  _state_readable || { printf ''; return 0; }
+  jq -r --arg n "$1" '.overlays[$n].bumped_at // empty' "$(_state_file)"
+}
+state_set_overlay_bumped_at() {
+  _state_write --arg n "$1" --arg t "$2" '.overlays[$n].bumped_at = $t'
+}
 state_get_input_updated_at() {
   _state_readable || { printf ''; return 0; }
   jq -r --arg n "$1" '.inputs[$n].updated_at // empty' "$(_state_file)"

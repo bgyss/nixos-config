@@ -19,6 +19,10 @@ source "$SCRIPT_DIR/_common.sh"
 FLAKE_DIR="$(locate_flake)" || exit 1
 # shellcheck source=/dev/null
 source "$FLAKE_DIR/scripts/update-state.sh"
+# shellcheck source=/dev/null
+source "$FLAKE_DIR/scripts/quarantine.sh"
+# shellcheck source=/dev/null
+source "$FLAKE_DIR/scripts/classify-failure.sh"
 cd "$FLAKE_DIR"
 
 MANIFEST="$FLAKE_DIR/overlays/updates.json"
@@ -265,6 +269,62 @@ print(m.group(1) if m else "")
   return 0
 }
 
+# Per-package cadence. Absent cadence_hours means daily. c4/hey-cli declare 168
+# because they track a branch with no releases — a daily bump would chase HEAD.
+pkg_cadence_hours() { # <name>
+  local h
+  h="$(jq -r --arg n "$1" '.packages[] | select(.name==$n) | .cadence_hours // 24' "$MANIFEST")"
+  [[ "$h" =~ ^[0-9]+$ ]] || h=24
+  printf '%s' "$h"
+}
+
+# Exit 0 if this package's cadence window has elapsed since the last attempt.
+cadence_due() { # <name>
+  local name="$1" hours last
+  hours="$(pkg_cadence_hours "$name")"
+  last="$(state_get_overlay_bumped_at "$name")"
+  [[ -z "$last" ]] && return 0
+  python3 - "$last" "$hours" <<'PYEOF'
+import sys, datetime
+last, hours = sys.argv[1], float(sys.argv[2])
+try:
+    t = datetime.datetime.strptime(last, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=datetime.timezone.utc)
+except ValueError:
+    sys.exit(0)   # unparseable -> treat as due
+due = (datetime.datetime.now(datetime.timezone.utc) - t).total_seconds() >= hours * 3600
+sys.exit(0 if due else 1)
+PYEOF
+}
+
+# Hours remaining before <name> is due again (for the skip message).
+cadence_remaining_hours() { # <name>
+  local last hours
+  last="$(state_get_overlay_bumped_at "$1")"
+  hours="$(pkg_cadence_hours "$1")"
+  python3 - "$last" "$hours" <<'PYEOF'
+import sys, datetime, math
+last, hours = sys.argv[1], float(sys.argv[2])
+try:
+    t = datetime.datetime.strptime(last, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=datetime.timezone.utc)
+except ValueError:
+    print(0); sys.exit(0)
+left = hours * 3600 - (datetime.datetime.now(datetime.timezone.utc) - t).total_seconds()
+print(max(0, math.ceil(left / 3600)))
+PYEOF
+}
+
+# Classify a failed bump and write it to the ledger. Prints the fingerprint so
+# the caller can report it. `phase` is one of the spec §2 phase values.
+record_bump_failure() { # <name> <new_version> <phase> <logfile>
+  local name="$1" new_version="$2" phase="$3" log="$4"
+  local fp policy escalate remediation current
+  IFS=$'\t' read -r fp policy escalate remediation < <(classify_failure "$log")
+  current="$(jq -r --arg n "$name" '.packages[] | select(.name==$n) | .current_version' "$MANIFEST")"
+  quarantine_record "$name" "overlay" "$new_version" "$current" "$phase" \
+    "$fp" "$policy" "$(tail -40 "$log" 2>/dev/null)"
+  printf '%s' "$fp"
+}
+
 # Precondition: never mix with in-progress manual edits.
 if [[ -n "$(git status --porcelain -- overlays/)" ]]; then
   err "overlays/ has uncommitted changes — commit or stash before running bump-overlays"
@@ -276,6 +336,7 @@ fi
 # concurrent prepare/bump run. Same benign exit code 2 on contention, so
 # scheduled-check can stay silent rather than fire a spurious failure.
 state_init
+quarantine_init
 if ! state_lock; then err "another update run holds the lock; aborting"; exit 2; fi
 trap 'state_unlock' EXIT
 
@@ -291,6 +352,25 @@ while IFS=$'\t' read -r name latest; do
   if [[ -n "$ONLY" ]] && [[ ",$ONLY," != *",$name,"* ]]; then
     continue
   fi
+
+  # Quarantine gate: skip exactly the versions known to fail. An entry blocks
+  # its own blocked_version (or every version, when frozen), so anything newer
+  # is attempted automatically — the self-healing property in spec §2.
+  # --only <pkg> is an explicit human override and bypasses this.
+  if [[ -z "$ONLY" ]] && quarantine_is_blocked "$name" "$latest"; then
+    SKIPPED_NAMES+=("$name")
+    SKIPPED_REASONS+=("quarantined: $(quarantine_field "$name" fingerprint) blocks $latest")
+    continue
+  fi
+
+  # Cadence gate: c4/hey-cli track a branch with no releases and would
+  # otherwise be bumped every single day. Also bypassed by --only.
+  if [[ -z "$ONLY" ]] && ! cadence_due "$name"; then
+    SKIPPED_NAMES+=("$name")
+    SKIPPED_REASONS+=("cadence: next attempt in $(cadence_remaining_hours "$name")h")
+    continue
+  fi
+
   update_type="$(jq -r --arg n "$name" '.packages[] | select(.name==$n) | .update_type' "$MANIFEST")"
   is_gosrc=0
   for g in "${GOSRC_NAMES[@]}"; do [[ "$g" == "$name" ]] && is_gosrc=1 && break; done
@@ -348,21 +428,53 @@ fi
 BUMPED=() FAILED=()
 
 # Task 3 fills in bump_mechanical(); Task 4 fills in bump_gosource().
+mkdir -p "$FLAKE_DIR/logs"
 for i in "${!MECH_NAMES[@]}"; do
   name="${MECH_NAMES[$i]}"; new_version="${MECH_VERSIONS[$i]}"
-  if declare -F bump_mechanical >/dev/null && bump_mechanical "$name" "$new_version"; then
+  # Record the attempt regardless of outcome, so cadence advances even on
+  # failure and a broken package cannot be retried every few minutes.
+  state_set_overlay_bumped_at "$name" "$(now_iso)"
+  # Per-package log under logs/ (gitignored), NOT mktemp: scheduled-check's
+  # escalation step reads logs/bump-<name>.log to build the brief, and a
+  # per-package log is the difference between a precise brief and dumping the
+  # whole run log at the model.
+  bump_log="$FLAKE_DIR/logs/bump-${name}.log"
+  if declare -F bump_mechanical >/dev/null && bump_mechanical "$name" "$new_version" >"$bump_log" 2>&1; then
+    cat "$bump_log"
     BUMPED+=("$name")
+    quarantine_clear "$name"
   else
     FAILED+=("$name")
+    fp="$(record_bump_failure "$name" "$new_version" "package-build" "$bump_log")"
+    err "  quarantined $name@$new_version as '$fp'"
   fi
 done
 for name in "${GOSRC_NAMES_TARGET[@]}"; do
-  if declare -F bump_gosource >/dev/null && bump_gosource "$name"; then
+  state_set_overlay_bumped_at "$name" "$(now_iso)"
+  new_version="$(jq -r --arg n "$name" '.packages[] | select(.name==$n) | .current_version' "$MANIFEST")"
+  bump_log="$FLAKE_DIR/logs/bump-${name}.log"
+  if declare -F bump_gosource >/dev/null && bump_gosource "$name" >"$bump_log" 2>&1; then
+    cat "$bump_log"
     BUMPED+=("$name")
+    quarantine_clear "$name"
   else
     FAILED+=("$name")
+    fp="$(record_bump_failure "$name" "$new_version" "package-build" "$bump_log")"
+    err "  quarantined $name as '$fp'"
   fi
 done
+
+# Commit any quarantine-ledger changes (record/clear) so overlays/ is clean
+# again for the next run — the precondition above rejects a dirty overlays/,
+# and quarantine.json lives under overlays/ but isn't touched by the
+# per-package commits inside bump_mechanical/bump_gosource (those only
+# `git add` the overlay file + manifest, since a failed bump never reaches
+# its own commit and a cleared quarantine happens after the fact in this
+# loop, not inside the function).
+if [[ -n "$(git status --porcelain -- overlays/quarantine.json)" ]]; then
+  git add overlays/quarantine.json
+  git -c core.hooksPath=/dev/null commit -q -m "quarantine: update ledger"
+fi
 
 echo ""
 msg "Bumped: ${#BUMPED[@]} (${BUMPED[*]:-none})"
