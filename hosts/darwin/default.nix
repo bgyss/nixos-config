@@ -95,40 +95,62 @@
     StandardOutPath = "/tmp/emacs.out.log";
   };
 
-  # Daily "propose, never activate" update check (Task 9, §5.4/§5.5): runs
+  # Daily self-healing update pipeline (Task 9, §5.4/§5.5): runs
   # `scheduled-check`, which runs `prepare` (unprivileged build+commit gated
   # on actual overlay/input drift) and posts an osascript notification when a
-  # new revision lands or the run fails. Never invokes `activate`/`switch` —
-  # a human still reviews the closure diff and switches by hand.
+  # new revision lands or the run fails.
+  #
+  # This is a root DAEMON, not a user agent, specifically to avoid a
+  # passwordless-sudo rule for `darwin-rebuild switch`: that rule would
+  # convert any code execution as ${user} into silent root, because
+  # `switch --flake` runs arbitrary activation scripts as root. Running the
+  # pipeline as root and dropping to ${user} for the unprivileged 90% (bump,
+  # build, commit, mirror, escalation, via `scheduled-check --propose-only`)
+  # keeps the privileged path — activation, health check, rollback, via
+  # `scheduled-check --activate-only <sha>` — a root-owned script instead,
+  # with no standing sudo grant.
+  #
+  # Root already has /var/root/.ssh/config -> /run/agenix/ssh-key wired up
+  # (see system.activationScripts.postActivation above), so it can fetch the
+  # private `secrets` flake input.
   #
   # Deliberately an ABSOLUTE path into the live checkout rather than
   # `nix run nixos-config#scheduled-check` via the flake registry: launchd
-  # user agents run with a minimal environment (bare NSGlobalDomain-ish
-  # PATH, no guarantee the interactive shell's `nix registry add` state is
-  # what a from-scratch agent process sees), and the rest of this file
-  # already hardcodes `/Users/${user}/...` for exactly this kind of
+  # daemons run with a minimal environment (bare NSGlobalDomain-ish PATH, no
+  # guarantee the interactive shell's `nix registry add` state is what a
+  # from-scratch daemon process sees), and the rest of this file already
+  # hardcodes `/Users/${user}/...` for exactly this kind of
   # environment-independence (see the ssh-key/aws-credentials paths above).
   # `nix` itself is still invoked by absolute store path, same as the emacs
   # agent does for `pkgs.emacs`.
-  launchd.user.agents.nixos-update-check.path = [ config.environment.systemPath ];
-  launchd.user.agents.nixos-update-check.serviceConfig = {
-    ProgramArguments = [
-      "/bin/sh"
-      "-c"
-      "exec ${pkgs.nix}/bin/nix run /Users/${user}/nixos-config#scheduled-check"
-    ];
-    StartCalendarInterval = [
-      {
-        Hour = 9;
-        Minute = 30;
-      }
-    ];
-    # Logs live inside the repo (gitignored under logs/) rather than /tmp so
-    # they survive reboots/tmp-cleanup and are easy to check from the config
-    # checkout itself.
-    StandardErrorPath = "/Users/${user}/nixos-config/logs/nixos-update-check.err.log";
-    StandardOutPath = "/Users/${user}/nixos-config/logs/nixos-update-check.out.log";
-    RunAtLoad = false;
+  launchd.daemons.nixos-auto-update = {
+    script = ''
+      set -uo pipefail
+      REPO=/Users/${user}/nixos-config
+      /usr/bin/sudo -u ${user} ${pkgs.nix}/bin/nix run "$REPO#scheduled-check" -- --propose-only
+      rc=$?
+      [[ $rc -ne 0 ]] && exit $rc
+      rev="$(cat "$REPO/logs/proposed-revision" 2>/dev/null)"
+      [[ -z "$rev" ]] && exit 0   # nothing proposed; nothing to activate
+      exec ${pkgs.nix}/bin/nix run "$REPO#scheduled-check" -- --activate-only "$rev"
+    '';
+    serviceConfig = {
+      RunAtLoad = false;
+      StartCalendarInterval = [
+        {
+          Hour = 9;
+          Minute = 0;
+        }
+      ];
+      # Logs live inside the repo (gitignored under logs/) rather than /tmp
+      # so they survive reboots/tmp-cleanup and are easy to check from the
+      # config checkout itself. Keep these paths in sync with the
+      # truncation loop in apps/*/scheduled-check, which truncates both the
+      # old nixos-update-check names and these nixos-auto-update names.
+      StandardErrorPath = "/Users/${user}/nixos-config/logs/nixos-auto-update.err.log";
+      StandardOutPath = "/Users/${user}/nixos-config/logs/nixos-auto-update.out.log";
+    };
+    path = [ config.environment.systemPath ];
   };
 
   # To run a persistent local llama-server as a launchd agent, see the recipe
