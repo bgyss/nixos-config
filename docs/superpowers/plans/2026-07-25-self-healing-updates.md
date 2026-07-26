@@ -2474,23 +2474,27 @@ fixed_by_claude=()
 while IFS=$'\t' read -r qname qver qphase; do
   [[ -z "$qname" ]] && continue
   [[ $escalated -ge 3 ]] && break
+  # Do NOT filter on escalation status here. escalate.sh owns dedup and applies
+  # the spec's per-(package, fingerprint) rule via quarantine_should_escalate,
+  # returning 2 when it declines. A status filter in this jq selector would be
+  # a second, coarser rule — it would skip a package after ANY prior gave-up
+  # even when the failure signature changed, which is stricter than the spec.
+  # Exit 2 must not consume a budget slot; only an actual session does.
   # Only escalate what the classifier said to escalate.
   esc_flag="$(quarantine_field "$qname" retry_policy)"
   [[ "$esc_flag" == "retry-after:"* ]] && continue   # transient: no repair to make
   pkg_log="$LOG_DIR/bump-${qname}.log"
   [[ -f "$pkg_log" ]] || pkg_log="$RUN_LOG"
-  escalated=$((escalated + 1))
-  if "$FLAKE_DIR/scripts/escalate.sh" --package "$qname" --version "$qver" \
-        --phase "$qphase" --log "$pkg_log" >>"$RUN_LOG" 2>&1; then
-    fixed_by_claude+=("$qname")
-  fi
-# NOTE the parenthesisation. `select(.escalation.status // "" == "")` is a
-# precedence trap: jq binds `==` tighter than `//`, so it reads as
-# `.escalation.status // ("" == "")` — which selects the WRONG set entirely.
-# The parens below are load-bearing.
+  "$FLAKE_DIR/scripts/escalate.sh" --package "$qname" --version "$qver" \
+      --phase "$qphase" --log "$pkg_log" >>"$RUN_LOG" 2>&1
+  esc_rc=$?
+  case $esc_rc in
+    0) fixed_by_claude+=("$qname"); escalated=$((escalated + 1)) ;;
+    1) escalated=$((escalated + 1)) ;;
+    2) : ;;  # declined by dedup/ceiling — no session ran, so no slot consumed
+  esac
 done < <(jq -r '.entries[]
                 | select(.kind=="overlay")
-                | select((.escalation.status // "") == "")
                 | "\(.name)\t\(.blocked_version)\t\(.phase)"' \
            "$FLAKE_DIR/overlays/quarantine.json")
 
