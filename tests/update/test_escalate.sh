@@ -370,4 +370,61 @@ grep -q "outside overlays/" "$d/esc.log" \
   || fail "case12: expected exactly one new commit (ledger only)"
 rm -rf "$d" "$stub"
 
+# === Case 13: old version is a proper PREFIX of the new one (Finding: the
+# gate must strip the new version's own text before looking for the old one,
+# or a correct repair like tmux 3.7 -> 3.7a/mise 2026.7.1 -> 2026.7.14 is
+# falsely rejected because the new pin's text contains the old version). ===
+setup_prefix() { # -> scratch repo path
+  local d; d="$(mktemp -d)"
+  mkdir -p "$d/overlays" "$d/scripts" "$d/logs"
+  cp "$REPO/scripts/quarantine.sh" "$REPO/scripts/update-state.sh" \
+     "$REPO/scripts/classify-failure.sh" "$REPO/scripts/escalate.sh" \
+     "$REPO/scripts/check-overlay-manifest.sh" "$d/scripts/"
+  cat > "$d/overlays/updates.json" <<'EOF'
+{ "packages": [ { "name": "demo", "overlay": "overlays/99-demo.nix",
+    "current_version": "3.7", "update_type": "prebuilt-binary",
+    "check": { "method": "github-release", "repo": "demo/demo" } } ],
+  "skip": [] }
+EOF
+  printf '_final: _prev: { demo = { version = "3.7"; }; }\n' > "$d/overlays/99-demo.nix"
+  printf '{"comment":"t","entries":[]}\n' > "$d/overlays/quarantine.json"
+  cat > "$d/overlays/health-checks.json" <<'EOF'
+{ "assertions": [ { "package": "demo", "skip": "no binary to smoke-test in the test fixture" } ] }
+EOF
+  printf "error: builder for '/nix/store/x-demo.drv' failed with exit code 1\n" > "$d/logs/build.log"
+  git -C "$d" init -q
+  git -C "$d" config user.email t@example.com
+  git -C "$d" config user.name Test
+  git -C "$d" add -A && git -C "$d" commit -qm init
+  printf '%s' "$d"
+}
+
+# A complete, correct bump from 3.7 -> 3.7b: overlay's pin becomes "3.7b",
+# which CONTAINS "3.7" as a substring — exactly what previously tripped the
+# old-version-absence gate on a fully correct repair.
+stub_claude_prefix_bump() { # <stub-dir>
+  cat > "$1/claude" <<'EOF'
+#!/usr/bin/env bash
+sed -i.bak 's/3\.7/3.7b/' overlays/99-demo.nix && rm -f overlays/99-demo.nix.bak
+sed -i.bak 's/"current_version": "3\.7"/"current_version": "3.7b"/' overlays/updates.json && rm -f overlays/updates.json.bak
+cat > verdict.json <<'JSON'
+{"status":"fixed","package":"demo","fingerprint":"compile-failure",
+ "verdict":"bumped to 3.7b per upstream's point-release convention","files_changed":["overlays/99-demo.nix","overlays/updates.json"]}
+JSON
+EOF
+  chmod +x "$1/claude"
+}
+
+run_escalate_prefix() { # <repo> <stub>
+  ( cd "$1" && PATH="$2:$PATH" ESCALATE_CLAUDE_BIN="$2/claude" \
+      bash scripts/escalate.sh --package demo --version 3.7b \
+        --phase package-build --log logs/build.log >"$1/esc.log" 2>&1 )
+}
+
+d="$(setup_prefix)"; stub="$(mktemp -d)"; stub_claude_prefix_bump "$stub"; stub_nix "$stub" ok
+run_escalate_prefix "$d" "$stub" && rc=0 || rc=$?
+[[ $rc -eq 0 ]] || { cat "$d/esc.log"; fail "case13: a correct prefix bump (3.7 -> 3.7b) was rejected (exit $rc)"; }
+grep -q "3.7b" "$d/overlays/99-demo.nix" || fail "case13: fix not cherry-picked into the repo"
+rm -rf "$d" "$stub"
+
 echo "PASS: test_escalate"

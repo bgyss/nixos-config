@@ -187,7 +187,7 @@ start_epoch="$(date +%s)"
     --max-turns "$MAX_TURNS" \
     --permission-mode acceptEdits \
     --allowedTools 'Read,Edit,Write,Bash(nix build:*),Bash(nix-prefetch-url:*),Bash(nix hash:*),Bash(nix fmt),Bash(git diff:*)' \
-    "$(cat "$brief")" ) >"$session_log" 2>&1
+    "$(cat "$brief")" ) >>"$session_log" 2>&1
 claude_rc=$?
 duration=$(( $(date +%s) - start_epoch ))
 
@@ -289,7 +289,14 @@ fi
 # comments would fail a fully correct functional repair. The old version must
 # still vanish from actual code (including every per-platform entry), which
 # is what makes this catch real partial bumps.
-if grep -v '^[[:space:]]*#' "$wt/$overlay_rel" | grep -qF "$known_good"; then
+#
+# Also strip occurrences of the NEW version first: when the old version is a
+# proper prefix of the new one (mise 2026.7.1 -> 2026.7.14; tmux 3.7 -> 3.7b,
+# tmux's actual release convention for 3.3a/3.5a-style point releases) the new
+# pin's own text contains the old version as a substring, and a completely
+# correct repair would otherwise be rejected. A leftover old pin from a real
+# partial bump is never inside a new-version match, so this still catches it.
+if grep -v '^[[:space:]]*#' "$wt/$overlay_rel" | sed "s/${VERSION//./\\.}//g" | grep -qF "$known_good"; then
   echo "escalate: 'fixed' but $overlay_rel still references the old version $known_good" >&2
   quarantine_set_escalation "$PACKAGE" "gave-up" \
     "overlay still references $known_good after repair — a partial bump: $verdict"
