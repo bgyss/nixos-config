@@ -27,11 +27,12 @@
 #   2. Nothing is activated without a full system build behind it.
 #   3. Nothing is mirrored to the public repo until the health check passes on
 #      the machine that produced the revision.
-#   4. The propose stage is silent unless something needs a human: a
-#      Claude-authored fix awaiting review, a package newly promoted to
-#      frozen, or a failed build. The activate stage, since it is the one
-#      moment the live system actually changes, always sends a lightweight
-#      confirmation on success in addition to failure/rollback notifications.
+#   4. Silent on success, everywhere, including activation (spec §2
+#      "Notification policy" — "You should hear from this system roughly
+#      never"). Notifies only when something needs a human: a Claude-authored
+#      fix awaiting review, a package newly promoted to frozen, a failed
+#      build, or a health-check failure that triggered a rollback. A healthy
+#      activation is still recorded in the run log so the event is traceable.
 #
 # Exit: 0 completed (changes or not) | 1 a failure was reported | 2 lock contention
 set -uo pipefail
@@ -52,8 +53,18 @@ cd "$FLAKE_DIR"
 MODE="propose"
 ACTIVATE_SHA=""
 case "${1:-}" in
-  ""|--propose-only) MODE="propose" ;;
+  ""|--propose-only)
+    if [[ $# -gt 1 ]]; then
+      err "usage: scheduled-check [--propose-only] | scheduled-check --activate-only <sha>"
+      exit 1
+    fi
+    MODE="propose"
+    ;;
   --activate-only)
+    if [[ $# -gt 2 ]]; then
+      err "usage: scheduled-check --activate-only <sha> (unexpected trailing arguments: ${*:3})"
+      exit 1
+    fi
     MODE="activate"
     ACTIVATE_SHA="${2:-}"
     ;;
@@ -68,12 +79,16 @@ esac
 # exist on disk — a tracked .gitkeep ensures it.
 LOG_DIR="$FLAKE_DIR/logs"
 mkdir -p "$LOG_DIR" 2>/dev/null || true
-# launchd appends to the same two files forever; truncate per-run rather than
-# adding logrotate. Keep these paths in sync with hosts/darwin/default.nix's
-# nixos-update-check agent (Task 9 renames/re-targets that agent — when it
-# does, keep StandardOutPath/StandardErrorPath and this pair of paths in sync).
-: > "$LOG_DIR/nixos-auto-update.out.log" 2>/dev/null || true
-: > "$LOG_DIR/nixos-auto-update.err.log" 2>/dev/null || true
+# launchd appends to StandardOutPath/StandardErrorPath forever, so truncate
+# per-run rather than adding logrotate. BOTH name sets are truncated on
+# purpose: hosts/darwin/default.nix currently declares the nixos-update-check
+# names (the live ones), and Task 9 renames the agent to nixos-auto-update.
+# Truncating a file that does not exist is harmless, and covering both means
+# neither name can silently grow unbounded across that rename.
+for _log_base in nixos-update-check nixos-auto-update; do
+  : > "$LOG_DIR/${_log_base}.out.log" 2>/dev/null || true
+  : > "$LOG_DIR/${_log_base}.err.log" 2>/dev/null || true
+done
 RUN_LOG="$LOG_DIR/nixos-scheduled-check.log"
 : > "$RUN_LOG"
 
@@ -133,10 +148,8 @@ run_activate_only() {
   "$FLAKE_DIR/scripts/sync-to-public.sh" >>"$RUN_LOG" 2>&1 \
     || echo "scheduled-check: public mirror sync failed — see $RUN_LOG" >>"$RUN_LOG"
 
-  # A lightweight confirmation: this is the one step that actually changes
-  # the live system unattended, so unlike the propose stage it is not silent
-  # on success.
-  notify "nixos-config update" "activated ${sha:0:7}, healthy"
+  # Silent on success (spec §2 "Notification policy") — the run log still
+  # records the event so it stays traceable without interrupting the user.
   echo "scheduled-check: activated ${sha:0:7}, healthy" >>"$RUN_LOG"
   exit 0
 }

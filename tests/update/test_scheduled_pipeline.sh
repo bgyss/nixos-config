@@ -109,6 +109,29 @@ EOF
   printf '%s' "$s"
 }
 
+# make_escalate_stub <dir> <exit-code>
+# Overwrites scripts/escalate.sh with a stub that appends one line per
+# invocation ("pkg=<name> version=<v> phase=<p> log=<log>") to
+# <dir>/escalate-calls.log and always exits <exit-code>. Replaces the
+# always-exit-1 stub that setup() installs, so tests can control the
+# escalation outcome and inspect exactly what was passed.
+make_escalate_stub() {
+  local d="$1" rc="$2"
+  cat > "$d/scripts/escalate.sh" <<EOF
+#!/usr/bin/env bash
+echo "pkg=\$2 version=\$4 phase=\$6 log=\$8" >> "$d/escalate-calls.log"
+exit $rc
+EOF
+  chmod +x "$d/scripts/escalate.sh"
+}
+
+# seed_overlay_entries <dir> <json-entries-array>
+seed_overlay_entries() {
+  local d="$1" entries="$2"
+  jq --argjson e "$entries" '.entries = $e' "$d/overlays/quarantine.json" > "$d/overlays/quarantine.json.tmp"
+  mv "$d/overlays/quarantine.json.tmp" "$d/overlays/quarantine.json"
+}
+
 run() { # <repo> <stub> [args...]
   local d="$1" s="$2"; shift 2
   ( cd "$d" && PATH="$s:$PATH" UPDATE_STATE_FILE="$d/.state.json" \
@@ -207,14 +230,105 @@ after="$(git -C "$d" rev-parse HEAD)"
 [[ "$before" == "$after" ]] || fail "case5: lock contention must not commit"
 rm -rf "$d" "$s"
 
-# === Case 6: --activate-only happy path — activate, health, sync, notify ===
+# === Escalation loop (Finding 3): kind:"overlay" quarantine entries drive
+# escalate.sh invocations. Covers the 3-slot budget cap, the retry-after:
+# transient skip, and the exit 0/1/2 dispatch — none of which any prior case
+# exercised, since setup()'s default ledger is empty.
+
+# === Case E1: one escalating overlay entry -> exactly one invocation, with
+# the right --package/--version/--phase read from the ledger ===============
+d="$(setup nothing)"; s="$(stubs "$d" ok)"
+seed_overlay_entries "$d" '[{"name":"demo","kind":"overlay","blocked_version":"2.0.0","phase":"build","retry_policy":"next-version-only","attempts":1}]'
+make_escalate_stub "$d" 1
+run "$d" "$s" --propose-only && rc=0 || rc=$?
+[[ $rc -eq 0 ]] || { cat "$d/run.log"; fail "caseE1: expected exit 0, got $rc"; }
+[[ "$(wc -l < "$d/escalate-calls.log" 2>/dev/null)" -eq 1 ]] 2>/dev/null \
+  || { cat "$d/escalate-calls.log" 2>/dev/null; fail "caseE1: expected exactly one escalate.sh invocation"; }
+grep -q "^pkg=demo version=2.0.0 phase=build " "$d/escalate-calls.log" \
+  || { cat "$d/escalate-calls.log"; fail "caseE1: wrong package/version/phase passed to escalate.sh"; }
+rm -rf "$d" "$s"
+
+# === Case E2: retry_policy starting retry-after: is skipped — no invocation
+d="$(setup nothing)"; s="$(stubs "$d" ok)"
+seed_overlay_entries "$d" '[{"name":"flaky","kind":"overlay","blocked_version":"1.2.3","phase":"build","retry_policy":"retry-after:24","attempts":1}]'
+make_escalate_stub "$d" 1
+run "$d" "$s" --propose-only && rc=0 || rc=$?
+[[ $rc -eq 0 ]] || { cat "$d/run.log"; fail "caseE2: expected exit 0, got $rc"; }
+[[ ! -s "$d/escalate-calls.log" ]] \
+  || { cat "$d/escalate-calls.log"; fail "caseE2: escalate.sh invoked for a retry-after (transient) entry"; }
+rm -rf "$d" "$s"
+
+FIVE_ENTRIES='[
+  {"name":"p1","kind":"overlay","blocked_version":"1","phase":"build","retry_policy":"next-version-only","attempts":1},
+  {"name":"p2","kind":"overlay","blocked_version":"1","phase":"build","retry_policy":"next-version-only","attempts":1},
+  {"name":"p3","kind":"overlay","blocked_version":"1","phase":"build","retry_policy":"next-version-only","attempts":1},
+  {"name":"p4","kind":"overlay","blocked_version":"1","phase":"build","retry_policy":"next-version-only","attempts":1},
+  {"name":"p5","kind":"overlay","blocked_version":"1","phase":"build","retry_policy":"next-version-only","attempts":1}
+]'
+
+# === Case E3: 3-slot budget cap holds — 5 escalating entries, stub exits 1,
+# escalate.sh invoked exactly 3 times ========================================
+d="$(setup nothing)"; s="$(stubs "$d" ok)"
+seed_overlay_entries "$d" "$FIVE_ENTRIES"
+make_escalate_stub "$d" 1
+run "$d" "$s" --propose-only && rc=0 || rc=$?
+[[ $rc -eq 0 ]] || { cat "$d/run.log"; fail "caseE3: expected exit 0, got $rc"; }
+[[ "$(wc -l < "$d/escalate-calls.log" 2>/dev/null)" -eq 3 ]] 2>/dev/null \
+  || { cat "$d/escalate-calls.log" 2>/dev/null; fail "caseE3: budget cap did not hold at 3 invocations"; }
+rm -rf "$d" "$s"
+
+# === Case E4: exit 2 does not consume a slot — 5 entries, stub exits 2,
+# escalate.sh invoked all 5 times (no budget accounting on a decline) =======
+d="$(setup nothing)"; s="$(stubs "$d" ok)"
+seed_overlay_entries "$d" "$FIVE_ENTRIES"
+make_escalate_stub "$d" 2
+run "$d" "$s" --propose-only && rc=0 || rc=$?
+[[ $rc -eq 0 ]] || { cat "$d/run.log"; fail "caseE4: expected exit 0, got $rc"; }
+[[ "$(wc -l < "$d/escalate-calls.log" 2>/dev/null)" -eq 5 ]] 2>/dev/null \
+  || { cat "$d/escalate-calls.log" 2>/dev/null; fail "caseE4: exit-2 declines must not consume budget slots — expected 5 invocations"; }
+rm -rf "$d" "$s"
+
+# === Case E5: exit 0 marks the package fixed-by-Claude and notifies, naming
+# it ==========================================================================
+d="$(setup nothing)"; s="$(stubs "$d" ok)"
+seed_overlay_entries "$d" '[{"name":"demo","kind":"overlay","blocked_version":"2.0.0","phase":"build","retry_policy":"next-version-only","attempts":1}]'
+make_escalate_stub "$d" 0
+run "$d" "$s" --propose-only && rc=0 || rc=$?
+[[ $rc -eq 0 ]] || { cat "$d/run.log"; fail "caseE5: expected exit 0, got $rc"; }
+grep -qi "Claude repaired an overlay" "$d/notify.log" \
+  || { cat "$d/notify.log"; fail "caseE5: no repaired-overlay notification"; }
+grep -q "demo" "$d/notify.log" || { cat "$d/notify.log"; fail "caseE5: notification did not name the repaired package"; }
+rm -rf "$d" "$s"
+
+# === Case E6a: escalate.sh receives logs/bump-<name>.log when present ======
+d="$(setup nothing)"; s="$(stubs "$d" ok)"
+seed_overlay_entries "$d" '[{"name":"demo","kind":"overlay","blocked_version":"2.0.0","phase":"build","retry_policy":"next-version-only","attempts":1}]'
+: > "$d/logs/bump-demo.log"
+make_escalate_stub "$d" 1
+run "$d" "$s" --propose-only
+grep -q "log=.*/logs/bump-demo\.log\$" "$d/escalate-calls.log" \
+  || { cat "$d/escalate-calls.log" 2>/dev/null; fail "caseE6a: escalate.sh did not receive the per-package bump log"; }
+rm -rf "$d" "$s"
+
+# === Case E6b: escalate.sh falls back to the run log when no per-package
+# bump log exists =============================================================
+d="$(setup nothing)"; s="$(stubs "$d" ok)"
+seed_overlay_entries "$d" '[{"name":"demo","kind":"overlay","blocked_version":"2.0.0","phase":"build","retry_policy":"next-version-only","attempts":1}]'
+make_escalate_stub "$d" 1
+run "$d" "$s" --propose-only
+grep -q "log=.*/logs/nixos-scheduled-check\.log\$" "$d/escalate-calls.log" \
+  || { cat "$d/escalate-calls.log" 2>/dev/null; fail "caseE6b: escalate.sh did not fall back to the run log"; }
+rm -rf "$d" "$s"
+
+# === Case 6: --activate-only happy path — activate, health, sync, SILENT ===
+# Spec §2 "Notification policy": silent on success, including activation.
 d="$(setup nothing)"; s="$(stubs "$d" ok)"
 sha="$(git -C "$d" rev-parse HEAD)"
 run "$d" "$s" --activate-only "$sha" && rc=0 || rc=$?
 [[ $rc -eq 0 ]] || { cat "$d/run.log"; fail "case6: expected exit 0, got $rc"; }
 order="$(tr '\n' ' ' < "$d/order.log")"
 [[ "$order" == *"activate health sync"* ]] || fail "case6: wrong order: $order"
-[[ -s "$d/notify.log" ]] || fail "case6: no success notification"
+[[ ! -s "$d/notify.log" ]] || { cat "$d/notify.log"; fail "case6: notified on a healthy activation"; }
 rm -rf "$d" "$s"
 
 # === Case 7: --activate-only health check fails -> rollback, notify, no sync
@@ -249,6 +363,14 @@ run "$d" "$s" --activate-only "0000000000000000000000000000000000dead" && rc=0 |
 [[ $rc -eq 1 ]] || fail "case8b: bogus sha should exit 1, got $rc"
 grep -q "activate" "$d/order.log" 2>/dev/null && fail "case8b: activated a non-committed sha"
 grep -qi "FAILED" "$d/notify.log" 2>/dev/null || fail "case8b: no failure notification for a bogus sha"
+rm -rf "$d" "$s"
+
+# === Case 8c: --activate-only <sha> <extra> errors instead of ignoring it ===
+d="$(setup nothing)"; s="$(stubs "$d" ok)"
+sha="$(git -C "$d" rev-parse HEAD)"
+run "$d" "$s" --activate-only "$sha" "unexpected-extra-arg" && rc=0 || rc=$?
+[[ $rc -eq 1 ]] || fail "case8c: trailing argument should exit 1, got $rc"
+grep -q "activate" "$d/order.log" 2>/dev/null && fail "case8c: activated despite a trailing argument"
 rm -rf "$d" "$s"
 
 echo "PASS: test_scheduled_pipeline"
