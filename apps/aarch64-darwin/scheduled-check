@@ -1,22 +1,39 @@
 #!/usr/bin/env bash
-# launchd entrypoint: auto-bump the mechanical overlay subset, then run
-# prepare; notify only on a real proposed revision. Never activates/switches
-# the system — propose+notify only (§5.4). On a prepare failure this notifies
-# and leaves the tree exactly as prepare left it (prepare itself only commits
-# after a successful build, so a failure here never leaves a bad commit
-# behind).
+# Daily self-healing update pipeline (spec §1), split into two invocation
+# modes so the unattended launchd/cron caller can never activate by accident:
 #
-# Order matters: bump-overlays runs FIRST so that, if prepare then decides an
-# input is due and builds, that build already includes the bumped overlays.
-# When prepare has nothing to do (the common case while nixpkgs is pinned),
-# the only verification an overlay bump has had is bump-overlays' own scoped
-# per-package build — so this script runs the full system build itself before
-# claiming a revision is ready. A revision this script notifies about has
-# always been built.
+#   scheduled-check [--propose-only]   (bare invocation == --propose-only)
+#     bump (all overlays) -> escalate what broke -> prepare (flake inputs,
+#     incl. unpin retry) -> full system build. NEVER activates. On success
+#     writes the built revision sha to logs/proposed-revision.
 #
-# `prepare` deliberately still refuses to touch overlays (see its header):
-# the auto-bump lives here, in the scheduled entrypoint, so the propose
-# primitive stays purely flake-input-scoped for manual/agent use.
+#   scheduled-check --activate-only <sha>
+#     the privileged tail only: activate <sha> -> health check -> roll back
+#     and quarantine on failure -> mirror to public on success.
+#
+# Why the split exists (do not recombine into one always-activates mode): a
+# launchd agent already invokes this script with NO ARGUMENTS on a schedule,
+# and the nix registry resolves `nixos-config` to whatever working checkout
+# is currently on disk -- which may be an unfinished feature branch. Making
+# the no-argument default propose-only means a scheduled run can build and
+# report but can never switch the live system; activation can only happen
+# through the explicit --activate-only flag, which Task 9's root daemon
+# passes deliberately after reviewing (or automating review of) a specific
+# committed revision.
+#
+# Design invariants, in priority order:
+#   1. A broken package must not block anything else. Failures are attributed
+#      per-package, quarantined at that exact version, and the run continues.
+#   2. Nothing is activated without a full system build behind it.
+#   3. Nothing is mirrored to the public repo until the health check passes on
+#      the machine that produced the revision.
+#   4. The propose stage is silent unless something needs a human: a
+#      Claude-authored fix awaiting review, a package newly promoted to
+#      frozen, or a failed build. The activate stage, since it is the one
+#      moment the live system actually changes, always sends a lightweight
+#      confirmation on success in addition to failure/rollback notifications.
+#
+# Exit: 0 completed (changes or not) | 1 a failure was reported | 2 lock contention
 set -uo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=/dev/null
@@ -24,129 +41,256 @@ source "$SCRIPT_DIR/_common.sh"
 FLAKE_DIR="$(locate_flake)" || exit 1
 # shellcheck source=/dev/null
 source "$FLAKE_DIR/scripts/update-notify.sh"
+# shellcheck source=/dev/null
+source "$FLAKE_DIR/scripts/update-state.sh"
+# shellcheck source=/dev/null
+source "$FLAKE_DIR/scripts/quarantine.sh"
+# shellcheck source=/dev/null
+source "$FLAKE_DIR/scripts/classify-failure.sh"
 cd "$FLAKE_DIR"
 
-# Logs live inside the repo (gitignored under logs/, see .gitignore) rather
-# than /tmp, so they survive reboots/tmp-cleanup and are easy to check from
-# the config checkout itself. The logs/ directory must already exist on disk
-# (a tracked .gitkeep ensures this) since launchd opens StandardOutPath/
-# StandardErrorPath before this script ever runs — creating it here would be
-# too late.
+MODE="propose"
+ACTIVATE_SHA=""
+case "${1:-}" in
+  ""|--propose-only) MODE="propose" ;;
+  --activate-only)
+    MODE="activate"
+    ACTIVATE_SHA="${2:-}"
+    ;;
+  *)
+    err "usage: scheduled-check [--propose-only] | scheduled-check --activate-only <sha>"
+    exit 1
+    ;;
+esac
+
+# Logs live in the repo (gitignored) so they survive reboots. launchd opens
+# StandardOutPath/StandardErrorPath before this runs, so logs/ must already
+# exist on disk — a tracked .gitkeep ensures it.
 LOG_DIR="$FLAKE_DIR/logs"
 mkdir -p "$LOG_DIR" 2>/dev/null || true
-
-# launchd opens StandardOutPath/StandardErrorPath in append mode and reuses
-# the same two files for every daily invocation (see hosts/darwin/default.nix's
-# nixos-update-check agent) — with no rotation they'd grow unboundedly.
-# Truncate them at the start of each run instead: this script's own log
-# output is negligible per-run (prepare's own output is redirected to its own
-# separate log below, overwritten each run the same way), so capping these to
-# "this run only" loses nothing worth keeping and needs no full logrotate
-# setup. The paths are duplicated here intentionally — keep them in sync with
-# hosts/darwin/default.nix.
-: > "$LOG_DIR/nixos-update-check.out.log" 2>/dev/null || true
-: > "$LOG_DIR/nixos-update-check.err.log" 2>/dev/null || true
-
+# launchd appends to the same two files forever; truncate per-run rather than
+# adding logrotate. Keep these paths in sync with hosts/darwin/default.nix's
+# nixos-update-check agent (Task 9 renames/re-targets that agent — when it
+# does, keep StandardOutPath/StandardErrorPath and this pair of paths in sync).
+: > "$LOG_DIR/nixos-auto-update.out.log" 2>/dev/null || true
+: > "$LOG_DIR/nixos-auto-update.err.log" 2>/dev/null || true
 RUN_LOG="$LOG_DIR/nixos-scheduled-check.log"
+: > "$RUN_LOG"
 
-before="$(git rev-parse HEAD 2>/dev/null)"; before_rc=$?
+quarantine_init
 
-# ── Overlay auto-bump ───────────────────────────────────────────────────────
-# Mechanical subset only: prebuilt-binary / prebuilt-npm packages plus `go`
-# patch bumps, i.e. the cases that are a pure value substitution verified by a
-# scoped build. The go-source packages (beads/c4/hey-cli) and the genuinely
-# manual overlays (mise's non-mechanical paths, yt-dlp, ngrok, tmux, `go`
-# minor bumps) are reported as skipped and still follow
-# docs/overlay-update-routine.md.
-#
-# bump-overlays rolls back each failed package individually and leaves the
-# successful ones committed, so a partial failure is a real outcome: the
-# successes still get proposed, and the failures get their own notification.
-#
-# --no-public-sync: this script does the mirror push itself, after the full
-# system build below has vouched for the bumps (see the sync call there).
-"$SCRIPT_DIR/bump-overlays" --mechanical-only --no-public-sync >"$RUN_LOG" 2>&1
-bump_rc=$?
-after_bump="$(git rev-parse HEAD 2>/dev/null)"; after_bump_rc=$?
+# ═══════════════════════════════════════════════════════════════════════════
+# --activate-only <sha>: the privileged tail. activate -> health -> rollback
+# on failure -> mirror on success.
+# ═══════════════════════════════════════════════════════════════════════════
+run_activate_only() {
+  local sha="$1" before
 
-# Extract the package names from bump-overlays' "Failed: N (a b)" summary line
-# so the notification can name them instead of just pointing at the log.
-# Only exit 1 means "some package failed"; 2 (lock contention) and 3 (dirty
-# overlays/) are preconditions that bumped nothing at all, and any other
-# non-zero code is an unexpected crash with no summary line to parse.
-bump_failures=""
-if [[ $bump_rc -eq 1 ]]; then
-  bump_failures="$(sed -n 's/^Failed: [0-9]* (\([^)]*\)).*/\1/p' "$RUN_LOG" | tail -1)"
-  [[ -z "$bump_failures" ]] && bump_failures="see $RUN_LOG"
-elif [[ $bump_rc -ne 0 && $bump_rc -ne 2 ]]; then
-  bump_failures="bump-overlays exited $bump_rc — see $RUN_LOG"
-fi
-notify_bump_failures() {
-  [[ -n "$bump_failures" ]] || return 0
-  notify "nixos-config overlay bump FAILED" \
-    "$bump_failures — bump manually, see docs/overlay-update-routine.md"
+  if [[ -z "$sha" ]]; then
+    err "usage: scheduled-check --activate-only <sha>"
+    exit 1
+  fi
+  # Fail cleanly on a missing/non-committed revision, before doing ANYTHING
+  # privileged. `activate` itself also validates this, but checking here
+  # means a bad sha never even reaches it.
+  if ! git -C "$FLAKE_DIR" rev-parse --verify "${sha}^{commit}" >/dev/null 2>&1; then
+    err "not a committed revision: $sha"
+    notify "nixos-config update FAILED" "activate-only: '$sha' is not a committed revision — nothing activated"
+    exit 1
+  fi
+  before="$(git rev-parse HEAD 2>/dev/null)"
+
+  # ── Activate ────────────────────────────────────────────────────────────
+  if ! "$SCRIPT_DIR/activate" "$sha" >>"$RUN_LOG" 2>&1; then
+    notify "nixos-config update FAILED" "activation of ${sha:0:7} failed — see $RUN_LOG"
+    exit 1
+  fi
+
+  # ── Health check, and roll back if it fails ────────────────────────────
+  local health_log="$LOG_DIR/health.log"
+  if ! bash "$FLAKE_DIR/scripts/post-activate-health.sh" >"$health_log" 2>&1; then
+    cat "$health_log" >>"$RUN_LOG"
+    warn "health check failed — rolling back" >>"$RUN_LOG"
+    local rolled
+    if "$SCRIPT_DIR/rollback" >>"$RUN_LOG" 2>&1; then
+      rolled="rolled back"
+    else
+      rolled="ROLLBACK ALSO FAILED"
+    fi
+    # Keyed to the revision, not a package: after a multi-package bump the
+    # culprit is ambiguous, and re-attribution is a human call, not
+    # escalate.sh's job — a revision-level failure is deliberately
+    # notify-only, never escalated (the machine is already rolled back and
+    # healthy, so there is no urgency and no clear single package to blame).
+    quarantine_record "revision-${sha:0:7}" "revision" "$sha" "$before" \
+      "health-check" "health-failure" "frozen" "$(tail -40 "$health_log")"
+    notify "nixos-config update FAILED" \
+      "${sha:0:7} failed health check, $rolled — see $health_log"
+    exit 1
+  fi
+
+  # ── Mirror to the public repo (only now — invariant 3) ─────────────────
+  "$FLAKE_DIR/scripts/sync-to-public.sh" >>"$RUN_LOG" 2>&1 \
+    || echo "scheduled-check: public mirror sync failed — see $RUN_LOG" >>"$RUN_LOG"
+
+  # A lightweight confirmation: this is the one step that actually changes
+  # the live system unattended, so unlike the propose stage it is not silent
+  # on success.
+  notify "nixos-config update" "activated ${sha:0:7}, healthy"
+  echo "scheduled-check: activated ${sha:0:7}, healthy" >>"$RUN_LOG"
+  exit 0
 }
 
-# ── Flake inputs (propose) ──────────────────────────────────────────────────
-"$SCRIPT_DIR/prepare" >>"$RUN_LOG" 2>&1
-prepare_rc=$?
-if [[ $prepare_rc -eq 0 ]]; then
-  after="$(git rev-parse HEAD 2>/dev/null)"; after_rc=$?
-  if [[ $before_rc -ne 0 || $after_rc -ne 0 || $after_bump_rc -ne 0 ]]; then
-    # rev-parse itself failed (broken checkout, git missing, FLAKE_DIR not a
-    # repo, unborn HEAD, ...). NOTE: on failure `git rev-parse HEAD` still
-    # prints the literal string "HEAD" to stdout (not empty), so this must
-    # check the exit status, not just whether $before/$after are non-empty.
-    # Silence here would violate "stay silent only when nothing changed",
-    # since something is very much wrong with the environment.
-    notify "nixos-config update FAILED" "scheduled-check: could not determine git HEAD, check environment"
-  elif [[ "$before" != "$after" ]]; then
-    # `after == after_bump` means prepare committed nothing, so every new
-    # commit came from bump-overlays and no full system build has happened
-    # yet. Build it here as evidence before calling the revision ready —
-    # bump-overlays only builds each bumped package in isolation, which won't
-    # catch a system-level eval error or a file collision it introduces.
-    verify_rc=0
-    if [[ "$after" == "$after_bump" ]]; then
-      {
-        echo "==> full system build (evidence for overlay bumps; no activation)"
-        nix build "${FLAKE_DIR}#${FLAKE_SYSTEM_ATTR}" --out-link ./result
-      } >>"$RUN_LOG" 2>&1 || verify_rc=1
-      if [[ $verify_rc -eq 0 ]]; then
-        {
-          echo "==> closure diff (running system -> proposed)"
-          nix store diff-closures /run/current-system ./result || true
-        } >>"$RUN_LOG" 2>&1
-      fi
-      rm -f ./result
-    fi
-    if [[ $verify_rc -ne 0 ]]; then
-      # The bump commits are left in place rather than auto-reset: a hard
-      # reset here could also discard unrelated work, and the manifest and
-      # overlay were rewritten together so the tree is at least self-
-      # consistent. Tell the user exactly how to discard it themselves.
-      notify "nixos-config update FAILED" \
-        "overlay bumps committed but system build FAILED at ${after:0:7} — see $RUN_LOG; 'git reset --hard ${before:0:7}' discards them"
-    else
-      # Mirror to the public repo now that the revision has a full build
-      # behind it. `prepare`'s own commit fires the post-commit hook, so this
-      # only has real work to do on a bump-only run (bump-overlays commits
-      # with hooks disabled and, given --no-public-sync above, syncs nothing).
-      "$FLAKE_DIR/scripts/sync-to-public.sh" >>"$RUN_LOG" 2>&1 \
-        || echo "scheduled-check: public mirror sync failed — see $RUN_LOG" >>"$RUN_LOG"
-      notify "nixos-config update" "revision ${after:0:7} ready — run 'nix run .#activate -- ${after:0:7}'"
-    fi
+# ═══════════════════════════════════════════════════════════════════════════
+# --propose-only (and bare invocation): bump -> escalate -> prepare -> build.
+# Never activates.
+# ═══════════════════════════════════════════════════════════════════════════
+run_propose_only() {
+  local exit_code=0
+  local before after after_bump changed_paths
+
+  rm -f "$LOG_DIR/proposed-revision"
+
+  before="$(git rev-parse HEAD 2>/dev/null)" || {
+    notify "nixos-config update FAILED" "could not determine git HEAD; check the checkout"
+    exit 1
+  }
+
+  # Snapshot of already-frozen packages, so the "promoted to frozen" alert
+  # below fires only for a NEW promotion this run, not on every run forever
+  # after the first one.
+  local frozen_before
+  frozen_before="$(jq -r '[.entries[] | select(.retry_policy=="frozen") | .name] | sort | .[]' \
+    "$FLAKE_DIR/overlays/quarantine.json" 2>/dev/null)"
+
+  # ── 1. Overlay bumps (ALL overlays, not just the mechanical subset) ─────
+  # The go-source path (bump_gosource) has been implemented and verified by a
+  # scoped build for a while; --mechanical-only was excluding it only because
+  # c4/hey-cli track branch HEAD. That is now handled by per-package
+  # cadence_hours in the manifest, so the flag is no longer needed here.
+  "$SCRIPT_DIR/bump-overlays" --no-public-sync >>"$RUN_LOG" 2>&1
+  local bump_rc=$?
+  if [[ $bump_rc -eq 2 ]]; then
+    # Another run holds the lock. Benign — that run owns reporting.
+    echo "scheduled-check: lock contention, exiting quietly" >>"$RUN_LOG"
+    exit 2
   fi
-  notify_bump_failures
-elif [[ $prepare_rc -eq 2 ]]; then
-  # Lock contention (another prepare run already in progress, e.g. a manual
-  # one) — benign, not a failure. Stay silent about the flake-input half; the
-  # other run owns reporting. A bump failure from *this* run is still ours to
-  # report, though (bump-overlays runs before prepare and takes the same lock,
-  # so if prepare lost the race the bump almost certainly exited 2 too and
-  # $bump_failures is empty anyway).
-  notify_bump_failures
+  after_bump="$(git rev-parse HEAD 2>/dev/null)"
+
+  # ── 2. Escalate the packages bump-overlays quarantined this run ─────────
+  # Budget: at most 3, one per package (spec §5.2). escalate.sh applies its own
+  # fingerprint dedup, so a package failing the same way daily costs one
+  # session total, not one per day.
+  local escalated=0
+  local fixed_by_claude=()
+  while IFS=$'\t' read -r qname qver qphase; do
+    [[ -z "$qname" ]] && continue
+    [[ $escalated -ge 3 ]] && break
+    # Do NOT filter on escalation status here. escalate.sh owns dedup and
+    # applies the spec's per-(package, fingerprint) rule via
+    # quarantine_should_escalate, returning 2 when it declines. A status
+    # filter in this jq selector would be a second, coarser rule — it would
+    # skip a package after ANY prior gave-up even when the failure signature
+    # changed, which is stricter than the spec. Exit 2 must not consume a
+    # budget slot; only an actual session does.
+    local esc_flag
+    esc_flag="$(quarantine_field "$qname" retry_policy)"
+    [[ "$esc_flag" == "retry-after:"* ]] && continue   # transient: no repair to make
+    local pkg_log="$LOG_DIR/bump-${qname}.log"
+    [[ -f "$pkg_log" ]] || pkg_log="$RUN_LOG"
+    "$FLAKE_DIR/scripts/escalate.sh" --package "$qname" --version "$qver" \
+        --phase "$qphase" --log "$pkg_log" >>"$RUN_LOG" 2>&1
+    local esc_rc=$?
+    case $esc_rc in
+      0) fixed_by_claude+=("$qname"); escalated=$((escalated + 1)) ;;
+      1) escalated=$((escalated + 1)) ;;
+      2) : ;;  # declined by dedup/ceiling — no session ran, so no slot consumed
+    esac
+  done < <(jq -r '.entries[]
+                  | select(.kind=="overlay")
+                  | "\(.name)\t\(.blocked_version)\t\(.phase)"' \
+             "$FLAKE_DIR/overlays/quarantine.json")
+
+  # ── 3. Flake inputs (propose) ────────────────────────────────────────────
+  "$SCRIPT_DIR/prepare" >>"$RUN_LOG" 2>&1
+  local prepare_rc=$?
+  if [[ $prepare_rc -eq 2 ]]; then
+    echo "scheduled-check: prepare hit lock contention" >>"$RUN_LOG"
+  elif [[ $prepare_rc -ne 0 ]]; then
+    notify "nixos-config update FAILED" "prepare failed — see $RUN_LOG"
+    exit_code=1
+  fi
+
+  after="$(git rev-parse HEAD 2>/dev/null)"
+
+  # Frozen/fixed alerts are independent of whether a buildable revision came
+  # out of this run — a package can be promoted to frozen (or repaired) purely
+  # through ledger-only commits, and that news must not get lost behind an
+  # early "nothing changed" return below.
+  local frozen_after newly_frozen
+  frozen_after="$(jq -r '[.entries[] | select(.retry_policy=="frozen") | .name] | sort | .[]' \
+    "$FLAKE_DIR/overlays/quarantine.json" 2>/dev/null)"
+  newly_frozen="$(comm -13 <(printf '%s\n' "$frozen_before") <(printf '%s\n' "$frozen_after") 2>/dev/null \
+    | paste -sd' ' - 2>/dev/null)"
+  if [[ -n "$newly_frozen" ]]; then
+    notify "nixos-config: packages frozen" "$newly_frozen — see overlays/quarantine.json"
+  fi
+  if [[ ${#fixed_by_claude[@]} -gt 0 ]]; then
+    notify "nixos-config: Claude repaired an overlay" \
+      "${fixed_by_claude[*]} — review 'git log -p' for ${after:0:7}"
+  fi
+
+  # Nothing moved: stay completely silent otherwise (invariant 4).
+  #
+  # "Nothing moved" must also cover the case where the ONLY thing that changed
+  # is the quarantine ledger. bump-overlays (and escalate.sh) commit the
+  # ledger on every run that records or clears an entry — including a run
+  # where every bump FAILED and no package moved at all. Treating that as a
+  # real revision would run a full system build and then propose a revision
+  # whose entire content is a JSON metadata change. Compare the NET diff
+  # across the whole run (bump + escalation + prepare), not just prepare's
+  # own commit, since a several-commit run can still net out to ledger-only.
+  changed_paths="$(git diff --name-only "$before" "$after" 2>/dev/null)"
+  if [[ "$before" == "$after" ]] || [[ "$changed_paths" == "overlays/quarantine.json" ]]; then
+    echo "scheduled-check: nothing changed (ledger-only churn ignored)" >>"$RUN_LOG"
+    exit $exit_code
+  fi
+
+  # ── 4. Full system build as evidence ────────────────────────────────────
+  # prepare builds only when it committed something; a bump-only or
+  # escalation-only run has had nothing but per-package scoped builds, which
+  # cannot catch a system-level eval error or a file collision. Always build
+  # here — invariant 2.
+  local build_log="$LOG_DIR/system-build.log"
+  if ! nix build "${FLAKE_DIR}#${FLAKE_SYSTEM_ATTR}" --out-link ./result >"$build_log" 2>&1; then
+    cat "$build_log" >>"$RUN_LOG"
+    rm -f ./result
+    # A system build that fails after per-package builds passed is a
+    # collision or eval problem, not one package's fault — deliberately NOT
+    # escalated (spec §3): frozen and reported, and the notification names
+    # the range to bisect by hand. Leave the commits in place (a hard reset
+    # could discard unrelated work).
+    local fp
+    fp="$(classify_failure "$build_log" | cut -f1)"
+    quarantine_record "revision-${after:0:7}" "revision" "$after" "$before" \
+      "system-build" "$fp" "frozen" "$(tail -40 "$build_log")"
+    notify "nixos-config update FAILED" \
+      "system build failed at ${after:0:7} ($fp) — see $RUN_LOG; 'git reset --hard ${before:0:7}' discards it"
+    exit 1
+  fi
+  {
+    echo "==> closure diff (running system -> proposed)"
+    nix store diff-closures /run/current-system ./result || true
+  } >>"$RUN_LOG" 2>&1
+  rm -f ./result
+
+  printf '%s\n' "$after" > "$LOG_DIR/proposed-revision"
+  echo "scheduled-check: revision ${after:0:7} built — run 'nix run .#scheduled-check -- --activate-only ${after:0:7}' (or 'nix run .#activate -- ${after:0:7}' by hand)" >>"$RUN_LOG"
+  exit $exit_code
+}
+
+if [[ "$MODE" == "activate" ]]; then
+  run_activate_only "$ACTIVATE_SHA"
 else
-  notify "nixos-config update FAILED" "see $RUN_LOG"
-  notify_bump_failures
+  run_propose_only
 fi
