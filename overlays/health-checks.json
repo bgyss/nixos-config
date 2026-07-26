@@ -1,0 +1,24 @@
+{
+  "comment": "Post-activation smoke assertions (spec §3). Every packages[] entry in overlays/updates.json must appear here, with either a command+version_regex or a skip reason — enforced by scripts/check-overlay-manifest.sh. The version_regex must capture a version comparable to that package's current_version; matching the VERSION (not just exit 0) is what catches a silently-wrong binary.",
+  "assertions": [
+    { "package": "claude-code",  "command": "claude --version",       "version_regex": "([0-9]+\\.[0-9]+\\.[0-9]+)", "timeout": 30 },
+    { "package": "codex-openai", "command": "codex --version",        "version_regex": "([0-9]+\\.[0-9]+\\.[0-9]+)", "timeout": 20 },
+    { "package": "trailbase",    "skip": "not installed into any systemPackages/home-manager profile on this host; only exported as the buildable flake package `nix build .#trailbase` via optionalAttrs in flake.nix, so there is no `trail` binary on PATH to smoke-test" },
+    { "package": "igir",         "skip": "overlay provides pkgs.igir but it is not wired into any systemPackages/home-manager list or flake `packages` output on this host, so there is no `igir` binary on PATH to smoke-test" },
+    { "package": "uv",           "command": "uv --version",           "version_regex": "([0-9]+\\.[0-9]+\\.[0-9]+)", "timeout": 20 },
+    { "package": "mise",         "command": "mise --version",         "version_regex": "([0-9]+\\.[0-9]+\\.[0-9]+)", "timeout": 20 },
+    { "package": "beads",        "command": "bd --version",           "version_regex": "([0-9]+\\.[0-9]+\\.[0-9]+)", "timeout": 20 },
+    { "package": "go",           "command": "go version",             "version_regex": "go([0-9]+\\.[0-9]+\\.[0-9]+)", "timeout": 20 },
+    { "package": "yt-dlp",       "command": "yt-dlp --version",       "version_regex": "([0-9]{4}\\.[0-9]{2}\\.[0-9]{2})", "timeout": 30 },
+    { "package": "yt-dlp-ejs",   "skip": "Python library bundled into yt-dlp; no CLI entrypoint of its own" },
+    { "package": "ngrok",        "command": "ngrok version",          "version_regex": "([0-9]+\\.[0-9]+\\.[0-9]+)", "timeout": 20 },
+    { "package": "c4",           "command": "c4 --help",              "version_regex": "(c4)", "timeout": 20 },
+    { "package": "hey-cli",      "command": "hey --version",          "version_regex": "(.+)", "timeout": 20 },
+    { "package": "tmux",         "command": "tmux -V",                "version_regex": "([0-9]+\\.[0-9]+[a-z]?)", "timeout": 20 },
+    { "package": "aws-cdk-cli",  "command": "cdk --version",          "version_regex": "([0-9]+\\.[0-9]+\\.[0-9]+)", "timeout": 60 },
+    { "package": "dcg",          "command": "dcg --version",          "version_regex": "([0-9]+\\.[0-9]+\\.[0-9]+)", "timeout": 20 }
+  ],
+  "agents": [
+    "nixos-auto-update"
+  ]
+}

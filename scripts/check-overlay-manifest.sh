@@ -98,6 +98,34 @@ done < <(jq -r '
     )
   | "\(.name)\t\(.cadence_hours)"' "$MANIFEST")
 
+# 8. Every pinned package must have a health assertion (or an explicit skip),
+# so adding a package to the manifest cannot silently ship without a smoke
+# test (Task 5 / post-activate-health.sh).
+HEALTH="$ROOT/overlays/health-checks.json"
+if [[ ! -f "$HEALTH" ]]; then
+  err "overlays/health-checks.json is missing"
+else
+  if ! jq empty "$HEALTH" 2>/dev/null; then
+    err "overlays/health-checks.json is not valid JSON"
+  else
+    while read -r name; do
+      [[ -z "$name" ]] && continue
+      n="$(jq -r --arg n "$name" '[.assertions[] | select(.package==$n)] | length' "$HEALTH")"
+      if [[ "$n" == "0" ]]; then
+        err "package '$name' has no entry in overlays/health-checks.json (add a command+version_regex, or a skip with a reason)"
+      fi
+    done < <(jq -r '.packages[].name' "$MANIFEST")
+    # And no assertion may name a package that is not pinned.
+    while read -r name; do
+      [[ -z "$name" ]] && continue
+      n="$(jq -r --arg n "$name" '[.packages[] | select(.name==$n)] | length' "$MANIFEST")"
+      if [[ "$n" == "0" ]]; then
+        err "health-checks.json references unknown package '$name'"
+      fi
+    done < <(jq -r '.assertions[].package' "$HEALTH")
+  fi
+fi
+
 if [[ $fail -ne 0 ]]; then
   echo "overlay manifest consistency: FAILED" >&2
   exit 1

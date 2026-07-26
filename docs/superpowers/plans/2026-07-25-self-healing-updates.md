@@ -1099,6 +1099,19 @@ done
 
 Note the removed `rm -f "$bump_log"`: these logs are deliberately kept for the escalation brief. `logs/*` is gitignored and `scheduled-check` truncates its own logs each run, so they do not accumulate meaningfully.
 
+**The ledger MUST be committed from the EXIT trap, not at the end of the run.** `overlays/quarantine.json` lives under `overlays/`, and this script refuses to start when `overlays/` is dirty (exit 3). So *any* path that writes the ledger and exits without committing — `--dry-run` creating an absent ledger, nothing-to-bump, lock contention, an operator Ctrl-C mid-build — wedges every future run permanently. Add:
+
+```bash
+commit_ledger() {
+  git status --porcelain -- overlays/quarantine.json | grep -q . || return 0
+  git add overlays/quarantine.json
+  git -c core.hooksPath=/dev/null commit -q -o overlays/quarantine.json \
+    -m "quarantine: update ledger" || true
+}
+```
+
+Stage the trap in **two steps**, and do not collapse them: `trap 'commit_ledger' EXIT` immediately after `quarantine_init`, then upgrade to `trap 'commit_ledger; state_unlock' EXIT` only *after* `state_lock` succeeds. A single combined trap set before the lock makes a lock-contention exit `rmdir` a lock directory it never acquired — and since `state_unlock` is `rmdir … 2>/dev/null || true`, it destroys another run's lock silently, with no error. `commit_ledger` must also never return non-zero: the trap runs under `set -e`, where a failing trap body both skips `state_unlock` (leaking the lock) and overwrites the script's exit status, breaking the 0/1/2/3 contract.
+
 **Note on the redirect-then-`cat` form:** deliberately not `| tee`. Piping would run `bump_mechanical` in a subshell, and its exit status would come from `tee` unless `pipefail` semantics happen to line up. Redirecting to the log and `cat`-ing it afterwards keeps the function in the current shell and makes its `return 1` the value the `if` tests. Do not "simplify" this back to a pipeline.
 
 - [ ] **Step 9: Run the test to verify it passes**
