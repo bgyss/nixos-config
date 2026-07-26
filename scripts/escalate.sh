@@ -160,7 +160,11 @@ branch="escalate/${PACKAGE}-${ts}"
 session_log="$REPO/logs/escalation-${PACKAGE}-${ts}.session.log"
 if ! git -C "$REPO" worktree add -q -b "$branch" "$wt" HEAD; then
   echo "escalate: could not create worktree" >&2
-  quarantine_set_escalation "$PACKAGE" "gave-up" "wrapper could not create a git worktree"
+  # infra-error, not gave-up: no model ever ran, so this is not a verdict.
+  # quarantine_should_escalate only refuses on exactly "gave-up", so this
+  # leaves the fingerprint-dedup brake unarmed and the package retryable on
+  # the next run.
+  quarantine_set_escalation "$PACKAGE" "infra-error" "wrapper could not create a git worktree"
   exit 1
 fi
 
@@ -192,11 +196,26 @@ claude_rc=$?
 duration=$(( $(date +%s) - start_epoch ))
 
 # ── Read the verdict ──────────────────────────────────────────────────────
-# A missing or malformed verdict is gave-up, never an implicit success.
-status="gave-up"; verdict="no verdict.json produced (claude exited $claude_rc)"
-if [[ -f "$wt/verdict.json" ]] && jq empty "$wt/verdict.json" 2>/dev/null; then
-  status="$(jq -r '.status // "gave-up"' "$wt/verdict.json")"
-  verdict="$(jq -r '.verdict // "no verdict text"' "$wt/verdict.json")"
+# A missing or malformed verdict is gave-up, never an implicit success —
+# EXCEPT exit 126/127 (POSIX: command found but not executable / command not
+# found), which mean the wrapper's own environment couldn't even launch
+# $CLAUDE_BIN (e.g. a launchd job whose PATH doesn't reach the nix profile).
+# That is a wrapper/infrastructure failure, not a model verdict, and must be
+# recorded as "infra-error" rather than "gave-up" — quarantine_should_escalate
+# only refuses future escalations on exactly "gave-up", so misclassifying a
+# wedged binary as gave-up would permanently disable escalation for this
+# package/fingerprint even after the environment is fixed (the fingerprint
+# deliberately survives version changes, so nothing else would ever clear
+# it).
+if [[ $claude_rc -eq 126 || $claude_rc -eq 127 ]]; then
+  status="infra-error"
+  verdict="wrapper could not execute \$CLAUDE_BIN ($CLAUDE_BIN exited $claude_rc — not found or not executable)"
+else
+  status="gave-up"; verdict="no verdict.json produced (claude exited $claude_rc)"
+  if [[ -f "$wt/verdict.json" ]] && jq empty "$wt/verdict.json" 2>/dev/null; then
+    status="$(jq -r '.status // "gave-up"' "$wt/verdict.json")"
+    verdict="$(jq -r '.verdict // "no verdict text"' "$wt/verdict.json")"
+  fi
 fi
 rm -f "$wt/verdict.json"
 
@@ -211,9 +230,9 @@ log_cost() { # <outcome>
 }
 
 if [[ "$status" != "fixed" ]]; then
-  echo "escalate: $PACKAGE gave up — $verdict"
-  quarantine_set_escalation "$PACKAGE" "gave-up" "$verdict"
-  log_cost "gave-up"
+  echo "escalate: $PACKAGE $status — $verdict"
+  quarantine_set_escalation "$PACKAGE" "$status" "$verdict"
+  log_cost "$status"
   exit 1
 fi
 
@@ -374,8 +393,12 @@ fix_sha="$(git -C "$wt" rev-parse HEAD)"
 if ! git -C "$REPO" cherry-pick "$fix_sha" >>"$session_log" 2>&1; then
   git -C "$REPO" cherry-pick --abort >/dev/null 2>&1 || true
   echo "escalate: cherry-pick of the verified fix failed" >&2
-  quarantine_set_escalation "$PACKAGE" "gave-up" "verified fix could not be cherry-picked cleanly"
-  log_cost "gave-up"
+  # infra-error, not gave-up: the model produced a build-verified fix — the
+  # cherry-pick failure is a git-mechanics problem (e.g. the real checkout
+  # drifted from the worktree's base), not a verdict about the repair
+  # itself, so it must not arm the fingerprint-dedup brake.
+  quarantine_set_escalation "$PACKAGE" "infra-error" "verified fix could not be cherry-picked cleanly"
+  log_cost "infra-error"
   exit 1
 fi
 

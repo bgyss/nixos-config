@@ -73,6 +73,42 @@ if run_health '{"assertions":[{"package":"demo","command":"prefixdemo --version"
   cat "$TMP/out"; fail "observed 1.2.34 wrongly accepted against expected 1.2.3"
 fi
 
+# --- closure-resolved binary is used, not the first hit on ambient PATH ---
+# Reproduces the real ngrok situation: a Homebrew cask shadows the nix
+# binary on PATH. Two stub binaries share the name "shadowed" in different
+# dirs — a "wrong" one (simulating the Homebrew cask, put first on PATH) and
+# a "right" one (simulating /run/current-system/sw/bin, resolved via
+# --bin-dirs). The check must run the closure one, not the PATH one.
+SWDIR="$TMP/sw-bin"; mkdir -p "$SWDIR"
+printf '#!/usr/bin/env bash\necho "shadowed 1.2.3"\n' > "$SWDIR/shadowed"
+chmod +x "$SWDIR/shadowed"
+printf '#!/usr/bin/env bash\necho "shadowed 9.9.9"\n' > "$STUB/shadowed"
+chmod +x "$STUB/shadowed"
+cat > "$TMP/manifest-shadowed.json" <<'EOF'
+{ "packages": [ { "name": "demo", "current_version": "1.2.3" } ], "skip": [] }
+EOF
+printf '%s' '{"assertions":[{"package":"demo","command":"shadowed --version","version_regex":"([0-9]+\\.[0-9]+\\.[0-9]+)","timeout":10}],"agents":[]}' \
+  > "$TMP/assert-shadowed.json"
+PATH="$STUB:$PATH" bash "$REPO/scripts/post-activate-health.sh" \
+  --manifest "$TMP/manifest-shadowed.json" --assertions "$TMP/assert-shadowed.json" \
+  --bin-dirs "$SWDIR" >"$TMP/out-shadowed" 2>&1
+rc=$?
+[[ $rc -eq 0 ]] || { cat "$TMP/out-shadowed"; fail "closure-resolved binary was not preferred over ambient PATH"; }
+grep -q "OK: demo (1.2.3)" "$TMP/out-shadowed" \
+  || { cat "$TMP/out-shadowed"; fail "did not observe the closure binary's version"; }
+
+# A binary present on ambient PATH only (not in --bin-dirs) still falls back
+# to PATH resolution — the documented fallback, not a hard failure.
+printf '%s' '{"assertions":[{"package":"demo","command":"prefixdemo --version","version_regex":"[0-9]+\\.[0-9]+\\.[0-9]+","timeout":10}],"agents":[]}' \
+  > "$TMP/assert-fallback.json"
+if PATH="$STUB:$PATH" bash "$REPO/scripts/post-activate-health.sh" \
+  --manifest "$TMP/manifest.json" --assertions "$TMP/assert-fallback.json" \
+  --bin-dirs "$SWDIR" >"$TMP/out-fallback" 2>&1; then
+  cat "$TMP/out-fallback"; fail "fallback case unexpectedly passed (1.2.34 != 1.2.3)"
+fi
+grep -q "1.2.34" "$TMP/out-fallback" \
+  || { cat "$TMP/out-fallback"; fail "PATH fallback did not resolve prefixdemo at all"; }
+
 # --- every pinned package in the REAL manifest has an assertion or a skip
 missing=""
 while read -r p; do

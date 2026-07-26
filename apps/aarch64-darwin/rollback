@@ -19,7 +19,7 @@ source "$SCRIPT_DIR/_common.sh"
 darwin_rebuild=/run/current-system/sw/bin/darwin-rebuild
 
 if [[ "${1:-}" == "--list" ]]; then
-  "$darwin_rebuild" --list-generations
+  sudo -- "$darwin_rebuild" --list-generations
   exit 0
 fi
 
@@ -30,8 +30,14 @@ if [[ -n "${1:-}" ]]; then
   exec sudo -- "$darwin_rebuild" switch --switch-generation "$gen"
 fi
 
-# No argument: the immediately-previous generation (second-newest in the list).
-prev=$("$darwin_rebuild" --list-generations \
+# No argument: the immediately-previous generation (second-newest in the
+# list). `--list-generations` opens /nix/var/nix/profiles/system.lock, which
+# is root-owned — as the unprivileged user this fails with "Permission
+# denied" and silently returns nothing, which previously made this branch
+# report "no previous generation to roll back to" even when one exists. Run
+# it through the same passwordless sudoers rule the actual switch already
+# uses below (hosts/darwin/default.nix's security.sudo.extraConfig).
+prev=$(sudo -- "$darwin_rebuild" --list-generations \
   | awk '{print $1}' | grep -E '^[0-9]+$' | sort -n | tail -2 | head -1)
 if [[ -z "$prev" ]]; then
   err "no previous generation to roll back to"

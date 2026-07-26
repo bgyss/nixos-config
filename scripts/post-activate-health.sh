@@ -13,14 +13,37 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO="$(cd "$SCRIPT_DIR/.." && pwd)"
 MANIFEST="$REPO/overlays/updates.json"
 ASSERTIONS="$REPO/overlays/health-checks.json"
+# Fixed resolution order for "is this the artifact THIS activation shipped":
+# the activated system closure first, then the user's home-manager/nix
+# profile. Deliberately NOT ambient PATH — a Homebrew cask (or anything else
+# installed outside Nix) can shadow a nix-managed binary of the same name on
+# PATH, and this check's whole purpose is "did the closure ship the right
+# version", which a PATH-shadowed binary can never confirm no matter what
+# this activation actually built. --bin-dirs lets tests point this at stub
+# directories instead of real system paths.
+BIN_DIRS="/run/current-system/sw/bin:${HOME:-/var/empty}/.nix-profile/bin"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --manifest)   MANIFEST="$2"; shift 2 ;;
     --assertions) ASSERTIONS="$2"; shift 2 ;;
+    --bin-dirs)   BIN_DIRS="$2"; shift 2 ;;
     *) echo "unknown argument: $1" >&2; exit 2 ;;
   esac
 done
+
+# Resolve <name> to an absolute path inside BIN_DIRS, in order. Prints the
+# path and returns 0 on a hit; returns 1 (nothing printed) when the binary is
+# in neither directory, and the caller falls back to letting `bash -c`
+# resolve it off ambient PATH — documented fallback, not a silent one.
+resolve_bin() {
+  local name="$1" dir
+  local IFS=:
+  for dir in $BIN_DIRS; do
+    [[ -x "$dir/$name" ]] && { printf '%s' "$dir/$name"; return 0; }
+  done
+  return 1
+}
 
 failures=0
 
@@ -45,6 +68,20 @@ while IFS= read -r row; do
   fi
 
   expected="$(jq -r --arg n "$pkg" '.packages[] | select(.name==$n) | .current_version' "$MANIFEST")"
+
+  # Resolve the command's binary out of the activated closure rather than
+  # ambient PATH (see BIN_DIRS above), so a shadowing cask/Homebrew/other
+  # install of the same name can't make this pass or fail on the wrong
+  # artifact. Only the first word is treated as the binary name; the rest of
+  # the command string (args) is passed through unchanged.
+  binname="${cmd%%[[:space:]]*}"
+  if resolved="$(resolve_bin "$binname")"; then
+    if [[ "$cmd" == *[[:space:]]* ]]; then
+      cmd="$resolved ${cmd#*[[:space:]]}"
+    else
+      cmd="$resolved"
+    fi
+  fi
   # `timeout` comes from coreutils, which is in this config's systemPackages.
   # Without it a wedged binary would hang the whole daily run.
   out="$(timeout "${tmo:-20}" bash -c "$cmd" 2>&1)"; rc=$?

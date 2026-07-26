@@ -168,7 +168,24 @@
       StandardErrorPath = "/Users/${user}/nixos-config/logs/nixos-auto-update.err.log";
       StandardOutPath = "/Users/${user}/nixos-config/logs/nixos-auto-update.out.log";
     };
-    path = [ config.environment.systemPath ];
+    # NOT `config.environment.systemPath`: that string's first element is the
+    # LITERAL text "$HOME/.nix-profile/bin" (nix-darwin builds it for shell
+    # profiles, which expand $HOME themselves). launchd performs no variable
+    # expansion on `path`/`PATH`, so that entry never resolves and binaries
+    # that live only in the user's nix profile (`timeout` from coreutils,
+    # `claude`) are unreachable — silently breaking post-activate-health.sh
+    # and escalate.sh (127 exits). Spell out the same directories with the
+    # $HOME segment already substituted for this host's user.
+    path = [
+      "/Users/${user}/.nix-profile/bin"
+      "/run/current-system/sw/bin"
+      "/nix/var/nix/profiles/default/bin"
+      "/usr/local/bin"
+      "/usr/bin"
+      "/bin"
+      "/usr/sbin"
+      "/sbin"
+    ];
   };
 
   # To run a persistent local llama-server as a launchd agent, see the recipe

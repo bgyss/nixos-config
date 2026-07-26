@@ -427,4 +427,34 @@ run_escalate_prefix "$d" "$stub" && rc=0 || rc=$?
 grep -q "3.7b" "$d/overlays/99-demo.nix" || fail "case13: fix not cherry-picked into the repo"
 rm -rf "$d" "$stub"
 
+# === Case 14 — Critical 2: a wedged $CLAUDE_BIN (exit 127, e.g. the launchd
+# PATH-gap scenario) must be recorded as "infra-error", NOT "gave-up", and
+# must leave the fingerprint-dedup brake unarmed so the package is retryable
+# on the very next run once the environment is fixed. Misclassifying this as
+# "gave-up" would permanently disable escalation for this package/fingerprint
+# combo (the fingerprint deliberately survives version changes), with no way
+# to clear it short of hand-editing the ledger.
+d="$(setup)"; stub="$(mktemp -d)"; stub_nix "$stub" ok
+# Deliberately do NOT create $stub/claude — ESCALATE_CLAUDE_BIN points at a
+# nonexistent path, so `timeout "$TIMEOUT" "$CLAUDE_BIN" ...` itself exits
+# 127, exactly like a launchd job whose PATH can't reach the nix profile.
+( cd "$d" && PATH="$stub:$PATH" ESCALATE_CLAUDE_BIN="$stub/nonexistent-claude" \
+    bash scripts/escalate.sh --package demo --version 1.1.0 \
+      --phase package-build --log logs/build.log >"$d/esc.log" 2>&1 ) && rc=0 || rc=$?
+[[ $rc -eq 1 ]] || { cat "$d/esc.log"; fail "case14: expected exit 1 (gave up), got $rc"; }
+esc_status="$(cd "$d" && QUARANTINE_FILE="$d/overlays/quarantine.json" bash -c \
+  'source scripts/update-state.sh; source scripts/quarantine.sh; quarantine_field demo escalation_status')"
+[[ "$esc_status" == "infra-error" ]] \
+  || { cat "$d/esc.log"; fail "case14: expected escalation_status 'infra-error', got '$esc_status'"; }
+grep -q "	demo	infra-error	" "$d/logs/escalation-costs.tsv" \
+  || { cat "$d/logs/escalation-costs.tsv" 2>/dev/null; fail "case14: cost log missing an 'infra-error' row for demo"; }
+# The brake must be unarmed: quarantine_should_escalate for the SAME
+# fingerprint must still say "escalate" (exit 0), not refuse.
+still_eligible="$(cd "$d" && QUARANTINE_FILE="$d/overlays/quarantine.json" bash -c \
+  'source scripts/update-state.sh; source scripts/quarantine.sh
+   if quarantine_should_escalate demo compile-failure; then echo yes; else echo no; fi')"
+[[ "$still_eligible" == "yes" ]] \
+  || fail "case14: infra-error wrongly armed the fingerprint-dedup brake — package permanently un-escalatable"
+rm -rf "$d" "$stub"
+
 echo "PASS: test_escalate"
