@@ -141,6 +141,27 @@ quarantine_should_escalate "yt-dlp" "different-fingerprint" \
 [[ "$(quarantine_field yt-dlp escalation_status)" == "gave-up" ]] \
   || fail "escalation_status not readable"
 
+# --- re-recording must PRESERVE the escalation verdict --------------------
+# Regression guard for the groundhog-day brake: upstream ships a newer version,
+# the pipeline retries, it fails the same way and re-records. If that upsert
+# drops .escalation, the already-refused escalation looks eligible again and
+# burns a session every single day.
+quarantine_record "yt-dlp" "overlay" "2026.07.26" "2026.07.04" "package-build" \
+  "curl_cffi-bound" "next-version-only" "bound again"
+[[ "$(quarantine_field yt-dlp escalation_status)" == "gave-up" ]] \
+  || fail "re-record wiped the escalation verdict"
+if quarantine_should_escalate "yt-dlp" "curl_cffi-bound"; then
+  fail "re-record re-enabled escalation for an already-refused fingerprint"
+fi
+# ...and the ledger must still be intact (not truncated by an empty jq stream).
+[[ "$(jq '.entries | length' "$QUARANTINE_FILE")" -ge 1 ]] || fail "ledger truncated by re-record"
+
+# --- recording a BRAND-NEW package must not fail on the missing prior entry
+quarantine_record "brand-new-pkg" "overlay" "1.0.0" "0.9.0" "prefetch" \
+  "network-error" "retry-after:6" "curl: (6)"
+[[ "$(quarantine_field brand-new-pkg blocked_version)" == "1.0.0" ]] \
+  || fail "recording a package with no prior entry failed"
+
 # --- sanitize strips store paths and truncates ----------------------------
 out="$(printf 'error at /nix/store/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-foo-1.0/bin/foo\n' | quarantine_sanitize)"
 [[ "$out" != *"/nix/store/"* ]] || fail "store path not stripped"
@@ -245,10 +266,10 @@ quarantine_is_blocked() { # <name> <version>
 import sys, datetime
 last, hours = sys.argv[1], float(sys.argv[2])
 try:
-    t = datetime.datetime.strptime(last, "%Y-%m-%dT%H:%M:%SZ")
+    t = datetime.datetime.strptime(last, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=datetime.timezone.utc)
 except ValueError:
     print("1"); sys.exit(0)   # unparseable timestamp -> treat as expired
-now = datetime.datetime.utcnow()
+now = datetime.datetime.now(datetime.timezone.utc)
 print("1" if (now - t).total_seconds() >= hours * 3600 else "0")
 PYEOF
 )"
@@ -281,16 +302,29 @@ quarantine_record() { # <name> <kind> <blocked_version> <known_good> <phase> <fi
   local safe_excerpt
   safe_excerpt="$(printf '%s' "$excerpt" | quarantine_sanitize)"
 
+  # The upsert MUST preserve any existing .escalation sub-object. Rebuilding
+  # the entry as a bare object literal would drop it, and that silently
+  # defeats the fingerprint-dedup brake: a package that already produced a
+  # `gave-up` verdict would look escalation-free the next time upstream ships
+  # a version, and get escalated again every single day.
   _q_write --arg n "$name" --arg k "$kind" --arg b "$blocked" --arg g "$good" \
     --arg p "$phase" --arg fp "$fp" --arg pol "$policy" --arg ex "$safe_excerpt" \
     --arg first "$first" --arg now "$now" --argjson att "$attempts" '
-    .entries = ((.entries | map(select(.name != $n))) + [{
-      name: $n, kind: $k,
-      blocked_version: $b, known_good_version: $g,
-      first_failed: $first, last_attempt: $now,
-      attempts: $att, phase: $p, fingerprint: $fp,
-      error_excerpt: $ex, retry_policy: $pol
-    }])'
+    # map|.[0] rather than .entries[]|select(...): a non-matching select
+    # produces an EMPTY stream, and `empty as $x | body` yields no output at
+    # all, which would make _q_write truncate the ledger to nothing. .[0] on
+    # an empty array is null, which is what we want for "no prior entry".
+    (.entries | map(select(.name == $n)) | .[0].escalation) as $prev_esc
+    | .entries = ((.entries | map(select(.name != $n))) + [(
+        {
+          name: $n, kind: $k,
+          blocked_version: $b, known_good_version: $g,
+          first_failed: $first, last_attempt: $now,
+          attempts: $att, phase: $p, fingerprint: $fp,
+          error_excerpt: $ex, retry_policy: $pol
+        }
+        + (if $prev_esc then {escalation: $prev_esc} else {} end)
+      )])'
 }
 
 quarantine_clear() { # <name>
@@ -923,10 +957,10 @@ cadence_due() { # <name>
 import sys, datetime
 last, hours = sys.argv[1], float(sys.argv[2])
 try:
-    t = datetime.datetime.strptime(last, "%Y-%m-%dT%H:%M:%SZ")
+    t = datetime.datetime.strptime(last, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=datetime.timezone.utc)
 except ValueError:
     sys.exit(0)   # unparseable -> treat as due
-due = (datetime.datetime.utcnow() - t).total_seconds() >= hours * 3600
+due = (datetime.datetime.now(datetime.timezone.utc) - t).total_seconds() >= hours * 3600
 sys.exit(0 if due else 1)
 PYEOF
 }
@@ -940,10 +974,10 @@ cadence_remaining_hours() { # <name>
 import sys, datetime, math
 last, hours = sys.argv[1], float(sys.argv[2])
 try:
-    t = datetime.datetime.strptime(last, "%Y-%m-%dT%H:%M:%SZ")
+    t = datetime.datetime.strptime(last, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=datetime.timezone.utc)
 except ValueError:
     print(0); sys.exit(0)
-left = hours * 3600 - (datetime.datetime.utcnow() - t).total_seconds()
+left = hours * 3600 - (datetime.datetime.now(datetime.timezone.utc) - t).total_seconds()
 print(max(0, math.ceil(left / 3600)))
 PYEOF
 }
@@ -2005,10 +2039,10 @@ unpin_retry_due() { # <input-name>
 import sys, datetime
 last, hours = sys.argv[1], float(sys.argv[2])
 try:
-    t = datetime.datetime.strptime(last, "%Y-%m-%dT%H:%M:%SZ")
+    t = datetime.datetime.strptime(last, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=datetime.timezone.utc)
 except ValueError:
     sys.exit(0)
-sys.exit(0 if (datetime.datetime.utcnow() - t).total_seconds() >= hours * 3600 else 1)
+sys.exit(0 if (datetime.datetime.now(datetime.timezone.utc) - t).total_seconds() >= hours * 3600 else 1)
 PYEOF
 }
 

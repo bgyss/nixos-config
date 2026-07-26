@@ -74,6 +74,27 @@ quarantine_should_escalate "yt-dlp" "different-fingerprint" \
 [[ "$(quarantine_field yt-dlp escalation_status)" == "gave-up" ]] \
   || fail "escalation_status not readable"
 
+# --- re-recording must PRESERVE the escalation verdict --------------------
+# Regression guard for the groundhog-day brake: upstream ships a newer version,
+# the pipeline retries, it fails the same way and re-records. If that upsert
+# drops .escalation, the already-refused escalation looks eligible again and
+# burns a session every single day.
+quarantine_record "yt-dlp" "overlay" "2026.07.26" "2026.07.04" "package-build" \
+  "curl_cffi-bound" "next-version-only" "bound again"
+[[ "$(quarantine_field yt-dlp escalation_status)" == "gave-up" ]] \
+  || fail "re-record wiped the escalation verdict"
+if quarantine_should_escalate "yt-dlp" "curl_cffi-bound"; then
+  fail "re-record re-enabled escalation for an already-refused fingerprint"
+fi
+# ...and the ledger must still be intact (not truncated by an empty jq stream).
+[[ "$(jq '.entries | length' "$QUARANTINE_FILE")" -ge 1 ]] || fail "ledger truncated by re-record"
+
+# --- recording a BRAND-NEW package must not fail on the missing prior entry
+quarantine_record "brand-new-pkg" "overlay" "1.0.0" "0.9.0" "prefetch" \
+  "network-error" "retry-after:6" "curl: (6)"
+[[ "$(quarantine_field brand-new-pkg blocked_version)" == "1.0.0" ]] \
+  || fail "recording a package with no prior entry failed"
+
 # --- sanitize strips store paths and truncates ----------------------------
 out="$(printf 'error at /nix/store/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-foo-1.0/bin/foo\n' | quarantine_sanitize)"
 [[ "$out" != *"/nix/store/"* ]] || fail "store path not stripped"

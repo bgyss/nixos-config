@@ -27,7 +27,7 @@ _q_readable() {
 quarantine_init() {
   local f; f="$(_q_file)"
   if ! _q_readable; then
-    printf '{"comment":"Machine-written quarantine ledger. See docs/superpowers/specs/2026-07-25-self-healing-updates-design.md §2.","entries":[]}\n' > "$f"
+    printf '{"comment":"Machine-written quarantine ledger. See docs/superpowers/specs/2026-07-25-self-healing-updates-design.md §2. Do not hand-edit while the daily pipeline may be running; use scripts/quarantine.sh.","entries":[]}\n' > "$f"
   fi
 }
 
@@ -82,10 +82,10 @@ quarantine_is_blocked() { # <name> <version>
 import sys, datetime
 last, hours = sys.argv[1], float(sys.argv[2])
 try:
-    t = datetime.datetime.strptime(last, "%Y-%m-%dT%H:%M:%SZ")
+    t = datetime.datetime.strptime(last, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=datetime.timezone.utc)
 except ValueError:
     print("1"); sys.exit(0)   # unparseable timestamp -> treat as expired
-now = datetime.datetime.utcnow()
+now = datetime.datetime.now(datetime.timezone.utc)
 print("1" if (now - t).total_seconds() >= hours * 3600 else "0")
 PYEOF
 )"
@@ -118,16 +118,29 @@ quarantine_record() { # <name> <kind> <blocked_version> <known_good> <phase> <fi
   local safe_excerpt
   safe_excerpt="$(printf '%s' "$excerpt" | quarantine_sanitize)"
 
+  # The upsert MUST preserve any existing .escalation sub-object. Rebuilding
+  # the entry as a bare object literal would drop it, and that silently
+  # defeats the fingerprint-dedup brake: a package that already produced a
+  # `gave-up` verdict would look escalation-free the next time upstream ships
+  # a version, and get escalated again every single day.
   _q_write --arg n "$name" --arg k "$kind" --arg b "$blocked" --arg g "$good" \
     --arg p "$phase" --arg fp "$fp" --arg pol "$policy" --arg ex "$safe_excerpt" \
     --arg first "$first" --arg now "$now" --argjson att "$attempts" '
-    .entries = ((.entries | map(select(.name != $n))) + [{
-      name: $n, kind: $k,
-      blocked_version: $b, known_good_version: $g,
-      first_failed: $first, last_attempt: $now,
-      attempts: $att, phase: $p, fingerprint: $fp,
-      error_excerpt: $ex, retry_policy: $pol
-    }])'
+    # map|.[0] rather than .entries[]|select(...): a non-matching select
+    # produces an EMPTY stream, and `empty as $x | body` yields no output at
+    # all, which would make _q_write truncate the ledger to nothing. .[0] on
+    # an empty array is null, which is what we want for "no prior entry".
+    (.entries | map(select(.name == $n)) | .[0].escalation) as $prev_esc
+    | .entries = ((.entries | map(select(.name != $n))) + [(
+        {
+          name: $n, kind: $k,
+          blocked_version: $b, known_good_version: $g,
+          first_failed: $first, last_attempt: $now,
+          attempts: $att, phase: $p, fingerprint: $fp,
+          error_excerpt: $ex, retry_policy: $pol
+        }
+        + (if $prev_esc then {escalation: $prev_esc} else {} end)
+      )])'
 }
 
 quarantine_clear() { # <name>
