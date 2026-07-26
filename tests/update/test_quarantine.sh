@@ -102,4 +102,13 @@ out="$(printf 'error at /nix/store/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-foo-1.0/bin/
 long="$(head -c 5000 /dev/zero | tr '\0' 'x' | quarantine_sanitize | wc -c | tr -d ' ')"
 [[ "$long" -le 2001 ]] || fail "sanitize did not truncate (got $long chars)"
 
+# --- a CORRUPT ledger warns on stderr; an ABSENT one is silent -----------
+printf 'not json at all' > "$QUARANTINE_FILE"
+warn_out="$(quarantine_field demo attempts 2>&1 >/dev/null)"
+[[ "$warn_out" == *"not valid JSON"* ]] || fail "corrupt ledger did not warn on stderr"
+rm -f "$QUARANTINE_FILE"
+silent_out="$(quarantine_field demo attempts 2>&1 >/dev/null)"
+[[ -z "$silent_out" ]] || fail "absent ledger warned when it should be silent: $silent_out"
+quarantine_init
+
 echo "PASS: test_quarantine"

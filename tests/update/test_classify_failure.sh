@@ -74,4 +74,15 @@ check "hash-mismatch-wins" \
   "error: hash mismatch in fixed-output derivation '/nix/store/x.drv':
 error: builder for '/nix/store/y.drv' failed with exit code 1"
 
+# --- large logs must not be buffered whole (perf regression guard) --------
+# A no-match log is the worst case: every pattern scans to the end. Building
+# the whole thing into a bash variable made this ~5s on a 13MB log; grepping
+# the file with -m1 keeps it well under a second.
+{ head -c 12000000 /dev/zero | tr '\0' 'x'; echo; } > "$TMP/big"
+big_start=$(date +%s)
+[[ "$(classify_failure "$TMP/big")" == "unclassified	next-version-only	1	none" ]] \
+  || { echo "FAIL: large log misclassified"; exit 1; }
+big_elapsed=$(( $(date +%s) - big_start ))
+[[ $big_elapsed -le 3 ]] || { echo "FAIL: large log took ${big_elapsed}s (want <=3s)"; exit 1; }
+
 echo "PASS: test_classify_failure"

@@ -21,7 +21,12 @@ _q_file() {
 
 _q_readable() {
   local f; f="$(_q_file)"
-  [[ -f "$f" ]] && jq empty "$f" >/dev/null 2>&1
+  [[ -f "$f" ]] || return 1
+  if ! jq empty "$f" >/dev/null 2>&1; then
+    echo "quarantine: ledger at $f is not valid JSON — treating as empty (quarantines will NOT be honored)" >&2
+    return 1
+  fi
+  return 0
 }
 
 quarantine_init() {
