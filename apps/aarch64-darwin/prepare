@@ -25,13 +25,110 @@ cd "$FLAKE_DIR"
 source "$FLAKE_DIR/scripts/update-state.sh"
 # shellcheck source=/dev/null
 source "$FLAKE_DIR/scripts/update-probe.sh"
+# shellcheck source=/dev/null
+source "$FLAKE_DIR/scripts/quarantine.sh"
+
+MANIFEST="${MANIFEST:-$FLAKE_DIR/overlays/updates.json}"
+
+# ---8<--- unpin-retry helpers ---8<---
+# pinned_inputs[] used to be a permanent freeze: nothing ever retried an
+# unpin, so nixpkgs stayed pinned until a human remembered to test it. Each
+# pin now carries retry_cadence_hours; a due pin gets ONE speculative bump
+# attempt per window, and silently re-freezes if it still fails.
+
+# Exit 0 if <input> is a declared pin whose retry window has elapsed.
+unpin_retry_due() { # <input-name>
+  local name="$1" cadence last
+  cadence="$(jq -r --arg n "$name" \
+    '.pinned_inputs[] | select(.name==$n) | .retry_cadence_hours // 168' "$MANIFEST")"
+  [[ -z "$cadence" || "$cadence" == "null" ]] && return 1   # not a pin at all
+  last="$(quarantine_field "$name" last_attempt)"
+  [[ -z "$last" ]] && return 0
+  python3 - "$last" "$cadence" <<'PYEOF'
+import sys, datetime
+last, hours = sys.argv[1], float(sys.argv[2])
+try:
+    t = datetime.datetime.strptime(last, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=datetime.timezone.utc)
+except ValueError:
+    sys.exit(0)
+# Subtract an hour of slack. The agent fires at a fixed wall-clock time but
+# the timestamp is written mid-run, so elapsed is always a few minutes SHORT
+# of the nominal window -- a strict >= would defer by a full extra day, every
+# time, for any package touched the previous run.
+sys.exit(0 if (datetime.datetime.now(datetime.timezone.utc) - t).total_seconds() >= hours * 3600 - 3600 else 1)
+PYEOF
+}
+
+# One speculative unpin attempt: move the input to its tracking ref, build, and
+# keep the result only if the build passes. Exit 0 = unpinned successfully.
+# Any failure restores flake.nix/flake.lock exactly as they were, because a
+# half-unpinned tree would break every later step in the run.
+attempt_unpin() { # <input-name>
+  local name="$1" log
+  log="$(mktemp)"
+  warn "==> speculative unpin attempt: $name"
+  local stashed=1
+  if git -C "$FLAKE_DIR" stash push -q -- flake.nix flake.lock 2>/dev/null; then
+    stashed=0
+  fi
+
+  if ! nix flake update "$name" >"$log" 2>&1; then
+    warn "  unpin: 'nix flake update $name' failed; staying pinned"
+    git -C "$FLAKE_DIR" checkout -- flake.nix flake.lock 2>/dev/null || true
+    [[ $stashed -eq 0 ]] && git -C "$FLAKE_DIR" stash pop -q 2>/dev/null
+    quarantine_record "$name" "input" "unpin-attempt" \
+      "$(jq -r --arg n "$name" '.pinned_inputs[] | select(.name==$n) | .pinned_ref' "$MANIFEST")" \
+      "flake-update" "unpin-failed" "retry-after:$(jq -r --arg n "$name" '.pinned_inputs[] | select(.name==$n) | .retry_cadence_hours // 168' "$MANIFEST")" \
+      "$(tail -40 "$log")"
+    rm -f "$log"
+    return 1
+  fi
+
+  if ! nix build "${FLAKE_DIR}#${FLAKE_SYSTEM_ATTR}" --no-link >>"$log" 2>&1; then
+    warn "  unpin: system build still fails; staying pinned"
+    git -C "$FLAKE_DIR" checkout -- flake.nix flake.lock 2>/dev/null || true
+    [[ $stashed -eq 0 ]] && git -C "$FLAKE_DIR" stash pop -q 2>/dev/null
+    quarantine_record "$name" "input" "unpin-attempt" \
+      "$(jq -r --arg n "$name" '.pinned_inputs[] | select(.name==$n) | .pinned_ref' "$MANIFEST")" \
+      "system-build" "unpin-failed" "retry-after:$(jq -r --arg n "$name" '.pinned_inputs[] | select(.name==$n) | .retry_cadence_hours // 168' "$MANIFEST")" \
+      "$(tail -40 "$log")"
+    rm -f "$log"
+    return 1
+  fi
+
+  rm -f "$log"
+  msg "  unpin: $name builds clean — the pin can be removed"
+  quarantine_clear "$name"
+  return 0
+}
+# ---8<--- end unpin-retry helpers ---8<---
+
 state_init
 # Lock contention is a distinct, benign exit (2): another `prepare` run
 # (manual or scheduled) is already in flight. `scheduled-check` treats this
 # specially — stay silent rather than fire a FAILED notification — so it
 # must never share exit code 1 with a genuine failure.
+#
+# Commit the quarantine ledger from the EXIT trap, not just at the end of a
+# successful run. overlays/quarantine.json lives under overlays/, and
+# bump-overlays refuses to start when overlays/ is dirty (exit 3) — so any
+# path here that writes the ledger (attempt_unpin below) and exits without
+# committing would wedge every future daily run, permanently and silently.
+# Guarded so a failure here can never itself fail the script.
+commit_ledger() {
+  git -C "$FLAKE_DIR" status --porcelain -- overlays/quarantine.json 2>/dev/null | grep -q . || return 0
+  git -C "$FLAKE_DIR" add overlays/quarantine.json 2>/dev/null || true
+  git -C "$FLAKE_DIR" -c core.hooksPath=/dev/null commit -q -o overlays/quarantine.json \
+    -m "quarantine: update ledger" 2>/dev/null || true
+  return 0
+}
+# Register commit_ledger-only first: this process does not hold the state
+# lock yet, and unconditionally rmdir-ing it in the trap here would release a
+# lock a *different* run legitimately owns.
+trap 'commit_ledger' EXIT
 if ! state_lock; then err "another update run holds the lock; aborting"; exit 2; fi
-trap 'state_unlock' EXIT
+# Now that the lock is actually ours, extend the trap to release it too.
+trap 'commit_ledger; state_unlock' EXIT
 
 warn "==> overlay probe"
 overlays_outdated="$(probe_overlays)"
@@ -57,6 +154,23 @@ if ! gate_should_build "" "$inputs_updated"; then
 fi
 
 state_set_last_gate "$(now_iso)"
+
+quarantine_init
+# Speculative unpin attempts. Each is expensive (a full build against a new
+# nixpkgs), so at most ONE per run: the pins are ordered by risk in the
+# manifest and unpinning nixpkgs is what unblocks the other two anyway.
+UNPINNED=""
+while read -r pin; do
+  [[ -z "$pin" ]] && continue
+  if unpin_retry_due "$pin"; then
+    if attempt_unpin "$pin"; then
+      UNPINNED="$pin"
+      warn "  ACTION NEEDED: remove the '$pin' entry from pinned_inputs[] and"
+      warn "  update flake.nix's $pin.url — this run kept the bumped flake.lock."
+    fi
+    break
+  fi
+done < <(jq -r '.pinned_inputs[].name' "$MANIFEST")
 
 warn "==> build ${FLAKE_SYSTEM_ATTR} (evidence; no activation)"
 nix build "${FLAKE_DIR}#${FLAKE_SYSTEM_ATTR}" --out-link ./result "$@"
