@@ -38,7 +38,7 @@ EOF
 stub_claude_fixed() { # <stub-dir>
   cat > "$1/claude" <<'EOF'
 #!/usr/bin/env bash
-# The prompt arrives as the last positional arg; cwd is the worktree. A
+# The brief arrives on stdin (see case 15); cwd is the worktree. A
 # genuine fix bumps the overlay's pinned version AND updates.json's
 # current_version together, matching what the brief instructs (and what the
 # post-Finding-1 landing gates require).
@@ -456,5 +456,35 @@ still_eligible="$(cd "$d" && QUARANTINE_FILE="$d/overlays/quarantine.json" bash 
 [[ "$still_eligible" == "yes" ]] \
   || fail "case14: infra-error wrongly armed the fingerprint-dedup brake — package permanently un-escalatable"
 rm -rf "$d" "$stub"
+
+# === Case 15: the brief must actually reach the model =====================
+# Regression: the brief used to be passed as a trailing positional argument.
+# `--allowedTools` is variadic, so the CLI parsed the prompt as another tool
+# pattern and launched with no input at all — "Input must be provided either
+# through stdin or as a prompt argument when using --print", exit 1, recorded
+# as a bogus gave-up verdict that armed the fingerprint brake. The brief now
+# goes in on stdin; this stub fails loudly if stdin is empty.
+d="$(setup)"; stub="$(mktemp -d)"; stub_nix "$stub" ok
+cat > "$stub/claude" <<'EOF'
+#!/usr/bin/env bash
+prompt="$(cat)"
+[[ -n "$prompt" ]] || { echo "stub claude: received EMPTY input" >&2; exit 1; }
+grep -q "demo" <<<"$prompt" || { echo "stub claude: brief does not mention the package" >&2; exit 1; }
+printf '%s\n' "$prompt" > "$STUB_PROMPT_SINK"
+sed -i.bak 's/1\.0\.0/1.1.0/' overlays/99-demo.nix && rm -f overlays/99-demo.nix.bak
+sed -i.bak 's/"current_version": "1\.0\.0"/"current_version": "1.1.0"/' overlays/updates.json && rm -f overlays/updates.json.bak
+cat > verdict.json <<'JSON'
+{"status":"fixed","package":"demo","fingerprint":"compile-failure",
+ "verdict":"widened the version bound","files_changed":["overlays/99-demo.nix","overlays/updates.json"]}
+JSON
+EOF
+chmod +x "$stub/claude"
+sink="$(mktemp)"
+( cd "$d" && PATH="$stub:$PATH" ESCALATE_CLAUDE_BIN="$stub/claude" STUB_PROMPT_SINK="$sink" \
+    bash scripts/escalate.sh --package demo --version 1.1.0 \
+      --phase package-build --log logs/build.log >"$d/esc.log" 2>&1 ) && rc=0 || rc=$?
+[[ $rc -eq 0 ]] || { cat "$d/esc.log"; fail "case15: brief did not reach the model (exit $rc)"; }
+grep -q "demo" "$sink" || fail "case15: the brief the model received was not the escalation brief"
+rm -rf "$d" "$stub" "$sink"
 
 echo "PASS: test_escalate"

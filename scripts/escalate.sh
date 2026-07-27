@@ -186,12 +186,18 @@ fi
 # ── Run the model ─────────────────────────────────────────────────────────
 # Allowed tools ARE the contract: no sudo, no git commit, no git push, no
 # network fetch beyond the two prefetch commands.
+#
+# The brief goes in on STDIN, not as a positional argument: --allowedTools is
+# variadic, so a trailing positional prompt is parsed as another tool pattern
+# and the model is launched with no input at all ("Input must be provided
+# either through stdin or as a prompt argument when using --print", exit 1,
+# recorded as a bogus gave-up verdict). stdin is immune to flag ordering.
 start_epoch="$(date +%s)"
 ( cd "$wt" && timeout "$TIMEOUT" "$CLAUDE_BIN" -p --model sonnet \
     --max-turns "$MAX_TURNS" \
     --permission-mode acceptEdits \
     --allowedTools 'Read,Edit,Write,Bash(nix build:*),Bash(nix-prefetch-url:*),Bash(nix hash:*),Bash(nix fmt),Bash(git diff:*)' \
-    "$(cat "$brief")" ) >>"$session_log" 2>&1
+    <"$brief" ) >>"$session_log" 2>&1
 claude_rc=$?
 duration=$(( $(date +%s) - start_epoch ))
 
