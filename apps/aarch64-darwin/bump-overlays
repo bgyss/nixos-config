@@ -215,7 +215,9 @@ bump_gosource() {
   current_src_hash="$(python3 -c '
 import re, sys
 text = open(sys.argv[1]).read()
-m = re.search(r"fetchFromGitHub\s*\{[^}]*?hash\s*=\s*\"([^\"]+)\"", text, re.DOTALL)
+# `${...}` interpolations (e.g. rev = "v${version}") put a } inside the block,
+# so allow them explicitly rather than scanning to the first }.
+m = re.search(r"fetchFromGitHub\s*\{(?:[^{}]|\$\{[^{}]*\})*?hash\s*=\s*\"([^\"]+)\"", text, re.DOTALL)
 print(m.group(1) if m else "")
 ' "$overlay_file")"
   if [[ -z "$current_src_hash" ]]; then
