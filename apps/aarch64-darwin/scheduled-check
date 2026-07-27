@@ -94,6 +94,22 @@ RUN_LOG="$LOG_DIR/nixos-scheduled-check.log"
 
 quarantine_init
 
+# This script is the FOURTH writer of overlays/quarantine.json (after
+# bump-overlays, prepare and escalate.sh, each of which has its own identical
+# commit_ledger). The ledger lives under overlays/, and bump-overlays refuses
+# to start when overlays/ is dirty (exit 3) — so quarantine_init above, plus
+# the quarantine_record calls on the build-failure and health-failure paths,
+# would otherwise leave the tree dirty and cost the NEXT run all of its overlay
+# bumps. Guarded so it can never alter this script's exit code.
+commit_ledger() {
+  git -C "$FLAKE_DIR" status --porcelain -- overlays/quarantine.json 2>/dev/null | grep -q . || return 0
+  git -C "$FLAKE_DIR" add overlays/quarantine.json 2>/dev/null || true
+  git -C "$FLAKE_DIR" -c core.hooksPath=/dev/null commit -q -o overlays/quarantine.json \
+    -m "quarantine: update ledger" 2>/dev/null || true
+  return 0
+}
+trap 'commit_ledger' EXIT
+
 # ═══════════════════════════════════════════════════════════════════════════
 # --activate-only <sha>: the privileged tail. activate -> health -> rollback
 # on failure -> mirror on success.
@@ -113,6 +129,28 @@ run_activate_only() {
     notify "nixos-config update FAILED" "activate-only: '$sha' is not a committed revision — nothing activated"
     exit 1
   fi
+
+  # A revision that already failed its health check is quarantined `frozen`.
+  # Those entries were previously inert — nothing read them — so the failure
+  # repeated daily: health fails on A, we roll back but HEAD stays at A, the
+  # next day's bump commits B on top of A, B builds, and activating B
+  # re-activates A's breakage. Refuse to activate any descendant of a frozen
+  # revision until a human clears the entry.
+  while IFS=$'\t' read -r qname qsha; do
+    [[ -z "$qsha" ]] && continue
+    git -C "$FLAKE_DIR" rev-parse --verify "${qsha}^{commit}" >/dev/null 2>&1 || continue
+    if git -C "$FLAKE_DIR" merge-base --is-ancestor "$qsha" "$sha" 2>/dev/null; then
+      err "refusing to activate $sha: it contains frozen revision ${qsha:0:7}"
+      notify "nixos-config update BLOCKED" \
+        "${sha:0:7} contains frozen revision ${qsha:0:7} — clear '$qname' from overlays/quarantine.json after fixing it"
+      exit 1
+    fi
+  done < <(jq -r '.entries[]
+                  | select(.kind=="revision")
+                  | select(.retry_policy=="frozen")
+                  | "\(.name)\t\(.blocked_version)"' \
+             "$FLAKE_DIR/overlays/quarantine.json" 2>/dev/null)
+
   before="$(git rev-parse HEAD 2>/dev/null)"
 
   # ── Activate ────────────────────────────────────────────────────────────
@@ -188,6 +226,14 @@ run_propose_only() {
     echo "scheduled-check: lock contention, exiting quietly" >>"$RUN_LOG"
     exit 2
   fi
+  if [[ $bump_rc -eq 3 ]]; then
+    # overlays/ was dirty, so bump-overlays refused to run and EVERY overlay
+    # bump was skipped. Silently continuing here would look like a normal
+    # no-bumps day while the whole point of the run quietly did not happen.
+    echo "scheduled-check: bump-overlays refused (overlays/ dirty)" >>"$RUN_LOG"
+    notify "nixos-config update" \
+      "overlay bumps SKIPPED — overlays/ has uncommitted changes; commit or stash them"
+  fi
   after_bump="$(git rev-parse HEAD 2>/dev/null)"
 
   # ── 2. Escalate the packages bump-overlays quarantined this run ─────────
@@ -225,7 +271,12 @@ run_propose_only() {
              "$FLAKE_DIR/overlays/quarantine.json")
 
   # ── 3. Flake inputs (propose) ────────────────────────────────────────────
-  "$SCRIPT_DIR/prepare" >>"$RUN_LOG" 2>&1
+  # --no-public-sync: nothing may reach the public mirror until the health
+  # check passes (invariant 3). prepare's own flake.lock commit would otherwise
+  # fire the post-commit hook and publish the whole tracked tree — including
+  # the bump commits bump-overlays deliberately withheld — before this run's
+  # full system build has even been attempted.
+  "$SCRIPT_DIR/prepare" --no-public-sync >>"$RUN_LOG" 2>&1
   local prepare_rc=$?
   if [[ $prepare_rc -eq 2 ]]; then
     echo "scheduled-check: prepare hit lock contention" >>"$RUN_LOG"

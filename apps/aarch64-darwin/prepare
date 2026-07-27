@@ -30,6 +30,22 @@ source "$FLAKE_DIR/scripts/quarantine.sh"
 
 MANIFEST="${MANIFEST:-$FLAKE_DIR/overlays/updates.json}"
 
+# --no-public-sync: suppress the post-commit mirror hook on the flake.lock
+# commit below. `scheduled-check` passes this because it must not publish
+# anything until the post-activation health check passes — otherwise a run
+# whose full system build later FAILS has already pushed the rejected revision
+# to GitHub, while the notification tells the user to `git reset --hard` it.
+# A manual `nix run .#prepare` still mirrors normally.
+PUBLIC_SYNC=1
+_forward_args=()
+for _a in "$@"; do
+  case "$_a" in
+    --no-public-sync) PUBLIC_SYNC=0 ;;
+    *) _forward_args+=("$_a") ;;
+  esac
+done
+set -- ${_forward_args+"${_forward_args[@]}"}
+
 # ---8<--- unpin-retry helpers ---8<---
 # pinned_inputs[] used to be a permanent freeze: nothing ever retried an
 # unpin, so nixpkgs stayed pinned until a human remembered to test it. Each
@@ -306,8 +322,15 @@ rm -f ./result
 warn "==> commit"
 if ! git diff --quiet || ! git diff --cached --quiet; then
   git add flake.lock
-  git commit -m "flake.lock: Update" \
-    --author="$(git config user.name) <$(git config user.email)>"
+  # Under scheduled-check ($PUBLIC_SYNC=0) the post-commit mirror hook is
+  # suppressed: publishing happens once, after the health check passes.
+  if [[ $PUBLIC_SYNC -eq 1 ]]; then
+    git commit -m "flake.lock: Update" \
+      --author="$(git config user.name) <$(git config user.email)>"
+  else
+    git -c core.hooksPath=/dev/null commit -m "flake.lock: Update" \
+      --author="$(git config user.name) <$(git config user.email)>"
+  fi
   msg "Committed. Proposed revision: $(git rev-parse --short HEAD)"
   msg "Review the closure diff above, then activate with:"
   msg "  nix run .#activate -- $(git rev-parse --short HEAD)"

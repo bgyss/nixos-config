@@ -29,7 +29,8 @@ accident):
 1. `bump-overlays --no-public-sync` — attempts every overlay whose quarantine and cadence
    gates allow it (see below). Each successful bump is verified by a scoped build and
    committed individually; each failure is quarantined and rolled back.
-2. Escalates up to 3 packages that were freshly quarantined this run to a budgeted headless
+2. Escalates up to 3 quarantined packages (every `kind: overlay` entry is a candidate, not
+   just this run's — `escalate.sh` decides via per-(package, fingerprint) dedup) to a budgeted headless
    Claude repair session (`scripts/escalate.sh`) — see "Reading `logs/escalation-costs.tsv`"
    below for the budget in detail.
 3. `prepare` — updates whichever flake inputs (`nixpkgs`, `home-manager`, `darwin`, `secrets`)

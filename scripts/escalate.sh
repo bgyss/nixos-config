@@ -390,7 +390,12 @@ Escalated repair, verified by scoped + full system build.
 Verdict: $verdict"
 fix_sha="$(git -C "$wt" rev-parse HEAD)"
 
-if ! git -C "$REPO" cherry-pick "$fix_sha" >>"$session_log" 2>&1; then
+# hooksPath=/dev/null: do NOT fire the post-commit mirror hook here. Under
+# scheduled-check nothing may be published until the post-activation health
+# check passes, and this cherry-pick lands during the propose half — a repair
+# published now would reach GitHub even if the full system build then failed.
+# The single explicit sync-to-public.sh call after the health check covers it.
+if ! git -C "$REPO" -c core.hooksPath=/dev/null cherry-pick "$fix_sha" >>"$session_log" 2>&1; then
   git -C "$REPO" cherry-pick --abort >/dev/null 2>&1 || true
   echo "escalate: cherry-pick of the verified fix failed" >&2
   # infra-error, not gave-up: the model produced a build-verified fix — the

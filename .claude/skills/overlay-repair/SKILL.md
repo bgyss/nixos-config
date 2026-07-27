@@ -24,6 +24,13 @@ worktree silently wedges every future run.
 - **Bump the overlay's pinned version/hash AND `overlays/updates.json`'s
   `current_version` together.** Doing only one leaves the manifest lying about
   what is pinned, which masks the package as up-to-date on every later probe.
+- **Replace EVERY occurrence of the old version in code, not just the primary
+  `version =` field.** The wrapper rejects a repair if the previous version
+  string still appears on any non-comment line of the overlay. Multi-platform
+  overlays (`ngrok`, `mise`, `uv`) pin the version in several per-platform URLs
+  and hashes — bumping only the darwin entry is a partial bump and will be
+  refused. Comments are exempt, so narrative comments naming the old version
+  are fine to leave.
 - **Two attempts maximum.** If the mechanical path does not work, write
   `gave-up` with a precise diagnosis. A wrong-but-building overlay is worse
   than a frozen one — it ships silently broken software.

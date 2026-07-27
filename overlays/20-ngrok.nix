@@ -3,7 +3,12 @@
 final: prev:
 
 let
-  inherit (prev) fetchurl lib stdenv;
+  inherit (prev)
+    fetchurl
+    lib
+    stdenv
+    unzip
+    ;
 
   versions = {
     "linux-386" = {
@@ -61,10 +66,33 @@ let
   versionInfo = lib.attrByPath [
     "${os}-${arch}"
   ] (throw "ngrok: unsupported platform ${os}-${arch}") versions;
+
+  isZip = lib.hasSuffix ".zip" versionInfo.url;
 in
 {
-  ngrok = prev.ngrok.overrideAttrs (_: {
+  # nixpkgs' own by-name/ng/ngrok derivation pins bin.ngrok.com URLs that
+  # serve a RAW binary (no extension), so its unpackPhase is just
+  # `cp $src ngrok`. This overlay pins the older bin.equinox.io CDN instead
+  # (see the header comment), whose URLs are REAL .tgz/.zip archives — so
+  # inheriting that `cp`-only unpackPhase installed the archive itself as
+  # "ngrok", producing an unexecutable zip/tar blob (`ngrok version` fails
+  # with "Exec format error"). Both formats extract to a flat top-level
+  # `ngrok` file (verified: `unzip -l` on the darwin-arm64 .zip shows a
+  # single `ngrok` entry, no subdirectory), so replacing just the unpack
+  # step — while keeping the parent's buildPhase (chmod +x) and installPhase
+  # (install -D ngrok $out/bin/ngrok) — is enough; no hash changes needed.
+  ngrok = prev.ngrok.overrideAttrs (old: {
     inherit (versionInfo) version;
     src = fetchurl { inherit (versionInfo) url sha256; };
+    nativeBuildInputs = (old.nativeBuildInputs or [ ]) ++ lib.optionals isZip [ unzip ];
+    unpackPhase = ''
+      runHook preUnpack
+      if [[ "$src" == *.zip ]]; then
+        unzip -q "$src"
+      else
+        tar xzf "$src"
+      fi
+      runHook postUnpack
+    '';
   });
 }

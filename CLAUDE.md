@@ -19,7 +19,7 @@ nix run .#build-switch   # Build and activate new system generation (requires su
 nix run .#apply          # Apply configuration changes without a full rebuild
 nix run .#rollback       # Rollback: `rollback [<gen>|--list]` (idempotent, macOS)
 nix run .#update         # Full update: prepare (build+commit) then activate HEAD
-nix run .#bump-overlays  # Mechanically bump the automated-subset overlays (see docs/overlay-bump-tutorial.md)
+nix run .#bump-overlays  # Bump every eligible overlay (see docs/overlay-bump-tutorial.md)
 
 # Preview / propose / activate (agent-friendly; see "Update Workflow" below)
 nix run .#check          # Read-only: preview what `prepare` would change (incremental gating)
@@ -70,7 +70,7 @@ only prints the exact edit a human should make (see `docs/self-healing-updates.m
 **The daily pipeline now activates itself.** A **user** launchd agent
 (`launchd.user.agents.nixos-auto-update`, label `org.nixos.nixos-auto-update`) runs
 `scheduled-check` at 09:00 in two steps: `scheduled-check --propose-only` (also the bare
-default — bump every eligible overlay via `bump-overlays`, escalate up to 3 freshly-quarantined
+default — bump every eligible overlay via `bump-overlays`, escalate up to 3 quarantined
 packages to a budgeted Claude repair session, run `prepare`, build as evidence), then, if a
 revision was built, `scheduled-check --activate-only <sha>` — the only path that ever runs
 `sudo darwin-rebuild switch`. That step health-checks the activation
@@ -86,7 +86,8 @@ failure notification.
 
 Failures are recorded per-version in `overlays/quarantine.json` (self-healing: a quarantine
 blocks exactly the failing version/pin-ref, so anything newer is retried automatically) and
-`bump-overlays`/`prepare` both skip whatever it currently blocks. Full operator runbook —
+`bump-overlays` skips whatever it currently blocks (`prepare` reads the ledger only for
+unpin-retry cadence, not to skip inputs). Full operator runbook —
 reading the ledger, un-sticking a frozen package, the five escalation token brakes, disabling
 the agent, recovering from a bad activation — lives in
 [docs/self-healing-updates.md](docs/self-healing-updates.md).
@@ -198,8 +199,10 @@ the public repo receives the hook file but never runs it → no sync loop).
   `core.hooksPath=/dev/null` so a multi-package run doesn't fire N mirror commits + pushes;
   instead it calls `sync-to-public.sh` **once at the end** of a successful run. Under
   `scheduled-check` it's invoked with `--no-public-sync` and the mirror happens there instead,
-  only after the full system build passes — so a bump the build rejects (the one case the
-  notification tells you to `git reset --hard`) is never published.
+  only after the post-activation **health check** passes — so a revision that fails to build,
+  or that activates and then fails its health check and gets rolled back, is never published.
+  `prepare` (also `--no-public-sync` under `scheduled-check`) and `escalate.sh`'s cherry-pick
+  suppress the hook for the same reason: exactly one publish per run, after health.
 
 ## Memories
 

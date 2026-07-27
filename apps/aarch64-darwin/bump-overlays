@@ -186,6 +186,7 @@ bump_gosource() {
   if [[ "$check_method" == "github-release" ]]; then
     # beads: tag-based release.
     new_version="$(echo "$json" | jq -r --arg n "$name" '.[] | select(.name==$n) | .latest')"
+    GOSRC_ATTEMPTED_VERSION="$new_version"
     new_hash_url="https://github.com/${repo}/archive/refs/tags/v${new_version}.tar.gz"
     msg "-- $name: $current_version -> $new_version"
     bump_version_string "$overlay_file" "$current_version" "$new_version" || return 1
@@ -203,6 +204,7 @@ bump_gosource() {
       return 0
     fi
     new_version="0-unstable-$(date -u +%Y-%m-%d)"
+    GOSRC_ATTEMPTED_VERSION="$new_version"
     new_hash_url="https://github.com/${repo}/archive/${new_rev}.tar.gz"
     msg "-- $name: $current_rev -> $new_rev ($current_version -> $new_version)"
     bump_field_string "$overlay_file" "rev" "$current_rev" "$new_rev" || return 1
@@ -480,7 +482,14 @@ for i in "${!MECH_NAMES[@]}"; do
 done
 for name in "${GOSRC_NAMES_TARGET[@]}"; do
   state_set_overlay_bumped_at "$name" "$(now_iso)"
-  new_version="$(jq -r --arg n "$name" '.packages[] | select(.name==$n) | .current_version' "$MANIFEST")"
+  # bump_gosource resolves the target version internally (a tag for beads, a
+  # dated 0-unstable-<date> for the branch-tracked ones) and exports it via
+  # GOSRC_ATTEMPTED_VERSION. Recording the manifest's CURRENT version here
+  # instead would put the known-good version in the ledger as blocked_version,
+  # which then breaks escalate.sh both ways: its "updates.json current_version
+  # == $VERSION" gate would reject a correct repair, while its "old version is
+  # gone" and "overlay pins $VERSION" gates would pass vacuously (old == new).
+  GOSRC_ATTEMPTED_VERSION=""
   bump_log="$FLAKE_DIR/logs/bump-${name}.log"
   if declare -F bump_gosource >/dev/null && bump_gosource "$name" >"$bump_log" 2>&1; then
     cat "$bump_log"
@@ -489,8 +498,12 @@ for name in "${GOSRC_NAMES_TARGET[@]}"; do
   else
     FAILED+=("$name")
     tail -30 "$bump_log" >&2
+    # Fall back to the pinned version only if the failure happened before the
+    # target was resolved (e.g. the upstream probe itself failed).
+    new_version="${GOSRC_ATTEMPTED_VERSION:-$(jq -r --arg n "$name" \
+      '.packages[] | select(.name==$n) | .current_version' "$MANIFEST")}"
     fp="$(record_bump_failure "$name" "$new_version" "package-build" "$bump_log")"
-    err "  quarantined $name as '$fp'"
+    err "  quarantined $name@$new_version as '$fp'"
   fi
 done
 
