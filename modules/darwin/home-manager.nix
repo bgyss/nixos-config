@@ -195,10 +195,6 @@ in
                   run = "move-node-to-workspace N";
                 }
                 {
-                  "if".app-id = "com.cron.electron";
-                  run = "move-node-to-workspace O";
-                }
-                {
                   # Zoom spawns several separate windows per meeting (main,
                   # meeting, floating toolbar, chat, participants) that tile
                   # badly; float them instead of tiling, on their own workspace.
@@ -309,7 +305,6 @@ in
     { path = "/Applications/Slack.app/"; }
     { path = "/Applications/Discord.app/"; }
     { path = "/Applications/HEY.app/"; }
-    { path = "/Applications/Notion Calendar.app/"; }
     { path = "/Applications/Notion.app/"; }
     { path = "/Applications/Devin.app/"; }
     { path = "/Applications/ChatGPT Atlas.app/"; }

@@ -73,16 +73,6 @@
     svg-term-cli
   ];
 
-  # Cheap insurance against macOS Automatic Termination quitting the app when
-  # its window is hidden/closed (_kLSApplicationWouldBeTerminatedByTALKey=1 in
-  # the unified log). This wasn't actually the cause of the "randomly closing
-  # every 1-4 min" symptom (that was the app's own menu-bar/startup setting,
-  # since fixed in-app), but it's a harmless opt-out to keep.
-  # See docs/notion-calendar-auto-termination.md.
-  system.defaults.CustomUserPreferences."com.cron.electron" = {
-    NSDisableAutomaticTermination = true;
-  };
-
   launchd.user.agents.emacs.path = [ config.environment.systemPath ];
   launchd.user.agents.emacs.serviceConfig = {
     KeepAlive = true;
