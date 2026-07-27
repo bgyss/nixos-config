@@ -153,28 +153,6 @@
       "notes": "When the minor version bumps (e.g. 1.26→1.27), also rename the go_1_26 attribute to go_1_27 in the overlay."
     },
     {
-      "name": "yt-dlp",
-      "overlay": "overlays/91-yt-dlp.nix",
-      "current_version": "2026.07.04",
-      "check": {
-        "method": "github-release",
-        "repo": "yt-dlp/yt-dlp"
-      },
-      "update_type": "python-override",
-      "notes": "Complex overlay. Also check yt-dlp-ejs on PyPI (package: yt_dlp_ejs). Review the postPatch section manually — curl_cffi version bounds may need adjustment on each yt-dlp release."
-    },
-    {
-      "name": "yt-dlp-ejs",
-      "overlay": "overlays/91-yt-dlp.nix",
-      "current_version": "0.8.0",
-      "check": {
-        "method": "pypi",
-        "package": "yt_dlp_ejs"
-      },
-      "update_type": "python-override",
-      "notes": "Bundled inside 91-yt-dlp.nix. Update the yt-dlp-ejs version/hash in that file."
-    },
-    {
       "name": "ngrok",
       "overlay": "overlays/20-ngrok.nix",
       "current_version": "3.39.10",

@@ -144,7 +144,10 @@ with pkgs;
   # spotify  # disabled: upstream download rate-limited (429), re-enable later
 
   # Media tools
-  yt-dlp
+  # From nixpkgs-master, not the pinned nixpkgs — yt-dlp must ship with a
+  # matching curl_cffi/curl-impersonate or every download fails. See the long
+  # comment in modules/shared/default.nix.
+  yt-dlp-master
   gallery-dl
   mediainfo
   asciinema
