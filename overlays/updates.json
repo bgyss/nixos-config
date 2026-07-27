@@ -120,7 +120,7 @@
     {
       "name": "beads",
       "overlay": "overlays/60-beads.nix",
-      "current_version": "1.1.0",
+      "current_version": "1.1.2",
       "check": {
         "method": "github-release",
         "repo": "gastownhall/beads"
