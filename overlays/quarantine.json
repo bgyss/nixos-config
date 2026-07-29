@@ -2,34 +2,16 @@
   "comment": "Machine-written quarantine ledger. See docs/superpowers/specs/2026-07-25-self-healing-updates-design.md §2. Do not hand-edit while the daily pipeline may be running; use scripts/quarantine.sh.",
   "entries": [
     {
-      "name": "dcg",
-      "kind": "overlay",
-      "blocked_version": "0.7.2",
-      "known_good_version": "0.6.7",
-      "first_failed": "2026-07-28T16:01:23Z",
-      "last_attempt": "2026-07-28T16:01:23Z",
-      "attempts": 1,
-      "phase": "package-build",
-      "fingerprint": "unclassified",
-      "error_excerpt": "-- dcg: 0.6.7 -> 0.7.2\n  fix-hashes --only dcg failed:\nChecking hashes in prebuilt-binary overlays (this downloads each artifact)...\n\n--- 91-dcg.nix ---\n  dcg-aarch64-apple-darwin.tar.xz ... fetch failed (skipping)\n  dcg-x86_64-apple-darwin.tar.xz ... fetch failed (skipping)\n  dcg-aarch64-unknown-linux-gnu.tar.xz ... fetch failed (skipping)\n  dcg-x86_64-unknown-linux-musl.tar.xz ... fetch failed (skipping)\n\nChecked 4 URL(s): 0 updated, 4 error(s).",
-      "retry_policy": "next-version-only",
-      "escalation": {
-        "status": "gave-up",
-        "verdict": "Not a hash/config problem: GitHub release v0.7.2 of Dicklesworthstone/destructive_command_guard only publishes Windows binaries (dcg.exe, dcg-x86_64-pc-windows-msvc.exe/.zip) plus a manifest.json, source archives, and SHA256SUMS covering only those Windows files. The aarch64-apple-darwin, x86_64-apple-darwin, aarch64-unknown-linux-gnu, and x86_64-unknown-linux-musl tar.xz assets that overlays/91-dcg.nix and updates.json pin URL templates for do not exist in this release at all (confirmed via the release's expanded_assets page and its SHA256SUMS, not just a transient fetch failure). No hash fix or URL correction can resolve this since the files are simply absent upstream. A human needs to either wait for a subsequent release that restores macOS/Linux artifacts, or check with upstream about this release's platform coverage before deciding whether to skip v0.7.2 entirely. Left overlays/91-dcg.nix and overlays/updates.json unchanged (still pinned at 0.6.7).",
-        "at": "2026-07-28T16:04:17Z"
-      }
-    },
-    {
       "name": "hey-cli",
       "kind": "overlay",
-      "blocked_version": "0-unstable-2026-07-28",
+      "blocked_version": "0-unstable-2026-07-29",
       "known_good_version": "0-unstable-2026-06-10",
-      "first_failed": "2026-07-28T16:01:30Z",
-      "last_attempt": "2026-07-28T16:01:30Z",
+      "first_failed": "2026-07-29T16:01:31Z",
+      "last_attempt": "2026-07-29T16:01:31Z",
       "attempts": 1,
       "phase": "package-build",
       "fingerprint": "unclassified",
-      "error_excerpt": "-- hey-cli: a3cf885fc80b906e887af3eb753b13f8ffcdae24 -> 4a35066f8dfebade0fa3470d9e11ceb932a853f3 (0-unstable-2026-06-10 -> 0-unstable-2026-07-28)\n  could not resolve vendorHash from build error for hey-cli",
+      "error_excerpt": "-- hey-cli: a3cf885fc80b906e887af3eb753b13f8ffcdae24 -> 4a35066f8dfebade0fa3470d9e11ceb932a853f3 (0-unstable-2026-06-10 -> 0-unstable-2026-07-29)\n  could not resolve vendorHash from build error for hey-cli",
       "retry_policy": "next-version-only",
       "escalation": {
         "status": "gave-up",
