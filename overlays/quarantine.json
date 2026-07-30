@@ -1,23 +1,4 @@
 {
   "comment": "Machine-written quarantine ledger. See docs/superpowers/specs/2026-07-25-self-healing-updates-design.md §2. Do not hand-edit while the daily pipeline may be running; use scripts/quarantine.sh.",
-  "entries": [
-    {
-      "name": "hey-cli",
-      "kind": "overlay",
-      "blocked_version": "0-unstable-2026-07-30",
-      "known_good_version": "0-unstable-2026-06-10",
-      "first_failed": "2026-07-30T16:01:40Z",
-      "last_attempt": "2026-07-30T16:01:40Z",
-      "attempts": 1,
-      "phase": "package-build",
-      "fingerprint": "unclassified",
-      "error_excerpt": "-- hey-cli: a3cf885fc80b906e887af3eb753b13f8ffcdae24 -> 3793b8910e41073c2cf4e5440b897cd7667dca7b (0-unstable-2026-06-10 -> 0-unstable-2026-07-30)\n  could not resolve vendorHash from build error for hey-cli",
-      "retry_policy": "next-version-only",
-      "escalation": {
-        "status": "gave-up",
-        "verdict": "verdict claimed fixed but the wrapper's scoped build failed to reproduce it: The original failure ('could not resolve vendorHash from build error') happened because the scoped build in overlays/94-hey-cli.nix alone uses nixpkgs' default go 1.26.4, but hey-cli's new commit (4a35066f) bumped its go.mod requirement to go >= 1.26.5, so the go-modules fetch step failed before it could ever print the expected vendorHash. This repo already carries overlays/55-go.nix pinning go to exactly 1.26.5 for this reason, so in the real system build (all overlays loaded together) the toolchain requirement is satisfied; I did not touch 55-go.nix. I bumped overlays/94-hey-cli.nix's version to 0-unstable-2026-07-28 and rev to 4a35066f8dfebade0fa3470d9e11ceb932a853f3, re-fetched the source hash (sha256-96iS3iNoLMqselAB2nQm4Pgr7F7qQgFHRJO86S/vnIc=), blanked vendorHash, and once combined with 55-go.nix in a scoped build the real vendorHash resolved to sha256-NtcJ8ocYePsC2lP84MNzXdg4cqpXWnEgGasdLMG60K0=. Updated overlays/updates.json's current_version/current_rev to match. Verified with: nix build --no-link --impure --expr 'let pkgs = import <nixpkgs> { config.allowUnfree = true; overlays = [ (import ./overlays/55-go.nix) (import ./overlays/94-hey-cli.nix) ]; }; in pkgs.hey-cli' — builds successfully. Note: the single-overlay verify command given in the brief (94-hey-cli.nix alone, without 55-go.nix) will still fail with 'go.mod requires go >= 1.26.5' since it omits the sibling go-version overlay that the real flake always loads alongside it; this is expected and not a sign of a broken fix. Ran nix fmt: 0 files changed.",
-        "at": "2026-07-28T16:09:07Z"
-      }
-    }
-  ]
+  "entries": []
 }

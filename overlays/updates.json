@@ -179,8 +179,8 @@
     {
       "name": "hey-cli",
       "overlay": "overlays/94-hey-cli.nix",
-      "current_version": "0-unstable-2026-06-10",
-      "current_rev": "a3cf885fc80b906e887af3eb753b13f8ffcdae24",
+      "current_version": "0-unstable-2026-07-30",
+      "current_rev": "3793b8910e41073c2cf4e5440b897cd7667dca7b",
       "check": {
         "method": "github-commits",
         "repo": "basecamp/hey-cli",
