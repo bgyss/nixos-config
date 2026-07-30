@@ -95,7 +95,7 @@
     {
       "name": "mise",
       "overlay": "overlays/30-mise.nix",
-      "current_version": "2026.7.16",
+      "current_version": "2026.7.17",
       "check": {
         "method": "github-release",
         "repo": "jdx/mise"
@@ -204,7 +204,7 @@
     {
       "name": "aws-cdk-cli",
       "overlay": "overlays/95-aws-cdk-cli.nix",
-      "current_version": "2.1133.0",
+      "current_version": "2.1134.0",
       "check": {
         "method": "npm",
         "package": "aws-cdk"
