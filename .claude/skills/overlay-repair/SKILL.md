@@ -84,6 +84,14 @@ scoped build, and read the expected hash out of the error message.
   versioned release pages. Six platform hashes must be fetched.
 - **mise** (`overlays/30-mise.nix`): now prebuilt binaries; use raw
   `nix-prefetch-url` (not `--unpack`) per platform.
+- **hey-cli** (`overlays/94-hey-cli.nix`): a `buildGoModule` derivation. Its
+  `go.mod` `go` directive tracks upstream closely, so a bump can start
+  requiring a newer Go than nixpkgs' default the moment it lands — this repo
+  pins Go to exactly 1.26.5 via `overlays/55-go.nix`, but that pin is a
+  SEPARATE overlay. See the cross-overlay-dependency note under Verify below:
+  the scoped single-overlay build will spuriously fail on a `go.mod` bump even
+  when the real fix is correct, because it builds against nixpkgs' unpinned
+  `go` instead of the repo's 1.26.5 pin.
 
 Full recipes: `docs/overlay-update-routine.md`.
 
@@ -95,6 +103,32 @@ nix build --no-link --impure --expr \
 ```
 
 Run `nix fmt` if you changed a `.nix` file.
+
+**Cross-overlay dependencies can make this scoped build a false negative.**
+It loads ONLY the one overlay file, so any package whose build depends on
+another overlay's package override — e.g. `buildGoModule` derivations built
+against the pinned `go` from `overlays/55-go.nix` — sees nixpkgs' unpinned
+default instead. `hey-cli` hit this in July 2026: its `go.mod` required
+`go 1.26.5`, the repo already pins exactly that via `55-go.nix`, but the
+scoped verify build used nixpkgs' older default `go` and failed with
+`could not resolve vendorHash from build error`, even though the fix was
+correct and the full system build passed. **The wrapper (`scripts/escalate.sh`)
+treats a scoped-build failure as an immediate `gave-up` and never reaches its
+own full-system-build fallback check** — so if you suspect this is happening
+(a Go/Rust toolchain-version error, or any failure referencing a package this
+overlay doesn't itself define), verify with the real host attr instead, which
+loads every overlay together:
+
+```bash
+nix build --no-link --print-out-paths \
+  ".#darwinConfigurations.garmonbozia.pkgs.<attr>"
+```
+
+If that passes, the repair is correct — but you cannot make the wrapper honor
+it (two-attempt limit, only the scoped build gates automated `fixed` status).
+Write `gave-up` with a verdict naming the cross-overlay dependency precisely,
+so a human knows to intervene manually rather than treating it as a real
+break in the package.
 
 ## Write the verdict
 
