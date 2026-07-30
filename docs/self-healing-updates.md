@@ -207,6 +207,73 @@ document `docs/superpowers/plans/2026-07-25-self-healing-updates.md` still names
 To retune, edit the constant in the file named above and commit — there is no separate
 environment-variable override for any of the five today.
 
+## Known limitation: scoped-verify false negatives for cross-overlay dependencies
+
+`scripts/escalate.sh`'s verification build is scoped to the ONE overlay file being repaired:
+
+```bash
+nix build --no-link --impure --expr \
+  'let pkgs = import <nixpkgs> { config.allowUnfree = true; overlays = [ (import ./overlays/<file>.nix) ]; }; in pkgs.<attr>'
+```
+
+That means a package whose build depends on something another overlay provides — most
+concretely, a `buildGoModule` derivation relying on the Go 1.26.5 pin from
+`overlays/55-go.nix` — is built against nixpkgs' *unpinned* default instead, because that
+other overlay was never loaded. If upstream bumps its `go.mod` `go` directive to a version
+newer than nixpkgs' default (but still ≤ this repo's 1.26.5 pin), the scoped build fails with
+something like `could not resolve vendorHash from build error`, even though the real fix is
+completely correct.
+
+Worse, this is not just a wasted retry: `scripts/escalate.sh` treats *any* scoped-build
+failure as an immediate `gave-up` (see the block around its `nix build --impure --expr` call)
+and never falls through to its own full-system-build check
+(`nix build ".#darwinConfigurations.garmonbozia.system"`), which loads every overlay
+together and would have caught that the fix actually works. The repair session's correct
+diagnosis gets recorded as a failure, and the package stays quarantined.
+
+**Confirmed case:** `hey-cli` (`overlays/94-hey-cli.nix`), 2026-07-30. The automated escalation
+correctly bumped the overlay to rev `4a35066f8dfebade0fa3470d9e11ceb932a853f3` and resolved the
+real `vendorHash`, but the scoped build failed on nixpkgs' default `go` and the wrapper recorded
+`gave-up`. Verifying manually with the full system attr showed the fix was right all along:
+
+```bash
+nix build --no-link --print-out-paths ".#darwinConfigurations.garmonbozia.pkgs.hey-cli"
+```
+
+**How to spot it:** the quarantine entry's `escalation.verdict` says something like *"verdict
+claimed fixed but the wrapper's scoped build failed to reproduce it"*, and the underlying error
+in `logs/escalation-<pkg>-<ts>.session.log` names a toolchain/version constraint (Go, Rust,
+etc.) that the failing overlay doesn't itself pin. That combination is the signature of this
+false negative rather than a genuinely broken package.
+
+**Immediate mitigation (manual):** re-run the full-system build yourself
+(`nix build ".#darwinConfigurations.garmonbozia.pkgs.<attr>"`); if it passes, apply the same
+rev/hash/vendorHash the escalation session found (read it out of the session log or verdict),
+commit, `nix flake check`, `build-switch`, then clear the quarantine entry per "Un-sticking a
+package" above. `.claude/skills/overlay-repair/SKILL.md` documents this same workaround for
+future repair sessions to recognize the pattern (though a repair session still cannot make the
+wrapper accept it — only a human bypassing the wrapper can).
+
+**Possible longer-term fixes to `scripts/escalate.sh`** (not yet implemented — pick one if this
+recurs for other Go/Rust overlays):
+
+1. **Fall through instead of short-circuiting.** On a scoped-build failure, don't immediately
+   record `gave-up` — attempt the full-system build first, and only give up if *that* also
+   fails. This directly closes the gap without weakening any other gate, at the cost of one
+   extra build (only on the already-rare scoped-build-failure path).
+2. **Widen the scoped build to include known cross-cutting overlays.** Load `55-go.nix` (and
+   any other overlay that overrides a builder rather than defining one leaf package) alongside
+   the package's own overlay in the scoped expression. Cheaper than a full system build, but
+   requires maintaining a list of "builder-override" overlays that must always be included and
+   will drift if a new one is added without updating this list.
+3. **Classify by fingerprint.** Detect toolchain-version-mismatch errors (e.g. `vendorHash`
+   resolution failures paired with a `go.mod`/`go` directive bump) and route them straight to
+   the full-system build, skipping the scoped one entirely for that fingerprint. More precise
+   than (1) but adds a new failure-classification path to maintain.
+
+Option 1 is the simplest and safest — it changes nothing about what "fixed" means, just when
+the more expensive check runs.
+
 ## Disabling the automation
 
 The agent is a **user** LaunchAgent, not a system daemon, so the scope is `gui/<uid>`, not
