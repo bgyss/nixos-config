@@ -1,4 +1,23 @@
 {
   "comment": "Machine-written quarantine ledger. See docs/superpowers/specs/2026-07-25-self-healing-updates-design.md §2. Do not hand-edit while the daily pipeline may be running; use scripts/quarantine.sh.",
-  "entries": []
+  "entries": [
+    {
+      "name": "hey-cli",
+      "kind": "overlay",
+      "blocked_version": "0-unstable-2026-07-31",
+      "known_good_version": "0-unstable-2026-07-30",
+      "first_failed": "2026-07-31T16:01:12Z",
+      "last_attempt": "2026-07-31T16:01:12Z",
+      "attempts": 1,
+      "phase": "package-build",
+      "fingerprint": "unclassified",
+      "error_excerpt": "-- hey-cli: 3793b8910e41073c2cf4e5440b897cd7667dca7b -> 1512c168a5f526cab572ce365771772bdbd2d2a8 (0-unstable-2026-07-30 -> 0-unstable-2026-07-31)\n  could not resolve vendorHash from build error for hey-cli",
+      "retry_policy": "next-version-only",
+      "escalation": {
+        "status": "gave-up",
+        "verdict": "The bump itself was correct: bumped rev 3793b891 -> 1512c168 (0-unstable-2026-07-30 -> 0-unstable-2026-07-31), re-fetched the src hash (sha256-A5R/CQEbOBtVdCHbga8x7eo6NXVb3KtkqZsUmlj6iwM=), and vendorHash resolved unchanged (sha256-NtcJ8ocYePsC2lP84MNzXdg4cqpXWnEgGasdLMG60K0=). The required scoped single-overlay verify build (loading only overlays/94-hey-cli.nix against plain <nixpkgs>) fails with 'go.mod requires go >= 1.26.5 (running go 1.26.4; GOTOOLCHAIN=local)' because this upstream commit's go.mod bumped its go directive to 1.26.5, and the scoped build sees nixpkgs' unpinned default go (1.26.4) rather than this repo's own go 1.26.5 pin from overlays/55-go.nix -- a separate overlay the scoped build does not load. I verified the fix is actually correct by building the full host attr `.#darwinConfigurations.garmonbozia.pkgs.hey-cli`, which loads all overlays together (including the go 1.26.5 pin) and built hey-cli-0-unstable-2026-07-31 successfully to /nix/store/rjlgc7zz7krl01hzjp1g03wmsrin5fp5-hey-cli-0-unstable-2026-07-31. Per the skill's documented guidance for exactly this scenario, I'm reporting gave-up rather than fixed because the wrapper's automated gate only trusts the scoped build and would otherwise record a false break. A human should either apply this exact edit (rev/version/src hash bumped, vendorHash unchanged) directly, or teach the wrapper to fall back to the full darwinConfigurations attr when a go-source overlay's scoped build fails with a go-toolchain-version error.",
+        "at": "2026-07-31T16:02:48Z"
+      }
+    }
+  ]
 }
