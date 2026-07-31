@@ -354,27 +354,40 @@ else
 fi
 
 overlay_rel_wt="$overlay_rel"
+scoped_build_ok=1
 if ! ( cd "$wt" && nix build --no-link --impure --expr \
         "let pkgs = import <nixpkgs> { config.allowUnfree = true; overlays = [ (import ./$overlay_rel_wt) ]; }; in pkgs.${PACKAGE}" ) \
       >>"$session_log" 2>&1; then
-  echo "escalate: 'fixed' verdict did not reproduce — scoped build failed. Treating as gave-up." >&2
-  quarantine_set_escalation "$PACKAGE" "gave-up" \
-    "verdict claimed fixed but the wrapper's scoped build failed to reproduce it: $verdict"
-  log_cost "gave-up"
-  exit 1
+  scoped_build_ok=0
+  echo "escalate: scoped build failed — this single-overlay expression can false-negative when the package depends on another overlay's pin (e.g. the go/rust toolchain version pinned in overlays/55-go.nix), which only loads in the full overlay set. Falling through to the full-system build before giving up." >>"$session_log"
 fi
 
 # Full-system verification, hardcoded to this repo's one darwin host. Not
 # read from apps/aarch64-darwin/_common.sh's FLAKE_SYSTEM_ATTR: that file is
 # meant to be sourced from apps/, not scripts/, and pulling it in here would
 # couple this script to that directory's assumptions for one constant.
+#
+# Run even when the scoped build above failed: a scoped-only failure can be a
+# false negative (see hey-cli, 2026-07-30 and 2026-07-31 — its go.mod bump
+# needed the go pin from overlays/55-go.nix, invisible to the scoped
+# single-overlay expression but present here since every overlay loads
+# together). Only treat the repair as gave-up if the full build fails too.
 if ! ( cd "$wt" && nix build ".#darwinConfigurations.garmonbozia.system" --no-link ) \
       >>"$session_log" 2>&1; then
-  echo "escalate: scoped build passed but the full system build failed. Treating as gave-up." >&2
-  quarantine_set_escalation "$PACKAGE" "gave-up" \
-    "verification: scoped build passed, full system build failed: $verdict"
+  if [[ "$scoped_build_ok" -eq 1 ]]; then
+    echo "escalate: scoped build passed but the full system build failed. Treating as gave-up." >&2
+    quarantine_set_escalation "$PACKAGE" "gave-up" \
+      "verification: scoped build passed, full system build failed: $verdict"
+  else
+    echo "escalate: both scoped and full system build failed. Treating as gave-up." >&2
+    quarantine_set_escalation "$PACKAGE" "gave-up" \
+      "verification: scoped build failed, full system build also failed: $verdict"
+  fi
   log_cost "gave-up"
   exit 1
+fi
+if [[ "$scoped_build_ok" -eq 0 ]]; then
+  echo "escalate: scoped build false-negatived (package likely depends on another overlay's pin) but the full system build passed — proceeding." >>"$session_log"
 fi
 
 # ── Commit in the worktree, cherry-pick into the real checkout ────────────
