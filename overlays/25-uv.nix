@@ -6,11 +6,11 @@ if prev.stdenv.hostPlatform.system == "aarch64-darwin" then
   {
     uv = prev.stdenvNoCC.mkDerivation rec {
       pname = "uv";
-      version = "0.12.0";
+      version = "0.12.1";
 
       src = prev.fetchurl {
         url = "https://github.com/astral-sh/uv/releases/download/${version}/uv-aarch64-apple-darwin.tar.gz";
-        sha256 = "sha256-K55YKvVPhPpQwRVCdFGmwT6A9DtS+CgrivV5EHcxe78=";
+        sha256 = "sha256-d9KQaYjoB0/UPy8ynsRS67+bDCV7ocZkUccd5wprr0I=";
       };
 
       sourceRoot = "uv-aarch64-apple-darwin";
