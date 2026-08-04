@@ -187,7 +187,7 @@
     defaults = {
       NSGlobalDomain = {
         AppleShowAllExtensions = true;
-        ApplePressAndHoldEnabled = false;
+        ApplePressAndHoldEnabled = true;
 
         KeyRepeat = 2; # Values: 120, 90, 60, 30, 12, 6, 2
         InitialKeyRepeat = 15; # Values: 120, 94, 68, 35, 25, 15
