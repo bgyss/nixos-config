@@ -165,7 +165,7 @@ in
                 }
                 {
                   "if".app-id = "com.valvesoftware.steam.helper";
-                  run = "move-node-to-workspace 8";
+                  run = "move-node-to-workspace D";
                 }
                 {
                   "if".app-id = "com.apple.Preview";
@@ -185,7 +185,7 @@ in
                 }
                 {
                   "if".app-id = "notion.id";
-                  run = "move-node-to-workspace D";
+                  run = "move-node-to-workspace 8";
                 }
                 {
                   "if".app-id = "com.apple.news";
