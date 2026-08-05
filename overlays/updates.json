@@ -19,7 +19,7 @@
     {
       "name": "codex-openai",
       "overlay": "overlays/40-codex-openai.nix",
-      "current_version": "0.146.0",
+      "current_version": "0.146.1",
       "check": {
         "method": "github-release",
         "repo": "openai/codex",
@@ -95,7 +95,7 @@
     {
       "name": "mise",
       "overlay": "overlays/30-mise.nix",
-      "current_version": "2026.8.0",
+      "current_version": "2026.8.2",
       "check": {
         "method": "github-release",
         "repo": "jdx/mise"
