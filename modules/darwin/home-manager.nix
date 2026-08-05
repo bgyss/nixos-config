@@ -19,16 +19,21 @@ let
   # AeroSpace workspaces beyond 1-9: letter-keyed, matching upstream's default-config
   # convention (A-Z). h/j/k/l are excluded (reserved for vim-style focus/move) and f is
   # excluded (bound to fullscreen), leaving 21 extra workspaces on top of 1-9 for 30 total.
+  #
+  # Bound under ctrl-alt (not plain alt): on the US keyboard layout, Option is the acute-
+  # accent dead key, so a bare alt-<vowel> binding here swallows the keystroke globally
+  # before macOS's text input layer can start dead-key composition, breaking á/é/í/ó/ú
+  # everywhere (Ghostty/tmux, but really any app) system-wide.
   extraWorkspaceLetters = lib.stringToCharacters "abcdegimnopqrstuvwxyz";
   workspaceSwitchBindings = lib.listToAttrs (
     map (letter: {
-      name = "alt-${letter}";
+      name = "ctrl-alt-${letter}";
       value = "workspace ${lib.toUpper letter}";
     }) extraWorkspaceLetters
   );
   workspaceMoveBindings = lib.listToAttrs (
     map (letter: {
-      name = "alt-shift-${letter}";
+      name = "ctrl-alt-shift-${letter}";
       value = "move-node-to-workspace ${lib.toUpper letter}";
     }) extraWorkspaceLetters
   );
@@ -307,7 +312,6 @@ in
     { path = "/Applications/HEY.app/"; }
     { path = "/Applications/Notion.app/"; }
     { path = "/Applications/Devin.app/"; }
-    { path = "/Applications/ChatGPT Atlas.app/"; }
     { path = "/Applications/Google Chrome.app/"; }
     { path = "/Applications/ChatGPT.app/"; }
     { path = "/Applications/Claude.app/"; }
