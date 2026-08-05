@@ -95,5 +95,15 @@ fi
 # Skip when already inside tmux, inside Emacs' shell, or in a non-interactive
 # context (e.g. scp, rsync, CI) so this never breaks non-terminal use.
 if [[ -o interactive ]] && [[ -z "$TMUX" ]] && [[ -z "$INSIDE_EMACS" ]] && command -v tmux &>/dev/null; then
+  # If no tmux server is running yet (e.g. right after a reboot/login), this
+  # is about to start one, which triggers tmux-continuum's restore hook in
+  # the background (it sleeps 1s, then replays the last saved session via
+  # tmux-resurrect). Give that a head start before falling back to creating
+  # a brand-new "main" session, or the fallback wins the race and leaves you
+  # with an empty session instead of your restored one.
+  if ! tmux info &>/dev/null; then
+    tmux start-server
+    sleep 2
+  fi
   tmux attach -t main 2>/dev/null || tmux new -s main
 fi

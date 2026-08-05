@@ -15,7 +15,6 @@ _:
   "rive"
 
   # Terminals
-  "warp"
   "ghostty"
 
   # backup / restore
