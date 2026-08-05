@@ -204,6 +204,10 @@ in
                   run = "move-node-to-workspace O";
                 }
                 {
+                  "if".app-id = "com.adobe.acc.AdobeCreativeCloud";
+                  run = "move-node-to-workspace P";
+                }
+                {
                   # Zoom spawns several separate windows per meeting (main,
                   # meeting, floating toolbar, chat, participants) that tile
                   # badly; float them instead of tiling, on their own workspace.
