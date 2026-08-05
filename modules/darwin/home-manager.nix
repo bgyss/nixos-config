@@ -200,6 +200,10 @@ in
                   run = "move-node-to-workspace N";
                 }
                 {
+                  "if".app-id = "com.apple.finder";
+                  run = "move-node-to-workspace O";
+                }
+                {
                   # Zoom spawns several separate windows per meeting (main,
                   # meeting, floating toolbar, chat, participants) that tile
                   # badly; float them instead of tiling, on their own workspace.
