@@ -297,6 +297,10 @@ in
       font-family = "MesloLGS NF";
       font-size = if pkgs.stdenv.hostPlatform.isDarwin then 14 else 10;
       cursor-style = "block";
+      # Ghostty defaults to treating Option as Alt on macOS, which swallows the
+      # native dead-key accent composition (option-e then e -> é). Keep Option
+      # native so accents work; use ctrl-based bindings for terminal Alt/Meta needs.
+      macos-option-as-alt = "false";
       window-padding-x = 24;
       window-padding-y = 24;
       window-decoration = true;
