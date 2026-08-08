@@ -3,7 +3,7 @@
     {
       "name": "claude-code",
       "overlay": "overlays/41-claude-code.nix",
-      "current_version": "2.1.224",
+      "current_version": "2.1.226",
       "check": {
         "method": "github-release",
         "repo": "anthropics/claude-code"
@@ -80,7 +80,7 @@
     {
       "name": "uv",
       "overlay": "overlays/25-uv.nix",
-      "current_version": "0.12.2",
+      "current_version": "0.12.3",
       "check": {
         "method": "github-release",
         "repo": "astral-sh/uv"
@@ -95,7 +95,7 @@
     {
       "name": "mise",
       "overlay": "overlays/30-mise.nix",
-      "current_version": "2026.8.2",
+      "current_version": "2026.8.3",
       "check": {
         "method": "github-release",
         "repo": "jdx/mise"
@@ -215,7 +215,7 @@
     {
       "name": "dcg",
       "overlay": "overlays/91-dcg.nix",
-      "current_version": "0.9.4",
+      "current_version": "0.10.0",
       "check": {
         "method": "github-release",
         "repo": "Dicklesworthstone/destructive_command_guard"
