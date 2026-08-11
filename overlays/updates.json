@@ -3,7 +3,7 @@
     {
       "name": "claude-code",
       "overlay": "overlays/41-claude-code.nix",
-      "current_version": "2.1.226",
+      "current_version": "2.1.227",
       "check": {
         "method": "github-release",
         "repo": "anthropics/claude-code"
@@ -95,7 +95,7 @@
     {
       "name": "mise",
       "overlay": "overlays/30-mise.nix",
-      "current_version": "2026.8.3",
+      "current_version": "2026.8.4",
       "check": {
         "method": "github-release",
         "repo": "jdx/mise"
