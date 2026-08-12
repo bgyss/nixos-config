@@ -3,7 +3,7 @@
     {
       "name": "claude-code",
       "overlay": "overlays/41-claude-code.nix",
-      "current_version": "2.1.227",
+      "current_version": "2.1.228",
       "check": {
         "method": "github-release",
         "repo": "anthropics/claude-code"
@@ -35,7 +35,7 @@
     {
       "name": "trailbase",
       "overlay": "overlays/50-trailbase.nix",
-      "current_version": "0.32.0",
+      "current_version": "0.32.1",
       "check": {
         "method": "github-release",
         "repo": "trailbaseio/trailbase"
@@ -95,7 +95,7 @@
     {
       "name": "mise",
       "overlay": "overlays/30-mise.nix",
-      "current_version": "2026.8.4",
+      "current_version": "2026.8.5",
       "check": {
         "method": "github-release",
         "repo": "jdx/mise"
@@ -120,7 +120,7 @@
     {
       "name": "beads",
       "overlay": "overlays/60-beads.nix",
-      "current_version": "1.1.2",
+      "current_version": "1.2.1",
       "check": {
         "method": "github-release",
         "repo": "gastownhall/beads"
@@ -204,7 +204,7 @@
     {
       "name": "aws-cdk-cli",
       "overlay": "overlays/95-aws-cdk-cli.nix",
-      "current_version": "2.1135.1",
+      "current_version": "2.1136.0",
       "check": {
         "method": "npm",
         "package": "aws-cdk"

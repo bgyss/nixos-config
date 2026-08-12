@@ -10,12 +10,12 @@ let
     sqlite
     icu
     ;
-  version = "1.1.2";
+  version = "1.2.1";
   src = fetchFromGitHub {
     owner = "gastownhall";
     repo = "beads";
     rev = "v${version}";
-    hash = "sha256-5oDI2MunHrOKx1m5mC0ZaIqZ9+f1YBQotMBUj6U5H1I=";
+    hash = "sha256-0HcxHP/v9cFO4a/pB0KrqB1IiipJQ35XWoebS4vMK5E=";
   };
 in
 {
@@ -25,7 +25,7 @@ in
 
     subPackages = [ "cmd/bd" ];
     modRoot = ".";
-    vendorHash = "sha256-WWEwGpCwMPD7jaz02zN745RQQqYTQttehbcT3J9hayM=";
+    vendorHash = "sha256-mflgEu9g1k0UeyMA30WT4ON/8bpsNyIbIjAVTbjXpCs=";
 
     buildInputs = [
       sqlite
