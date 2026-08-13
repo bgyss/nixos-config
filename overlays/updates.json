@@ -236,6 +236,18 @@
         }
       },
       "notes": "Prebuilt release binary; no nixpkgs package exists. tar.xz archives — prefetch each platform with nix-prefetch-url (raw hash, not --unpack) and convert to SRI."
+    },
+    {
+      "name": "llama-cpp",
+      "overlay": "overlays/97-llama-cpp-latest.nix",
+      "current_version": "10375",
+      "check": {
+        "method": "github-release",
+        "repo": "ggml-org/llama.cpp",
+        "tag_prefix": "b"
+      },
+      "update_type": "source-override",
+      "notes": "overrideAttrs on nixpkgs' llama-cpp (currently pinned much further behind, e.g. b8667) with a fetchFromGitHub src pinned to the latest release tag (b<version>), so `llama`/`llama-server` on PATH stay current for new model architectures. Not a url/hash prebuilt, so fix-hashes does NOT touch it. Bumping needs TWO hashes by hand: the fetchFromGitHub src hash (leaveDotGit — blank it and read the build error, or nix-prefetch-git won't match since it doesn't run the postFetch script), and npmDepsHash for the webui's npm lockfile (also blank+rebuild). The webui's path within the repo (npmRoot) has moved before (tools/server/webui -> tools/ui as of b10375) — check it still exists at the new tag before assuming npmRoot is unchanged."
     }
   ],
   "skip": [
