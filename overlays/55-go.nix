@@ -5,24 +5,24 @@ final: prev:
 let
   inherit (prev) fetchurl stdenv;
 
-  version = "1.26.5";
+  version = "1.26.6";
 
   sources = {
     "aarch64-darwin" = {
       url = "https://go.dev/dl/go${version}.darwin-arm64.tar.gz";
-      hash = "sha256-77h/8or5oYjQU2711C5j3VK6gmPNc0Spk8xI3RHe22o=";
+      hash = "sha256-Lclc5GdYKfLfDoayi87zKDY1kCBipfBYDKZZv1cPMgQ=";
     };
     "x86_64-darwin" = {
       url = "https://go.dev/dl/go${version}.darwin-amd64.tar.gz";
-      hash = "sha256-YjHY07j1VS7Gy/bWhb3VSC4ecDIUsSDomzvw178e9yU=";
+      hash = "sha256-CLZaY/JEEVEhztbDtVrTjYAadEKsrVyUmheq2Erm1oQ=";
     };
     "x86_64-linux" = {
       url = "https://go.dev/dl/go${version}.linux-amd64.tar.gz";
-      hash = "sha256-XCw7FsrvodloqUwdrKBKfKMBpJbZsIbhetd7uBOT8FM=";
+      hash = "sha256-cI7/t3S+gjdXDQrdFjIlq7369PyiiyYR3xZ766T+74k=";
     };
     "aarch64-linux" = {
       url = "https://go.dev/dl/go${version}.linux-arm64.tar.gz";
-      hash = "sha256-/keJ6SsfMzWGgIZLvocEKJ57tfwgfYBiPDCJNb1pbUk=";
+      hash = "sha256-0FB+np1/4BKq5XAQjL12wV3oeeFxMKuMuQ1NdEXLHy4=";
     };
   };
 

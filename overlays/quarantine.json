@@ -1,4 +1,18 @@
 {
   "comment": "Machine-written quarantine ledger. See docs/superpowers/specs/2026-07-25-self-healing-updates-design.md §2. Do not hand-edit while the daily pipeline may be running; use scripts/quarantine.sh.",
-  "entries": []
+  "entries": [
+    {
+      "name": "revision-b19b6d1",
+      "kind": "revision",
+      "blocked_version": "b19b6d13de792ddec37d8e1436f5c611dcc18326",
+      "known_good_version": "b19b6d13de792ddec37d8e1436f5c611dcc18326",
+      "first_failed": "2026-08-14T16:47:54Z",
+      "last_attempt": "2026-08-14T16:47:54Z",
+      "attempts": 1,
+      "phase": "health-check",
+      "fingerprint": "health-failure",
+      "error_excerpt": "OK: claude-code (2.1.232)\nOK: codex-openai (0.147.0)\nSKIP: trailbase (not installed into any systemPackages/home-manager profile on this host; only exported as the buildable flake package `nix build .#trailbase` via optionalAttrs in flake.nix, so there is no `trail` binary on PATH to smoke-test)\nSKIP: igir (overlay provides pkgs.igir but it is not wired into any systemPackages/home-manager list or flake `packages` output on this host, so there is no `igir` binary on PATH to smoke-test)\nOK: uv (0.12.4)\nOK: mise (2026.8.5)\nOK: beads (1.1.2)\nOK: go (1.26.6)\nOK: ngrok (3.39.11)\nOK: c4 (runs; version not self-reported)\nOK: hey-cli (runs; version not self-reported)\nOK: tmux (3.7b)\nOK: aws-cdk-cli (2.1136.0)\nOK: dcg (0.11.0)\nFAIL: llama-cpp — expected version '10375', binary reports 'version: 10063'\nOK: launchd org.nixos.nixos-auto-update loaded\nFAILED: 1 health assertion(s)",
+      "retry_policy": "frozen"
+    }
+  ]
 }

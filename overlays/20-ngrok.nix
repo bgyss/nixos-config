@@ -1,4 +1,4 @@
-# ngrok overlay – bump to 3.39.10 until nixpkgs catches up
+# ngrok overlay – bump to 3.39.11 until nixpkgs catches up
 
 final: prev:
 
@@ -12,34 +12,34 @@ let
 
   versions = {
     "linux-386" = {
-      version = "3.39.10";
+      version = "3.39.11";
       url = "https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-linux-386.tgz";
-      sha256 = "sha256-z/W25wQJDZ/MycQ7RNZBjKhEXv8hh0M0ZqIjrayBNTo=";
+      sha256 = "sha256-reDZ/AabmQ0BA7uHYA1pkx2FyxO7aNlKTfy2uK1U1xQ=";
     };
     "linux-amd64" = {
-      version = "3.39.10";
+      version = "3.39.11";
       url = "https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-linux-amd64.tgz";
-      sha256 = "sha256-nfvhqRTmnMfpgNYea9WmQgJZGBAsW8aZBdHFdwOso+g=";
+      sha256 = "sha256-zsC0mX/MX1Kd/HS6yJBQNU0RqRX5aHIGAAOXOP3zMM8=";
     };
     "linux-arm" = {
-      version = "3.39.10";
+      version = "3.39.11";
       url = "https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-linux-arm.tgz";
-      sha256 = "sha256-oj6E1HBlh3QKXVkPpX/ELiifL9I8hpTpJlo5iJDvt1M=";
+      sha256 = "sha256-Os5R7VfRjrjTVARykSFlTqoZrhp/0sNx65kcrBHA6ts=";
     };
     "linux-arm64" = {
-      version = "3.39.10";
+      version = "3.39.11";
       url = "https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-linux-arm64.tgz";
-      sha256 = "sha256-cXb15dWi9sMy/5Ee+JV0HxMWjx8MIlSSxEEr3osvmg0=";
+      sha256 = "sha256-O2ugWp2VhcNBV/oIGfqVzbE4OfW1BrnmMgRwXPf3nik=";
     };
     "darwin-amd64" = {
-      version = "3.39.10";
+      version = "3.39.11";
       url = "https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-darwin-amd64.zip";
-      sha256 = "sha256-6vcFI9kjXwmizRRfbg3nLvhoFkSMNCaP5xwq9UP0/Dg=";
+      sha256 = "sha256-xrmz2RhPwIwz+4sYHZ8kHY9dYRYqC+BSG238HxGBOpY=";
     };
     "darwin-arm64" = {
-      version = "3.39.10";
+      version = "3.39.11";
       url = "https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-darwin-arm64.zip";
-      sha256 = "sha256-kHy2G2+lg346ws+kq46LHv6FxufNEcmZdKVge16iHOs=";
+      sha256 = "sha256-kySmVS104l1b39vtxLMkIslvBE/aN4d0mK2O8Qvd9/c=";
     };
   };
 

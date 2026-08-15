@@ -56,22 +56,18 @@ in
     config = nixpkgsConfig;
 
     overlays =
-      # Apply each overlay found in the /overlays directory
-      let
-        path = ../../overlays;
-      in
-      with builtins;
-      map (n: import (path + ("/" + n))) (
-        filter (n: match ".*\\.nix" n != null || pathExists (path + ("/" + n + "/default.nix"))) (
-          attrNames (readDir path)
-        )
-      )
-
-      # Add emacs overlay from flake input
-      ++ [ emacs-overlay.overlays.default ]
-
       # Pull the master-only packages from the single master instance above.
-      ++ [
+      # MUST run before the directory-scanned overlays below: overlay
+      # 97-llama-cpp-latest.nix layers a further version pin on top of
+      # `prev.llama-cpp` via overrideAttrs, and that only sticks if
+      # `prev.llama-cpp` is already masterPkgs' llama-cpp by the time it
+      # runs. Putting this overlay last (as it was previously) makes its
+      # unconditional `inherit (masterPkgs) llama-cpp` win over — and
+      # silently discard — overlay 97's pin, which is how the daily
+      # activation health check ended up seeing master's llama-cpp version
+      # instead of the pinned b10375 (see overlays/quarantine.json,
+      # revision-b19b6d1).
+      [
         (
           _final: prev:
           let
@@ -87,6 +83,22 @@ in
             yt-dlp-master = masterPkgs.yt-dlp;
           }
         )
-      ];
+      ]
+
+      # Apply each overlay found in the /overlays directory
+      ++ (
+        let
+          path = ../../overlays;
+        in
+        with builtins;
+        map (n: import (path + ("/" + n))) (
+          filter (n: match ".*\\.nix" n != null || pathExists (path + ("/" + n + "/default.nix"))) (
+            attrNames (readDir path)
+          )
+        )
+      )
+
+      # Add emacs overlay from flake input
+      ++ [ emacs-overlay.overlays.default ];
   };
 }
