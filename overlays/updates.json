@@ -204,7 +204,7 @@
     {
       "name": "aws-cdk-cli",
       "overlay": "overlays/95-aws-cdk-cli.nix",
-      "current_version": "2.1136.0",
+      "current_version": "2.1137.0",
       "check": {
         "method": "npm",
         "package": "aws-cdk"
