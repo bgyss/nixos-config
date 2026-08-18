@@ -91,7 +91,19 @@ while IFS= read -r row; do
     continue
   fi
 
-  observed="$(printf '%s' "$out" | grep -oE "$regex" | head -1)"
+  # Use bash's own ERE matching (not `grep -oE`) so we can pull out capture
+  # group 1 specifically. `grep -oE` prints the whole match, which is wrong
+  # whenever the regex has literal text outside the group (e.g. llama-cpp's
+  # "version: ([0-9]+)" — grep would yield "version: 10375", not "10375",
+  # and that literal prefix would then never equal the manifest's bare
+  # version string, false-failing the health check on every activation).
+  if [[ "$out" =~ $regex ]]; then
+    # Prefer capture group 1 if the regex has one; some assertions (e.g.
+    # go's) have no group at all, so fall back to the whole match.
+    observed="${BASH_REMATCH[1]:-${BASH_REMATCH[0]}}"
+  else
+    observed=""
+  fi
   if [[ -z "$observed" ]]; then
     echo "FAIL: $pkg — version_regex matched nothing in: $(printf '%s' "$out" | head -1)" >&2
     failures=$((failures + 1))

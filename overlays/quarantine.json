@@ -2,16 +2,34 @@
   "comment": "Machine-written quarantine ledger. See docs/superpowers/specs/2026-07-25-self-healing-updates-design.md §2. Do not hand-edit while the daily pipeline may be running; use scripts/quarantine.sh.",
   "entries": [
     {
-      "name": "hey-cli",
+      "name": "trailbase",
       "kind": "overlay",
-      "blocked_version": "0-unstable-2026-08-17",
-      "known_good_version": "0-unstable-2026-07-31",
-      "first_failed": "2026-08-17T16:01:56Z",
-      "last_attempt": "2026-08-17T16:01:56Z",
+      "blocked_version": "0.33.0",
+      "known_good_version": "0.32.2",
+      "first_failed": "2026-08-18T16:01:52Z",
+      "last_attempt": "2026-08-18T16:01:52Z",
       "attempts": 1,
       "phase": "package-build",
       "fingerprint": "unclassified",
-      "error_excerpt": "-- hey-cli: 1512c168a5f526cab572ce365771772bdbd2d2a8 -> 298fe0a9a052a151573963eefbad442c76a90cdc (0-unstable-2026-07-31 -> 0-unstable-2026-08-17)\n  could not resolve vendorHash from build error for hey-cli",
+      "error_excerpt": "-- trailbase: 0.32.2 -> 0.33.0\n  fix-hashes --only trailbase failed:\nChecking hashes in prebuilt-binary overlays (this downloads each artifact)...\n\n--- 50-trailbase.nix ---\n  trailbase_v0.33.0_arm64_apple_darwin.zip ... fetch failed (skipping)\n  trailbase_v0.33.0_x86_64_apple_darwin.zip ... fetch failed (skipping)\n  trailbase_v0.33.0_x86_64_linux.zip ... fetch failed (skipping)\n\nChecked 3 URL(s): 0 updated, 3 error(s).",
+      "retry_policy": "next-version-only",
+      "escalation": {
+        "status": "gave-up",
+        "verdict": "Not an overlay bug: the v0.33.0 GitHub release (trailbaseio/trailbase) is missing the platform binaries entirely. Querying the GitHub API for the release (tag v0.33.0, id 372475368) shows exactly one asset attached: trailbase_v0.33.0_wasm_tetris.zip (a WASM demo build). None of the darwin/linux 'trail' binaries the overlay's url_template expects (trailbase_v0.33.0_arm64_apple_darwin.zip, _x86_64_apple_darwin.zip, _x86_64_linux.zip) exist on this release, which is exactly why all three fetches 404'd during fix-hashes. This is an incomplete/in-progress upstream release (published_at 2026-08-18T15:54:42Z, very recent relative to repair time) rather than a URL-pattern or hash problem in the overlay. Recommend re-checking upstream in a day or two for the platform assets to land, or pinging trailbaseio/trailbase if the CI release job appears to have failed to upload them. No files changed.",
+        "at": "2026-08-18T16:05:01Z"
+      }
+    },
+    {
+      "name": "hey-cli",
+      "kind": "overlay",
+      "blocked_version": "0-unstable-2026-08-18",
+      "known_good_version": "0-unstable-2026-07-31",
+      "first_failed": "2026-08-18T16:02:25Z",
+      "last_attempt": "2026-08-18T16:02:25Z",
+      "attempts": 1,
+      "phase": "package-build",
+      "fingerprint": "unclassified",
+      "error_excerpt": "-- hey-cli: 1512c168a5f526cab572ce365771772bdbd2d2a8 -> bc673c9feed36bae8a754b1780023c205575e39d (0-unstable-2026-07-31 -> 0-unstable-2026-08-18)\n  could not resolve vendorHash from build error for hey-cli",
       "retry_policy": "next-version-only",
       "escalation": {
         "status": "gave-up",
