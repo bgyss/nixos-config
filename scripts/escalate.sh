@@ -143,6 +143,12 @@ $(tail -80 "$LOG" 2>/dev/null | quarantine_sanitize)
    nix build --no-link --impure --expr 'let pkgs = import <nixpkgs> { config.allowUnfree = true; overlays = [ (import ./$overlay_rel) ]; }; in pkgs.$PACKAGE'
 4. Write verdict.json in the worktree root (schema in the skill). Do NOT commit.
 
+This is a headless, single-shot session with no scheduler behind it: never
+background a command and wait for it, and never wait on a "scheduled
+wakeup" — no such thing will arrive here and the session will simply end
+with nothing done. Every command must run synchronously to completion
+before you continue to the next step.
+
 If two attempts do not work, write status "gave-up" with a precise diagnosis.
 A wrong-but-building overlay is worse than a frozen one.
 EOF
@@ -217,7 +223,14 @@ if [[ $claude_rc -eq 126 || $claude_rc -eq 127 ]]; then
   status="infra-error"
   verdict="wrapper could not execute \$CLAUDE_BIN ($CLAUDE_BIN exited $claude_rc — not found or not executable)"
 else
-  status="gave-up"; verdict="no verdict.json produced (claude exited $claude_rc)"
+  # "stalled", not "gave-up": no verdict.json means the model never reached a
+  # conclusion (e.g. it backgrounded a step and waited for a wakeup that this
+  # headless session has no scheduler to deliver) — it is not a diagnosis that
+  # the package can't be fixed. quarantine_should_escalate only arms its
+  # fingerprint-dedup brake on exactly "gave-up", so "stalled" stays retryable
+  # on the next run instead of looking identical to a real give-up in the
+  # ledger.
+  status="stalled"; verdict="no verdict.json produced (claude exited $claude_rc) — session likely stalled rather than reached a real diagnosis"
   if [[ -f "$wt/verdict.json" ]] && jq empty "$wt/verdict.json" 2>/dev/null; then
     status="$(jq -r '.status // "gave-up"' "$wt/verdict.json")"
     verdict="$(jq -r '.verdict // "no verdict text"' "$wt/verdict.json")"

@@ -180,9 +180,14 @@ only fire inside `bump-overlays`/`prepare`/`escalate.sh`).
 ## Reading `logs/escalation-costs.tsv` and the five token brakes
 
 Each `escalate.sh` run appends one line: `timestamp<TAB>package<TAB>outcome<TAB>duration_seconds<TAB>tokens`,
-where `outcome` is `fixed` or `gave-up` — logged *after* the wrapper's own independent
-verification, never the model's self-reported claim (see `scripts/escalate.sh`'s `log_cost`
-and the block above it). The file doesn't exist until the first escalation runs.
+where `outcome` is `fixed`, `gave-up`, `stalled`, or `infra-error` — logged *after* the
+wrapper's own independent verification, never the model's self-reported claim (see
+`scripts/escalate.sh`'s `log_cost` and the block above it). `stalled` means the session ended
+with no `verdict.json` at all (e.g. it backgrounded a step and waited on a "scheduled wakeup"
+that a headless one-shot session has no scheduler to ever deliver) — it is a session failure,
+not a diagnosis that the package can't be fixed, and unlike `gave-up` it does **not** arm the
+fingerprint-dedup brake below, so the package stays eligible for escalation on the next run.
+The file doesn't exist until the first escalation runs.
 
 The five brakes, and where each actually lives (verified against the current code — the plan
 document `docs/superpowers/plans/2026-07-25-self-healing-updates.md` still names a constant
@@ -207,9 +212,16 @@ document `docs/superpowers/plans/2026-07-25-self-healing-updates.md` still names
 To retune, edit the constant in the file named above and commit — there is no separate
 environment-variable override for any of the five today.
 
-## Known limitation: scoped-verify false negatives for cross-overlay dependencies
+## Resolved: scoped-verify false negatives for cross-overlay dependencies
 
-`scripts/escalate.sh`'s verification build is scoped to the ONE overlay file being repaired:
+**Status: fixed (`f480b98`).** `scripts/escalate.sh` now falls through to the full-system
+build whenever the scoped build fails, and only records `gave-up` if the full build fails too
+(see the `scoped_build_ok` block around its two `nix build` calls). The false-negative
+mechanism below is kept for context — it's what motivated the fix — but Option 1 from the list
+at the end of this section is the current, live behavior, not a proposal.
+
+`scripts/escalate.sh`'s *scoped* verification build is scoped to the ONE overlay file being
+repaired:
 
 ```bash
 nix build --no-link --impure --expr \
@@ -254,13 +266,13 @@ package" above. `.claude/skills/overlay-repair/SKILL.md` documents this same wor
 future repair sessions to recognize the pattern (though a repair session still cannot make the
 wrapper accept it — only a human bypassing the wrapper can).
 
-**Possible longer-term fixes to `scripts/escalate.sh`** (not yet implemented — pick one if this
-recurs for other Go/Rust overlays):
+**Options considered** (Option 1 is implemented; 2 and 3 remain possible future refinements if
+the extra full-system build ever proves too expensive to run on every scoped-build failure):
 
-1. **Fall through instead of short-circuiting.** On a scoped-build failure, don't immediately
-   record `gave-up` — attempt the full-system build first, and only give up if *that* also
-   fails. This directly closes the gap without weakening any other gate, at the cost of one
-   extra build (only on the already-rare scoped-build-failure path).
+1. **Fall through instead of short-circuiting (implemented).** On a scoped-build failure, don't
+   immediately record `gave-up` — attempt the full-system build first, and only give up if
+   *that* also fails. This directly closes the gap without weakening any other gate, at the
+   cost of one extra build (only on the already-rare scoped-build-failure path).
 2. **Widen the scoped build to include known cross-cutting overlays.** Load `55-go.nix` (and
    any other overlay that overrides a builder rather than defining one leaf package) alongside
    the package's own overlay in the scoped expression. Cheaper than a full system build, but
@@ -270,9 +282,6 @@ recurs for other Go/Rust overlays):
    resolution failures paired with a `go.mod`/`go` directive bump) and route them straight to
    the full-system build, skipping the scoped one entirely for that fingerprint. More precise
    than (1) but adds a new failure-classification path to maintain.
-
-Option 1 is the simplest and safest — it changes nothing about what "fixed" means, just when
-the more expensive check runs.
 
 ## Disabling the automation
 

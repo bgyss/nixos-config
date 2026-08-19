@@ -18,6 +18,10 @@ worktree silently wedges every future run.
 
 ## Hard rules
 
+- **This is a headless, single-shot session with no scheduler behind it.** Never background a
+  command and wait for it, and never wait on a "scheduled wakeup" or any other asynchronous
+  signal — nothing will ever arrive, and the session just ends with nothing accomplished. Every
+  command you run must complete synchronously before you move to the next step.
 - **You cannot commit, push, activate, or sudo.** Those tools are not available
   to you by design. The wrapper commits — and only after independently
   re-running your build. Your claim of success is not evidence.
@@ -87,11 +91,12 @@ scoped build, and read the expected hash out of the error message.
 - **hey-cli** (`overlays/94-hey-cli.nix`): a `buildGoModule` derivation. Its
   `go.mod` `go` directive tracks upstream closely, so a bump can start
   requiring a newer Go than nixpkgs' default the moment it lands — this repo
-  pins Go to exactly 1.26.5 via `overlays/55-go.nix`, but that pin is a
-  SEPARATE overlay. See the cross-overlay-dependency note under Verify below:
-  the scoped single-overlay build will spuriously fail on a `go.mod` bump even
-  when the real fix is correct, because it builds against nixpkgs' unpinned
-  `go` instead of the repo's 1.26.5 pin.
+  pins Go via `overlays/55-go.nix`, but that pin is a SEPARATE overlay. See the
+  cross-overlay-dependency note under Verify below: the scoped single-overlay
+  build can spuriously fail on a `go.mod` bump even when the real fix is
+  correct, because it builds against nixpkgs' unpinned `go` instead of this
+  repo's pin — the wrapper now falls through to the full-system build in that
+  case (see Verify), so a scoped-build failure here is not fatal on its own.
 
 Full recipes: `docs/overlay-update-routine.md`.
 
@@ -108,27 +113,28 @@ Run `nix fmt` if you changed a `.nix` file.
 It loads ONLY the one overlay file, so any package whose build depends on
 another overlay's package override — e.g. `buildGoModule` derivations built
 against the pinned `go` from `overlays/55-go.nix` — sees nixpkgs' unpinned
-default instead. `hey-cli` hit this in July 2026: its `go.mod` required
-`go 1.26.5`, the repo already pins exactly that via `55-go.nix`, but the
-scoped verify build used nixpkgs' older default `go` and failed with
-`could not resolve vendorHash from build error`, even though the fix was
-correct and the full system build passed. **The wrapper (`scripts/escalate.sh`)
-treats a scoped-build failure as an immediate `gave-up` and never reaches its
-own full-system-build fallback check** — so if you suspect this is happening
-(a Go/Rust toolchain-version error, or any failure referencing a package this
-overlay doesn't itself define), verify with the real host attr instead, which
-loads every overlay together:
+default instead. `hey-cli` hit this in July 2026: its `go.mod` required a
+newer Go than nixpkgs' default, the repo already pins a sufficient version via
+`55-go.nix`, but the scoped verify build used nixpkgs' older default `go` and
+failed with `could not resolve vendorHash from build error`, even though the
+fix was correct.
+
+**This is no longer fatal on its own.** The wrapper (`scripts/escalate.sh`)
+falls through to a full-system build whenever the scoped build fails, and only
+records `gave-up` if that full build fails too — so write `verdict.json` with
+`status: "fixed"` as normal; you do not need to give up just because the
+scoped build above failed. It's still worth verifying with the real host attr
+yourself before writing the verdict, both to confirm your fix actually works
+and because it loads every overlay together the same way the wrapper's
+fallback does:
 
 ```bash
 nix build --no-link --print-out-paths \
   ".#darwinConfigurations.garmonbozia.pkgs.<attr>"
 ```
 
-If that passes, the repair is correct — but you cannot make the wrapper honor
-it (two-attempt limit, only the scoped build gates automated `fixed` status).
-Write `gave-up` with a verdict naming the cross-overlay dependency precisely,
-so a human knows to intervene manually rather than treating it as a real
-break in the package.
+If even that fails, the fix is genuinely broken (or broken by something this
+overlay can't control) — write `gave-up` with a precise diagnosis.
 
 ## Write the verdict
 
