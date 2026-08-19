@@ -22,14 +22,14 @@
     {
       "name": "hey-cli",
       "kind": "overlay",
-      "blocked_version": "0-unstable-2026-08-18",
+      "blocked_version": "0-unstable-2026-08-19",
       "known_good_version": "0-unstable-2026-07-31",
-      "first_failed": "2026-08-18T16:02:25Z",
-      "last_attempt": "2026-08-18T16:02:25Z",
+      "first_failed": "2026-08-19T16:07:33Z",
+      "last_attempt": "2026-08-19T16:07:33Z",
       "attempts": 1,
       "phase": "package-build",
       "fingerprint": "unclassified",
-      "error_excerpt": "-- hey-cli: 1512c168a5f526cab572ce365771772bdbd2d2a8 -> bc673c9feed36bae8a754b1780023c205575e39d (0-unstable-2026-07-31 -> 0-unstable-2026-08-18)\n  could not resolve vendorHash from build error for hey-cli",
+      "error_excerpt": "-- hey-cli: 1512c168a5f526cab572ce365771772bdbd2d2a8 -> beedc8655810ec1253e7f05e27e6f3a8068878e0 (0-unstable-2026-07-31 -> 0-unstable-2026-08-19)\n  could not resolve vendorHash from build error for hey-cli",
       "retry_policy": "next-version-only",
       "escalation": {
         "status": "gave-up",
