@@ -18,24 +18,6 @@
         "verdict": "Not an overlay bug: the v0.33.0 GitHub release (trailbaseio/trailbase) is missing the platform binaries entirely. Querying the GitHub API for the release (tag v0.33.0, id 372475368) shows exactly one asset attached: trailbase_v0.33.0_wasm_tetris.zip (a WASM demo build). None of the darwin/linux 'trail' binaries the overlay's url_template expects (trailbase_v0.33.0_arm64_apple_darwin.zip, _x86_64_apple_darwin.zip, _x86_64_linux.zip) exist on this release, which is exactly why all three fetches 404'd during fix-hashes. This is an incomplete/in-progress upstream release (published_at 2026-08-18T15:54:42Z, very recent relative to repair time) rather than a URL-pattern or hash problem in the overlay. Recommend re-checking upstream in a day or two for the platform assets to land, or pinging trailbaseio/trailbase if the CI release job appears to have failed to upload them. No files changed.",
         "at": "2026-08-18T16:05:01Z"
       }
-    },
-    {
-      "name": "hey-cli",
-      "kind": "overlay",
-      "blocked_version": "0-unstable-2026-08-19",
-      "known_good_version": "0-unstable-2026-07-31",
-      "first_failed": "2026-08-19T16:07:33Z",
-      "last_attempt": "2026-08-19T16:07:33Z",
-      "attempts": 1,
-      "phase": "package-build",
-      "fingerprint": "unclassified",
-      "error_excerpt": "-- hey-cli: 1512c168a5f526cab572ce365771772bdbd2d2a8 -> beedc8655810ec1253e7f05e27e6f3a8068878e0 (0-unstable-2026-07-31 -> 0-unstable-2026-08-19)\n  could not resolve vendorHash from build error for hey-cli",
-      "retry_policy": "next-version-only",
-      "escalation": {
-        "status": "gave-up",
-        "verdict": "no verdict.json produced (claude exited 0)",
-        "at": "2026-08-17T16:03:47Z"
-      }
     }
   ]
 }
