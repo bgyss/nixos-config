@@ -202,6 +202,20 @@
       "notes": "overrideAttrs on nixpkgs' tmux with a fetchFromGitHub src (tag == version, e.g. 3.7b). Not a url/hash prebuilt, so fix-hashes does NOT touch it — bump the tag + fetchFromGitHub hash by hand (nix-prefetch-url --unpack the tag tarball or blank the hash and read the build error)."
     },
     {
+      "name": "tmux-resurrect",
+      "overlay": "overlays/98-tmux-resurrect.nix",
+      "current_version": "0-unstable-2023-03-06",
+      "current_rev": "cff343cf9e81983d3da0c8562b01616f12e8d548",
+      "check": {
+        "method": "github-commits",
+        "repo": "tmux-plugins/tmux-resurrect",
+        "branch": "master"
+      },
+      "update_type": "source-override",
+      "notes": "overrideAttrs on nixpkgs' tmuxPlugins.resurrect (pinned to unstable-2022-05-01) with a fetchFromGitHub src pinned to upstream master. Project is unmaintained (no commits since 2023-03-06), so this pin is effectively 'latest ever' -- re-check occasionally in case that changes. Not a url/hash prebuilt, so fix-hashes does NOT touch it; bump rev + version date string + fetchFromGitHub hash by hand (nix-prefetch-url --unpack the archive URL, convert to SRI).",
+      "cadence_hours": 168
+    },
+    {
       "name": "aws-cdk-cli",
       "overlay": "overlays/95-aws-cdk-cli.nix",
       "current_version": "2.1137.0",

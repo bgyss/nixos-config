@@ -70,6 +70,10 @@
       "timeout": 20
     },
     {
+      "package": "tmux-resurrect",
+      "skip": "a tmux plugin (shell scripts sourced by tmux-continuum), not a binary on PATH -- no standalone version command to smoke-test"
+    },
+    {
       "package": "aws-cdk-cli",
       "command": "cdk --version",
       "version_regex": "([0-9]+\\.[0-9]+\\.[0-9]+)",
