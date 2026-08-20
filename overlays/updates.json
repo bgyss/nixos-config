@@ -3,7 +3,7 @@
     {
       "name": "claude-code",
       "overlay": "overlays/41-claude-code.nix",
-      "current_version": "2.1.235",
+      "current_version": "2.1.237",
       "check": {
         "method": "github-release",
         "repo": "anthropics/claude-code"
@@ -35,7 +35,7 @@
     {
       "name": "trailbase",
       "overlay": "overlays/50-trailbase.nix",
-      "current_version": "0.32.2",
+      "current_version": "0.33.1",
       "check": {
         "method": "github-release",
         "repo": "trailbaseio/trailbase"
@@ -95,7 +95,7 @@
     {
       "name": "mise",
       "overlay": "overlays/30-mise.nix",
-      "current_version": "2026.8.8",
+      "current_version": "2026.8.9",
       "check": {
         "method": "github-release",
         "repo": "jdx/mise"
@@ -179,8 +179,8 @@
     {
       "name": "hey-cli",
       "overlay": "overlays/94-hey-cli.nix",
-      "current_version": "0-unstable-2026-08-19",
-      "current_rev": "beedc8655810ec1253e7f05e27e6f3a8068878e0",
+      "current_version": "0-unstable-2026-08-20",
+      "current_rev": "425ab721ef1e405bbec62e0b108df93999c0b4a8",
       "check": {
         "method": "github-commits",
         "repo": "basecamp/hey-cli",
@@ -218,7 +218,7 @@
     {
       "name": "aws-cdk-cli",
       "overlay": "overlays/95-aws-cdk-cli.nix",
-      "current_version": "2.1137.0",
+      "current_version": "2.1138.0",
       "check": {
         "method": "npm",
         "package": "aws-cdk"
@@ -229,7 +229,7 @@
     {
       "name": "dcg",
       "overlay": "overlays/91-dcg.nix",
-      "current_version": "0.11.0",
+      "current_version": "0.11.1",
       "check": {
         "method": "github-release",
         "repo": "Dicklesworthstone/destructive_command_guard"
