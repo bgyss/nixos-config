@@ -3,7 +3,7 @@
     {
       "name": "claude-code",
       "overlay": "overlays/41-claude-code.nix",
-      "current_version": "2.1.238",
+      "current_version": "2.1.241",
       "check": {
         "method": "github-release",
         "repo": "anthropics/claude-code"
@@ -179,8 +179,8 @@
     {
       "name": "hey-cli",
       "overlay": "overlays/94-hey-cli.nix",
-      "current_version": "0-unstable-2026-08-21",
-      "current_rev": "f95fa4a9c7184b220e3a649323f3f1f3691d6a4f",
+      "current_version": "0-unstable-2026-08-23",
+      "current_rev": "b05a35fccc970400085259772cbdd628878b7a50",
       "check": {
         "method": "github-commits",
         "repo": "basecamp/hey-cli",
@@ -229,7 +229,7 @@
     {
       "name": "dcg",
       "overlay": "overlays/91-dcg.nix",
-      "current_version": "0.12.0",
+      "current_version": "0.12.5",
       "check": {
         "method": "github-release",
         "repo": "Dicklesworthstone/destructive_command_guard"
