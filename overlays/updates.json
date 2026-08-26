@@ -3,7 +3,7 @@
     {
       "name": "claude-code",
       "overlay": "overlays/41-claude-code.nix",
-      "current_version": "2.1.241",
+      "current_version": "2.1.246",
       "check": {
         "method": "github-release",
         "repo": "anthropics/claude-code"
@@ -35,7 +35,7 @@
     {
       "name": "trailbase",
       "overlay": "overlays/50-trailbase.nix",
-      "current_version": "0.33.2",
+      "current_version": "0.33.3",
       "check": {
         "method": "github-release",
         "repo": "trailbaseio/trailbase"
@@ -80,7 +80,7 @@
     {
       "name": "uv",
       "overlay": "overlays/25-uv.nix",
-      "current_version": "0.12.5",
+      "current_version": "0.12.6",
       "check": {
         "method": "github-release",
         "repo": "astral-sh/uv"
@@ -95,7 +95,7 @@
     {
       "name": "mise",
       "overlay": "overlays/30-mise.nix",
-      "current_version": "2026.8.12",
+      "current_version": "2026.8.14",
       "check": {
         "method": "github-release",
         "repo": "jdx/mise"
@@ -229,7 +229,7 @@
     {
       "name": "dcg",
       "overlay": "overlays/91-dcg.nix",
-      "current_version": "0.12.5",
+      "current_version": "0.13.0",
       "check": {
         "method": "github-release",
         "repo": "Dicklesworthstone/destructive_command_guard"
@@ -323,6 +323,36 @@
     "secrets": {
       "cadence_hours": 0,
       "on_demand": true
+    },
+    "nixpkgs-master": {
+      "cadence_hours": 168
+    },
+    "emacs-overlay": {
+      "cadence_hours": 168
+    },
+    "nix-homebrew": {
+      "cadence_hours": 168
+    },
+    "homebrew-bundle": {
+      "cadence_hours": 168
+    },
+    "homebrew-core": {
+      "cadence_hours": 168
+    },
+    "homebrew-cask": {
+      "cadence_hours": 168
+    },
+    "dagger-tap": {
+      "cadence_hours": 168
+    },
+    "disko": {
+      "cadence_hours": 168
+    },
+    "agenix": {
+      "cadence_hours": 168
+    },
+    "treefmt-nix": {
+      "cadence_hours": 168
     }
   },
   "pinned_inputs": [

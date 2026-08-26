@@ -285,22 +285,16 @@ if [[ -n "$overlays_outdated" ]]; then
   msg "overlays outdated (not auto-updated — see docs/overlay-update-routine.md): $overlays_outdated"
 fi
 
-# Gate on flake-input movement only; overlays never factor into build/commit.
-if ! gate_should_build "" "$inputs_updated"; then
-  msg "nothing to do — no flake input moved within cadence"
-  state_set_last_gate "$(now_iso)"
-  exit 0
-fi
-
-state_set_last_gate "$(now_iso)"
-
 quarantine_init
 # Speculative unpin attempts. Each is expensive (a full build against a new
 # nixpkgs, in a throwaway worktree), so at most ONE per run: the pins are
 # ordered by risk in the manifest and unpinning nixpkgs is what unblocks the
-# other two anyway. This runs AFTER the cadence gate above, so it never fires
-# on a run where nothing else moved either — but it is independent of that
-# gate's outcome otherwise, since a pin's own retry cadence is what governs it.
+# other two anyway. This MUST run before the "nothing to do" gate below: every
+# real flake input (nixpkgs/home-manager/darwin) is permanently frozen via
+# pinned_inputs[], and `secrets` is on_demand, so probe_flake_inputs's
+# inputs_updated is always empty and the gate would always exit early —
+# leaving the unpin retry dead code that never fires. A pin's own retry
+# cadence, not other inputs' movement, is what governs whether this runs.
 pin_names="$(jq -r '(.pinned_inputs // [])[].name' "$MANIFEST")"
 while IFS= read -r pin; do
   [[ -z "$pin" ]] && continue
@@ -311,6 +305,15 @@ while IFS= read -r pin; do
     break
   fi
 done <<< "$pin_names"
+
+# Gate on flake-input movement only; overlays never factor into build/commit.
+if ! gate_should_build "" "$inputs_updated"; then
+  msg "nothing to do — no flake input moved within cadence"
+  state_set_last_gate "$(now_iso)"
+  exit 0
+fi
+
+state_set_last_gate "$(now_iso)"
 
 warn "==> build ${FLAKE_SYSTEM_ATTR} (evidence; no activation)"
 nix build "${FLAKE_DIR}#${FLAKE_SYSTEM_ATTR}" --out-link ./result "$@"

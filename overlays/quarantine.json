@@ -1,4 +1,18 @@
 {
   "comment": "Machine-written quarantine ledger. See docs/superpowers/specs/2026-07-25-self-healing-updates-design.md §2. Do not hand-edit while the daily pipeline may be running; use scripts/quarantine.sh.",
-  "entries": []
+  "entries": [
+    {
+      "name": "hey-cli",
+      "kind": "overlay",
+      "blocked_version": "0-unstable-2026-08-26",
+      "known_good_version": "0-unstable-2026-08-24",
+      "first_failed": "2026-08-26T16:06:51Z",
+      "last_attempt": "2026-08-26T16:06:51Z",
+      "attempts": 1,
+      "phase": "package-build",
+      "fingerprint": "unclassified",
+      "error_excerpt": "-- hey-cli: 4858d2ab37366c3491c316b8d4109991f1c19407 -> 58c83f1e62f7542af04fbac343711f7fd643b576 (0-unstable-2026-08-24 -> 0-unstable-2026-08-26)\n  could not resolve vendorHash from build error for hey-cli",
+      "retry_policy": "next-version-only"
+    }
+  ]
 }
