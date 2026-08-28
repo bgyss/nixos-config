@@ -2,17 +2,43 @@
   "comment": "Machine-written quarantine ledger. See docs/superpowers/specs/2026-07-25-self-healing-updates-design.md §2. Do not hand-edit while the daily pipeline may be running; use scripts/quarantine.sh.",
   "entries": [
     {
-      "name": "hey-cli",
-      "kind": "overlay",
-      "blocked_version": "0-unstable-2026-08-26",
-      "known_good_version": "0-unstable-2026-08-24",
-      "first_failed": "2026-08-26T16:06:51Z",
-      "last_attempt": "2026-08-26T16:06:51Z",
+      "name": "nixpkgs",
+      "kind": "input",
+      "blocked_version": "unpin-attempt",
+      "known_good_version": "af45a5c7362bcf6585aff1ffd1de09663cce80c8",
+      "first_failed": "2026-08-26T16:31:11Z",
+      "last_attempt": "2026-08-26T16:31:11Z",
       "attempts": 1,
-      "phase": "package-build",
-      "fingerprint": "unclassified",
-      "error_excerpt": "-- hey-cli: 4858d2ab37366c3491c316b8d4109991f1c19407 -> 58c83f1e62f7542af04fbac343711f7fd643b576 (0-unstable-2026-08-24 -> 0-unstable-2026-08-26)\n  could not resolve vendorHash from build error for hey-cli",
-      "retry_policy": "next-version-only"
+      "phase": "system-build",
+      "fingerprint": "unpin-failed",
+      "error_excerpt": "       The nix-darwin and Nixpkgs branches in use must match, but you are currently\n       using nix-darwin 26.05 with Nixpkgs 26.11.\n\n       On macOS, you should use either the `nixpkgs-unstable` or\n       `nixpkgs-YY.MM-darwin` branches of Nixpkgs. These correspond to the\n       `master` and `nix-darwin-YY.MM` branches of nix-darwin, respectively. Check\n       <https://status.nixos.org/> for the currently supported Nixpkgs releases.\n\n       If you’re using flakes, make sure your inputs look like this:\n\n           inputs = {\n             nixpkgs.url = \"github:NixOS/nixpkgs/NIXPKGS-BRANCH\";\n             nix-darwin.url = \"github:nix-darwin/nix-darwin/NIX-DARWIN-BRANCH\";\n             nix-darwin.inputs.nixpkgs.follows = \"nixpkgs\";\n             # …\n           };\n\n       If you’re using channels, you can check your current channels with:\n\n           $ sudo nix-channel --list\n           nixpkgs https://nixos.org/channels/NIXPKGS-BRANCH\n           darwin https://github.com/nix-darwin/nix-darwin/archive/NIX-DARWIN-BRANCH.tar.gz\n           …\n           $ nix-channel --list\n           …\n\n       If `darwin` or `nixpkgs` are present in `nix-channel --list` (without\n       `sudo`), you should delete them with `nix-channel --remove NAME`. These can\n       contribute to version mismatch problems.\n\n       You can then fix your channels like this:\n\n           $ sudo nix-channel --add https://nixos.org/channels/NIXPKGS-BRANCH nixpkgs\n           $ sudo nix-channel --add https://github.com/nix-darwin/nix-darwin/archive/NIX-DARWIN-BRANCH.tar.gz darwin\n           $ sudo nix-channel --update\n\n       After that, activating your system again should work correctly. If it\n       doesn’t, please open an issue at\n       <https://github.com/nix-darwin/nix-darwin/issues/new> and include as much\n       information as possible.",
+      "retry_policy": "retry-after:168"
+    },
+    {
+      "name": "home-manager",
+      "kind": "input",
+      "blocked_version": "unpin-attempt",
+      "known_good_version": "9ce9f7f",
+      "first_failed": "2026-08-28T16:04:47Z",
+      "last_attempt": "2026-08-28T16:04:47Z",
+      "attempts": 1,
+      "phase": "system-build",
+      "fingerprint": "unpin-failed",
+      "error_excerpt": "warning: Git tree '/private/tmp/tmp.WTSFThvwUn/unpin-home-manager' has uncommitted changes\nunpacking 'github:nix-community/home-manager/99c9ec63390f1d8c14d95d9e8b17cc29cfbd4e11' into the Git cache...\nwarning: updating lock file \"/private/tmp/tmp.WTSFThvwUn/unpin-home-manager/flake.lock\":\n• Updated input 'home-manager':\n    'github:nix-community/home-manager/9ce9f7f' (2026-05-02)\n  → 'github:nix-community/home-manager/99c9ec6' (2026-08-27)\n• Updated input 'home-manager/nixpkgs':\n    'github:NixOS/nixpkgs/68d8aa3' (2026-04-05)\n  → 'github:NixOS/nixpkgs/391b592' (2026-08-20)\nwarning: Git tree '/private/tmp/tmp.WTSFThvwUn/unpin-home-manager' has uncommitted changes\nerror:\n       … while evaluating the attribute 'optionalValue.value'\n         at «github:NixOS/nixpkgs/af45a5c»/lib/modules.nix:1256:5:\n         1255|\n         1256|     optionalValue = if isDefined then { value = mergedValue; } else { };\n             |     ^\n         1257|   };\n\n       … while evaluating a branch condition\n         at «github:NixOS/nixpkgs/af45a5c»/lib/modules.nix:1256:21:\n         1255|\n         1256|     optionalValue = if isDefined then { value = mergedValue; } else { };\n             |                     ^\n         1257|   };\n\n       … while evaluating definitions from `<store>/source/modules/system':\n\n       … while evaluating the option `assertions':\n\n       … while evaluating definitions from `<store>/source/nixos/common.nix':\n\n       … while evaluating the option `home-manager.users.briangyss.assertions':\n\n       … while evaluating definitions from `<store>/source/modules/services-modular':\n\n       (stack trace truncated; use '--show-trace' to show the full, detailed trace)\n\n       error: path '«github:NixOS/nixpkgs/af45a5c»/lib/services/lib.nix' does not exist",
+      "retry_policy": "retry-after:168"
+    },
+    {
+      "name": "revision-2afe4ef",
+      "kind": "revision",
+      "blocked_version": "2afe4ef9e5a877171bc8b9dcc296fa42f2a96fe9",
+      "known_good_version": "2afe4ef9e5a877171bc8b9dcc296fa42f2a96fe9",
+      "first_failed": "2026-08-28T16:07:05Z",
+      "last_attempt": "2026-08-28T16:07:05Z",
+      "attempts": 1,
+      "phase": "health-check",
+      "fingerprint": "health-failure",
+      "error_excerpt": "OK: claude-code (2.1.250)\nOK: codex-openai (0.150.1)\nSKIP: trailbase (not installed into any systemPackages/home-manager profile on this host; only exported as the buildable flake package `nix build .#trailbase` via optionalAttrs in flake.nix, so there is no `trail` binary on PATH to smoke-test)\nSKIP: igir (overlay provides pkgs.igir but it is not wired into any systemPackages/home-manager list or flake `packages` output on this host, so there is no `igir` binary on PATH to smoke-test)\nOK: uv (0.12.7)\nOK: mise (2026.8.14)\nOK: beads (1.2.2)\nOK: go (1.26.7)\nOK: ngrok (3.39.11)\nOK: c4 (runs; version not self-reported)\nOK: hey-cli (runs; version not self-reported)\nOK: tmux (3.7b)\nSKIP: tmux-resurrect (a tmux plugin (shell scripts sourced by tmux-continuum), not a binary on PATH -- no standalone version command to smoke-test)\nOK: aws-cdk-cli (2.1139.0)\nOK: dcg (0.13.9)\nFAIL: llama-cpp — expected version '10375', binary reports '10566'\nOK: launchd org.nixos.nixos-auto-update loaded\nFAILED: 1 health assertion(s)",
+      "retry_policy": "frozen"
     }
   ]
 }

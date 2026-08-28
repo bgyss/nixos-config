@@ -3,7 +3,7 @@
     {
       "name": "claude-code",
       "overlay": "overlays/41-claude-code.nix",
-      "current_version": "2.1.246",
+      "current_version": "2.1.250",
       "check": {
         "method": "github-release",
         "repo": "anthropics/claude-code"
@@ -19,7 +19,7 @@
     {
       "name": "codex-openai",
       "overlay": "overlays/40-codex-openai.nix",
-      "current_version": "0.149.1",
+      "current_version": "0.150.1",
       "check": {
         "method": "github-release",
         "repo": "openai/codex",
@@ -35,7 +35,7 @@
     {
       "name": "trailbase",
       "overlay": "overlays/50-trailbase.nix",
-      "current_version": "0.33.3",
+      "current_version": "0.33.5",
       "check": {
         "method": "github-release",
         "repo": "trailbaseio/trailbase"
@@ -80,7 +80,7 @@
     {
       "name": "uv",
       "overlay": "overlays/25-uv.nix",
-      "current_version": "0.12.6",
+      "current_version": "0.12.7",
       "check": {
         "method": "github-release",
         "repo": "astral-sh/uv"
@@ -179,8 +179,8 @@
     {
       "name": "hey-cli",
       "overlay": "overlays/94-hey-cli.nix",
-      "current_version": "0-unstable-2026-08-24",
-      "current_rev": "4858d2ab37366c3491c316b8d4109991f1c19407",
+      "current_version": "0-unstable-2026-08-28",
+      "current_rev": "5782053d1814ed0ceac20db333cedc1c75649c32",
       "check": {
         "method": "github-commits",
         "repo": "basecamp/hey-cli",
@@ -218,7 +218,7 @@
     {
       "name": "aws-cdk-cli",
       "overlay": "overlays/95-aws-cdk-cli.nix",
-      "current_version": "2.1138.0",
+      "current_version": "2.1139.0",
       "check": {
         "method": "npm",
         "package": "aws-cdk"
@@ -229,7 +229,7 @@
     {
       "name": "dcg",
       "overlay": "overlays/91-dcg.nix",
-      "current_version": "0.13.0",
+      "current_version": "0.13.9",
       "check": {
         "method": "github-release",
         "repo": "Dicklesworthstone/destructive_command_guard"
