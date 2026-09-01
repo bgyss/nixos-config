@@ -39,6 +39,19 @@
       "fingerprint": "health-failure",
       "error_excerpt": "OK: claude-code (2.1.250)\nOK: codex-openai (0.150.1)\nSKIP: trailbase (not installed into any systemPackages/home-manager profile on this host; only exported as the buildable flake package `nix build .#trailbase` via optionalAttrs in flake.nix, so there is no `trail` binary on PATH to smoke-test)\nSKIP: igir (overlay provides pkgs.igir but it is not wired into any systemPackages/home-manager list or flake `packages` output on this host, so there is no `igir` binary on PATH to smoke-test)\nOK: uv (0.12.7)\nOK: mise (2026.8.14)\nOK: beads (1.2.2)\nOK: go (1.26.7)\nOK: ngrok (3.39.11)\nOK: c4 (runs; version not self-reported)\nOK: hey-cli (runs; version not self-reported)\nOK: tmux (3.7b)\nSKIP: tmux-resurrect (a tmux plugin (shell scripts sourced by tmux-continuum), not a binary on PATH -- no standalone version command to smoke-test)\nOK: aws-cdk-cli (2.1139.0)\nOK: dcg (0.13.9)\nFAIL: llama-cpp — expected version '10375', binary reports '10566'\nOK: launchd org.nixos.nixos-auto-update loaded\nFAILED: 1 health assertion(s)",
       "retry_policy": "frozen"
+    },
+    {
+      "name": "darwin",
+      "kind": "input",
+      "blocked_version": "unpin-attempt",
+      "known_good_version": "nix-darwin-26.05",
+      "first_failed": "2026-08-30T16:03:45Z",
+      "last_attempt": "2026-08-30T16:03:45Z",
+      "attempts": 1,
+      "phase": "system-build",
+      "fingerprint": "unpin-failed",
+      "error_excerpt": "       The nix-darwin and Nixpkgs branches in use must match, but you are currently\n       using nix-darwin 26.11 with Nixpkgs 26.05.\n\n       On macOS, you should use either the `nixpkgs-unstable` or\n       `nixpkgs-YY.MM-darwin` branches of Nixpkgs. These correspond to the\n       `master` and `nix-darwin-YY.MM` branches of nix-darwin, respectively. Check\n       <https://status.nixos.org/> for the currently supported Nixpkgs releases.\n\n       If you’re using flakes, make sure your inputs look like this:\n\n           inputs = {\n             nixpkgs.url = \"github:NixOS/nixpkgs/NIXPKGS-BRANCH\";\n             nix-darwin.url = \"github:nix-darwin/nix-darwin/NIX-DARWIN-BRANCH\";\n             nix-darwin.inputs.nixpkgs.follows = \"nixpkgs\";\n             # …\n           };\n\n       If you’re using channels, you can check your current channels with:\n\n           $ sudo nix-channel --list\n           nixpkgs https://nixos.org/channels/NIXPKGS-BRANCH\n           darwin https://github.com/nix-darwin/nix-darwin/archive/NIX-DARWIN-BRANCH.tar.gz\n           …\n           $ nix-channel --list\n           …\n\n       If `darwin` or `nixpkgs` are present in `nix-channel --list` (without\n       `sudo`), you should delete them with `nix-channel --remove NAME`. These can\n       contribute to version mismatch problems.\n\n       You can then fix your channels like this:\n\n           $ sudo nix-channel --add https://nixos.org/channels/NIXPKGS-BRANCH nixpkgs\n           $ sudo nix-channel --add https://github.com/nix-darwin/nix-darwin/archive/NIX-DARWIN-BRANCH.tar.gz darwin\n           $ sudo nix-channel --update\n\n       After that, activating your system again should work correctly. If it\n       doesn’t, please open an issue at\n       <https://github.com/nix-darwin/nix-darwin/issues/new> and include as much\n       information as possible.",
+      "retry_policy": "retry-after:168"
     }
   ]
 }
