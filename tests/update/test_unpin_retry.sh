@@ -247,4 +247,148 @@ n_entries5="$(jq '.entries | length' "$QUARANTINE_FILE")"
 assert_no_worktree_leak "$D5"
 echo "PASS: test_unpin_retry (root.inputs missing the input entirely -> failure, not success)"
 
+# ─── attempt_unpin: coupled group (the nixpkgs/darwin branch-mismatch bug) ──
+# Regression test for the actual production failure: nixpkgs and darwin were
+# each retried in isolation, so every attempt rewrote only ONE of the two
+# coupled inputs while the other stayed on its old pin in the same worktree —
+# guaranteeing a permanent build failure that no retry window could ever fix.
+# This scratch fixture has two pinned inputs sharing one unpin_group, and the
+# stubbed `nix build` only succeeds when BOTH have been rewritten to their
+# unpin_ref in flake.nix — exactly the joint-rewrite behavior a lone-input
+# attempt could never satisfy.
+DARWIN_PINNED_REF="nix-darwin-26.05"
+DARWIN_UNPIN_REF="github:LnL7/nix-darwin/master"
+DARWIN_NEW_REV="d0000000000000000000000000000000000d00"
+
+setup_scratch_group() {
+  local d; d="$TMP/scratch-group-$RANDOM-$RANDOM"
+  mkdir -p "$d/overlays"
+  cat > "$d/flake.nix" <<EOF
+{
+  inputs = {
+    nixpkgs.url = "github:NixOS/nixpkgs/$PINNED_REF";
+    darwin.url = "github:LnL7/nix-darwin/$DARWIN_PINNED_REF";
+  };
+}
+EOF
+  cat > "$d/flake.lock" <<EOF
+{
+  "nodes": {
+    "root": {
+      "inputs": { "nixpkgs": "nixpkgs_2", "darwin": "darwin_2" }
+    },
+    "nixpkgs_2": {
+      "locked": { "type": "github", "owner": "NixOS", "repo": "nixpkgs", "rev": "$PINNED_REF" }
+    },
+    "darwin_2": {
+      "locked": { "type": "github", "owner": "LnL7", "repo": "nix-darwin", "rev": "$DARWIN_PINNED_REF" }
+    }
+  },
+  "root": "root",
+  "version": 7
+}
+EOF
+  cat > "$d/overlays/updates.json" <<EOF
+{
+  "packages": [], "skip": [], "inputs": {},
+  "pinned_inputs": [
+    {
+      "name": "nixpkgs",
+      "flake_input": "nixpkgs",
+      "pinned_ref": "$PINNED_REF",
+      "unpin_ref": "$UNPIN_REF",
+      "unpin_group": "nixpkgs-darwin-family",
+      "reason": "test fixture", "risk": "high", "last_verified": "2026-07-21",
+      "unpin_when": "never", "rollback_hint": "n/a", "retry_cadence_hours": 168
+    },
+    {
+      "name": "darwin",
+      "flake_input": "darwin",
+      "pinned_ref": "$DARWIN_PINNED_REF",
+      "unpin_ref": "$DARWIN_UNPIN_REF",
+      "unpin_group": "nixpkgs-darwin-family",
+      "reason": "test fixture", "risk": "low", "last_verified": "2026-07-21",
+      "unpin_when": "never", "rollback_hint": "n/a", "retry_cadence_hours": 168
+    }
+  ]
+}
+EOF
+  git -C "$d" init -q
+  git -C "$d" config user.email t@example.com
+  git -C "$d" config user.name Test
+  git -C "$d" add -A && git -C "$d" commit -qm init
+  printf '%s' "$d"
+}
+
+# <stub-dir> <build_ok:0|1> -- `flake update` always moves both revs; `build`
+# only passes if build_ok=1 AND both members' unpin_ref appear in flake.nix.
+write_unpin_group_nix_stub() {
+  local stub="$1" ok="$2"
+  cat > "$stub/nix" <<EOF
+#!/usr/bin/env bash
+case "\$1 \$2" in "registry list") exit 1 ;; esac
+if [[ "\$1" == "flake" && "\$2" == "update" ]]; then
+  jq --arg r "$NEW_REV" '.nodes.nixpkgs_2.locked.rev = \$r' flake.lock > flake.lock.tmp && mv flake.lock.tmp flake.lock
+  jq --arg r "$DARWIN_NEW_REV" '.nodes.darwin_2.locked.rev = \$r' flake.lock > flake.lock.tmp && mv flake.lock.tmp flake.lock
+  exit 0
+fi
+if [[ "\$1" == "build" ]]; then
+  wt_flake_nix="\${2%%#*}/flake.nix"
+  if [[ "$ok" == "1" ]] && grep -qF '$UNPIN_REF' "\$wt_flake_nix" && grep -qF '$DARWIN_UNPIN_REF' "\$wt_flake_nix"; then
+    exit 0
+  fi
+  echo "error: build failed (coupled inputs not both unpinned)" >&2
+  exit 1
+fi
+exec "$REAL_NIX" "\$@"
+EOF
+  chmod +x "$stub/nix"
+}
+
+run_attempt_unpin_group() { # <scratch-dir> <primary-name> <build_ok> -> sets $out $rc
+  local d="$1" primary="$2" ok="$3" stub
+  stub="$TMP/stub-$RANDOM-$RANDOM"; mkdir -p "$stub"
+  write_unpin_group_nix_stub "$stub" "$ok"
+  export FLAKE_DIR="$d"
+  export MANIFEST="$d/overlays/updates.json"
+  export QUARANTINE_FILE="$d/overlays/quarantine.json"
+  export FLAKE_SYSTEM_ATTR="fakeSystem"
+  printf '{"comment":"t","entries":[]}\n' > "$QUARANTINE_FILE"
+  set +e
+  out="$(PATH="$stub:$PATH" attempt_unpin "$primary" 2>&1)"
+  rc=$?
+  set -e
+  rm -rf "$stub"
+}
+
+# --- Case: coupled group, build passes only when BOTH are unpinned ---------
+G1="$(setup_scratch_group)"
+run_attempt_unpin_group "$G1" nixpkgs 1
+[[ $rc -eq 0 ]] || fail "coupled group case: expected return 0, got $rc: $out"
+echo "$out" | grep -q "nixpkgs" || fail "coupled group case: ACTION REQUIRED did not mention nixpkgs: $out"
+echo "$out" | grep -q "darwin" || fail "coupled group case: ACTION REQUIRED did not mention darwin: $out"
+n_entries_g1="$(jq '.entries | length' "$QUARANTINE_FILE")"
+[[ "$n_entries_g1" == "2" ]] || fail "coupled group case: expected 2 ledger entries (one per member), got $n_entries_g1"
+verdict_nixpkgs="$(jq -r '.entries[] | select(.name=="nixpkgs") | .fingerprint' "$QUARANTINE_FILE")"
+verdict_darwin="$(jq -r '.entries[] | select(.name=="darwin") | .fingerprint' "$QUARANTINE_FILE")"
+[[ "$verdict_nixpkgs" == "unpin-verified" ]] || fail "coupled group case: nixpkgs not recorded verified: $verdict_nixpkgs"
+[[ "$verdict_darwin" == "unpin-verified" ]] || fail "coupled group case: darwin not recorded verified: $verdict_darwin"
+assert_no_worktree_leak "$G1"
+echo "PASS: test_unpin_retry (coupled group: both members unpinned together -> success, both recorded)"
+
+# --- Case: coupled group, a lone-input rewrite (build_ok forced false via the
+# stub's joint check) reproduces the production bug -- both members recorded
+# as failed together, not silently ignored. ---------------------------------
+G2="$(setup_scratch_group)"
+run_attempt_unpin_group "$G2" darwin 0
+[[ $rc -eq 1 ]] || fail "coupled group build-fail case: expected return 1, got $rc"
+n_entries_g2="$(jq '.entries | length' "$QUARANTINE_FILE")"
+[[ "$n_entries_g2" == "2" ]] || fail "coupled group build-fail case: expected 2 ledger entries, got $n_entries_g2"
+attempts_nixpkgs="$(jq -r '.entries[] | select(.name=="nixpkgs") | .attempts' "$QUARANTINE_FILE")"
+attempts_darwin="$(jq -r '.entries[] | select(.name=="darwin") | .attempts' "$QUARANTINE_FILE")"
+[[ "$attempts_nixpkgs" == "1" && "$attempts_darwin" == "1" ]] \
+  || fail "coupled group build-fail case: expected both members recorded, got nixpkgs=$attempts_nixpkgs darwin=$attempts_darwin"
+assert_no_worktree_leak "$G2"
+echo "PASS: test_unpin_retry (coupled group: joint build failure recorded for every member)"
+
 echo "PASS: test_unpin_retry"

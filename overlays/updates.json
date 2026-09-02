@@ -19,7 +19,7 @@
     {
       "name": "codex-openai",
       "overlay": "overlays/40-codex-openai.nix",
-      "current_version": "0.152.0",
+      "current_version": "0.152.1",
       "check": {
         "method": "github-release",
         "repo": "openai/codex",
@@ -35,7 +35,7 @@
     {
       "name": "trailbase",
       "overlay": "overlays/50-trailbase.nix",
-      "current_version": "0.33.6",
+      "current_version": "0.33.8",
       "check": {
         "method": "github-release",
         "repo": "trailbaseio/trailbase"
@@ -80,7 +80,7 @@
     {
       "name": "uv",
       "overlay": "overlays/25-uv.nix",
-      "current_version": "0.12.8",
+      "current_version": "0.12.9",
       "check": {
         "method": "github-release",
         "repo": "astral-sh/uv"
@@ -95,7 +95,7 @@
     {
       "name": "mise",
       "overlay": "overlays/30-mise.nix",
-      "current_version": "2026.9.0",
+      "current_version": "2026.9.1",
       "check": {
         "method": "github-release",
         "repo": "jdx/mise"
@@ -179,8 +179,8 @@
     {
       "name": "hey-cli",
       "overlay": "overlays/94-hey-cli.nix",
-      "current_version": "0-unstable-2026-09-01",
-      "current_rev": "7f10134a7cd026358adc4bda9a62e55341ac5682",
+      "current_version": "0-unstable-2026-09-02",
+      "current_rev": "313a811d651ed77899ab4e47551f87e7ddc1aae6",
       "check": {
         "method": "github-commits",
         "repo": "basecamp/hey-cli",
@@ -229,7 +229,7 @@
     {
       "name": "dcg",
       "overlay": "overlays/91-dcg.nix",
-      "current_version": "0.13.9",
+      "current_version": "0.14.0",
       "check": {
         "method": "github-release",
         "repo": "Dicklesworthstone/destructive_command_guard"
@@ -366,7 +366,8 @@
       "unpin_when": "Upstream nixpkgs resolves the patch-utility OOM (track NixOS/nixpkgs issue for the libxml2 CVE patch OOM). Re-test by bumping to nixpkgs-unstable HEAD and running `nix run .#build`.",
       "rollback_hint": "If a bump breaks the build, restore this commit in flake.nix nixpkgs.url and run `nix flake lock`.",
       "retry_cadence_hours": 168,
-      "unpin_ref": "github:NixOS/nixpkgs/nixpkgs-unstable"
+      "unpin_ref": "github:NixOS/nixpkgs/nixpkgs-unstable",
+      "unpin_group": "nixpkgs-darwin-family"
     },
     {
       "name": "home-manager",
@@ -378,7 +379,8 @@
       "unpin_when": "nixpkgs is unpinned to a commit that contains lib/services/lib.nix (coupled to the nixpkgs unpin above). Then bump home-manager to the matching release branch.",
       "rollback_hint": "Restore this commit in flake.nix home-manager.url and run `nix flake lock`.",
       "retry_cadence_hours": 168,
-      "unpin_ref": "github:nix-community/home-manager/master"
+      "unpin_ref": "github:nix-community/home-manager/master",
+      "unpin_group": "nixpkgs-darwin-family"
     },
     {
       "name": "darwin",
@@ -390,7 +392,8 @@
       "unpin_when": "nixpkgs is unpinned to a newer release; move darwin to the matching nix-darwin release branch at the same time.",
       "rollback_hint": "Restore darwin.url = github:LnL7/nix-darwin/nix-darwin-26.05 and run `nix flake lock`.",
       "retry_cadence_hours": 168,
-      "unpin_ref": "github:LnL7/nix-darwin/master"
+      "unpin_ref": "github:LnL7/nix-darwin/master",
+      "unpin_group": "nixpkgs-darwin-family"
     }
   ]
 }

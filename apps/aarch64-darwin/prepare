@@ -119,48 +119,90 @@ cleanup_unpin_worktree() {
 # destroy them. So on success this function reports what a human should do;
 # it never mutates flake.nix/flake.lock/overlays/updates.json itself.
 #
-# Exit 0 = the pin verifiably builds against its tracking ref (unpin_ref) and
-# the human-actionable instructions were printed. Exit 1 = no unpin_ref
-# configured, or the attempt failed at some phase (recorded in the ledger).
+# Group-aware: pinned_inputs[] entries sharing the same `unpin_group` are
+# COUPLED — nixpkgs, home-manager, and darwin must move together, because
+# nix-darwin asserts its release branch matches nixpkgs's, and home-manager's
+# services-modular code requires a nixpkgs new enough to provide it. Unpinning
+# any one of them alone (the original implementation) verifies a build that
+# can never pass: the other two are still rewritten to their OLD pin in the
+# same worktree, so the branch-match assertion fails every single time,
+# forever, regardless of which coupled member's retry window comes due. So
+# when `name` belongs to a group, every member of that group is rewritten,
+# `nix flake update`d, and built together in ONE worktree — the whole group
+# succeeds or fails as a unit, and every member's ledger entry reflects that
+# joint result. An ungrouped pin behaves exactly as before (a group of one).
+#
+# Exit 0 = the group verifiably builds together against every member's
+# unpin_ref, and the human-actionable instructions were printed. Exit 1 = a
+# member has no unpin_ref configured, or the attempt failed at some phase
+# (recorded in the ledger for every member).
 attempt_unpin() { # <input-name>
   local name="$1"
-  local unpin_ref pinned_ref cadence log pre_rev post_rev
+  local group cadence log
+  local -a members
+  local -A unpin_ref pinned_ref pre_rev post_rev
 
-  unpin_ref="$(jq -r --arg n "$name" '.pinned_inputs[] | select(.name==$n) | .unpin_ref // empty' "$MANIFEST")"
-  if [[ -z "$unpin_ref" ]]; then
-    warn "==> unpin: $name has no unpin_ref configured in pinned_inputs[] — nothing to attempt"
-    return 1
+  group="$(jq -r --arg n "$name" '.pinned_inputs[] | select(.name==$n) | .unpin_group // empty' "$MANIFEST")"
+  if [[ -n "$group" ]]; then
+    mapfile -t members < <(jq -r --arg g "$group" '.pinned_inputs[] | select(.unpin_group==$g) | .name' "$MANIFEST")
+  else
+    members=("$name")
   fi
-  pinned_ref="$(jq -r --arg n "$name" '.pinned_inputs[] | select(.name==$n) | .pinned_ref' "$MANIFEST")"
+
   cadence="$(jq -r --arg n "$name" '.pinned_inputs[] | select(.name==$n) | .retry_cadence_hours // 168' "$MANIFEST")"
 
-  warn "==> speculative unpin attempt: $name -> $unpin_ref"
+  local m
+  for m in "${members[@]}"; do
+    unpin_ref[$m]="$(jq -r --arg n "$m" '.pinned_inputs[] | select(.name==$n) | .unpin_ref // empty' "$MANIFEST")"
+    pinned_ref[$m]="$(jq -r --arg n "$m" '.pinned_inputs[] | select(.name==$n) | .pinned_ref' "$MANIFEST")"
+    if [[ -z "${unpin_ref[$m]}" ]]; then
+      warn "==> unpin: $m has no unpin_ref configured in pinned_inputs[] — nothing to attempt"
+      return 1
+    fi
+  done
+
+  # Record failure for every member of the group with the same phase/
+  # fingerprint/excerpt — a joint attempt has one joint outcome.
+  _unpin_record_group() { # <phase> <fingerprint> <excerpt> -- records EVERY group member
+    local phase="$1" fp="$2" excerpt="$3" mm
+    for mm in "${members[@]}"; do
+      quarantine_record "$mm" "input" "unpin-attempt" "${pinned_ref[$mm]}" \
+        "$phase" "$fp" "retry-after:$cadence" "$excerpt"
+    done
+  }
+
+  warn "==> speculative unpin attempt: ${members[*]}"
+  for m in "${members[@]}"; do
+    warn "      $m -> ${unpin_ref[$m]}"
+  done
   log="$(mktemp)"
 
   UNPIN_WT_PARENT="$(mktemp -d)"
-  UNPIN_WT="$UNPIN_WT_PARENT/unpin-$name"
+  UNPIN_WT="$UNPIN_WT_PARENT/unpin-$(IFS=-; echo "${members[*]}")"
   if ! git -C "$FLAKE_DIR" worktree add -q --detach "$UNPIN_WT" HEAD >"$log" 2>&1; then
-    warn "  unpin: could not create a worktree for $name"
-    quarantine_record "$name" "input" "unpin-attempt" "$pinned_ref" \
-      "flake-update" "unpin-failed" "retry-after:$cadence" "$(tail -40 "$log")"
+    warn "  unpin: could not create a worktree for ${members[*]}"
+    _unpin_record_group "flake-update" "unpin-failed" "$(tail -40 "$log")"
     cleanup_unpin_worktree
     rm -f "$log"
     return 1
   fi
 
-  # Step 3: record the PRE-attempt locked rev before touching anything, so
-  # step 6 below can assert it actually moved.
-  pre_rev="$(locked_rev_for_input "$UNPIN_WT/flake.lock" "$name")"
+  # Step 3: record the PRE-attempt locked rev of every member before touching
+  # anything, so the post-update check below can assert each one moved.
+  for m in "${members[@]}"; do
+    pre_rev[$m]="$(locked_rev_for_input "$UNPIN_WT/flake.lock" "$m")"
+  done
 
-  # Step 4: rewrite the input's url in the worktree's flake.nix to unpin_ref.
-  # Anchored on the literal pinned_ref text inside a `url = "..."` value
-  # (rather than a fixed `<name>.url = ...` shape) because this repo's inputs
-  # use two different shapes — `nixpkgs.url = "..."` / `home-manager.url =
-  # "..."` on one line, vs. darwin's `url = "...";` nested inside a `darwin =
+  # Step 4: rewrite every member's url in the worktree's flake.nix to its
+  # unpin_ref. Anchored on the literal pinned_ref text inside a `url = "..."`
+  # value (rather than a fixed `<name>.url = ...` shape) because this repo's
+  # inputs use two different shapes — `nixpkgs.url = "..."` / `home-manager.url
+  # = "..."` on one line, vs. darwin's `url = "...";` nested inside a `darwin =
   # { ... }` block — and the pinned_ref substring is verified unique across
-  # the whole file for each of the three pins. Mirrors bump_version_string in
-  # bump-overlays: abort unless exactly one match is found.
-  if ! python3 - "$UNPIN_WT/flake.nix" "$pinned_ref" "$unpin_ref" >>"$log" 2>&1 <<'PYEOF'
+  # the whole file for each pin. Mirrors bump_version_string in bump-overlays:
+  # abort unless exactly one match is found.
+  for m in "${members[@]}"; do
+    if ! python3 - "$UNPIN_WT/flake.nix" "${pinned_ref[$m]}" "${unpin_ref[$m]}" >>"$log" 2>&1 <<'PYEOF'
 import re, sys
 path, pinned, new = sys.argv[1], sys.argv[2], sys.argv[3]
 text = open(path).read()
@@ -171,20 +213,22 @@ if len(matches) != 1:
     sys.exit(1)
 open(path, "w").write(pattern.sub(lambda m: m.group(1) + new + m.group(3), text))
 PYEOF
-  then
-    warn "  unpin: could not rewrite flake.nix url for $name (pinned_ref not found or ambiguous)"
-    quarantine_record "$name" "input" "unpin-attempt" "$pinned_ref" \
-      "flake-update" "unpin-failed" "retry-after:$cadence" "$(tail -40 "$log")"
-    cleanup_unpin_worktree
-    rm -f "$log"
-    return 1
-  fi
+    then
+      warn "  unpin: could not rewrite flake.nix url for $m (pinned_ref not found or ambiguous)"
+      _unpin_record_group "flake-update" "unpin-failed" "$(tail -40 "$log")"
+      cleanup_unpin_worktree
+      rm -f "$log"
+      return 1
+    fi
+  done
 
-  # Step 5: update the lock, inside the worktree only.
-  if ! ( cd "$UNPIN_WT" && nix flake update "$name" ) >>"$log" 2>&1; then
-    warn "  unpin: 'nix flake update $name' failed in the worktree; staying pinned"
-    quarantine_record "$name" "input" "unpin-attempt" "$pinned_ref" \
-      "flake-update" "unpin-failed" "retry-after:$cadence" "$(tail -40 "$log")"
+  # Step 5: update the lock for every member together, inside the worktree
+  # only. Coupled inputs MUST be re-resolved in the same `nix flake update`
+  # invocation — updating them one at a time would re-lock each against the
+  # others' still-old urls in between.
+  if ! ( cd "$UNPIN_WT" && nix flake update "${members[@]}" ) >>"$log" 2>&1; then
+    warn "  unpin: 'nix flake update ${members[*]}' failed in the worktree; staying pinned"
+    _unpin_record_group "flake-update" "unpin-failed" "$(tail -40 "$log")"
     cleanup_unpin_worktree
     rm -f "$log"
     return 1
@@ -195,42 +239,50 @@ PYEOF
   # rev-pinned url, `nix flake update` re-resolves against the (already
   # rewritten) url and always "succeeds" whether or not anything changed, so
   # skipping this check is exactly how a false "pin can be removed" verdict
-  # happened before.
-  post_rev="$(locked_rev_for_input "$UNPIN_WT/flake.lock" "$name")"
-  if [[ -z "$pre_rev" || -z "$post_rev" || "$post_rev" == "$pre_rev" ]]; then
-    warn "  unpin: $name locked rev did not move (still $pre_rev) — treating as failure"
-    quarantine_record "$name" "input" "unpin-attempt" "$pinned_ref" \
-      "flake-update" "unpin-rev-unchanged" "retry-after:$cadence" \
-      "locked rev did not move: $pre_rev"
-    cleanup_unpin_worktree
-    rm -f "$log"
-    return 1
-  fi
+  # happened before. Every member must move for the group to count.
+  local moved_summary=""
+  for m in "${members[@]}"; do
+    post_rev[$m]="$(locked_rev_for_input "$UNPIN_WT/flake.lock" "$m")"
+    if [[ -z "${pre_rev[$m]}" || -z "${post_rev[$m]}" || "${post_rev[$m]}" == "${pre_rev[$m]}" ]]; then
+      warn "  unpin: $m locked rev did not move (still ${pre_rev[$m]}) — treating group as failure"
+      _unpin_record_group "flake-update" "unpin-rev-unchanged" \
+        "member $m locked rev did not move: ${pre_rev[$m]}"
+      cleanup_unpin_worktree
+      rm -f "$log"
+      return 1
+    fi
+    moved_summary+="$m ${pre_rev[$m]} -> ${post_rev[$m]}; "
+  done
 
-  # Step 7: build in the worktree only.
+  # Step 7: build in the worktree only, against every member's unpin_ref at
+  # once — this is the check that a lone-input attempt could never pass for a
+  # coupled group.
   if ! nix build "${UNPIN_WT}#${FLAKE_SYSTEM_ATTR}" --no-link >>"$log" 2>&1; then
-    warn "  unpin: system build fails against $unpin_ref (rev $post_rev); staying pinned"
-    quarantine_record "$name" "input" "unpin-attempt" "$pinned_ref" \
-      "system-build" "unpin-failed" "retry-after:$cadence" "$(tail -40 "$log")"
+    warn "  unpin: system build fails against ${members[*]} unpin refs; staying pinned"
+    _unpin_record_group "system-build" "unpin-failed" "$(tail -40 "$log")"
     cleanup_unpin_worktree
     rm -f "$log"
     return 1
   fi
 
   # Step 9: success. The live tree is untouched — no flake.nix/flake.lock
-  # edits, no overlays/updates.json edits. Record the attempt (NOT clear it —
-  # quarantine_clear here was the bug that kept the cadence from ever
-  # engaging, since last_attempt was never written and unpin_retry_due always
-  # read "never attempted, due now") so the cadence actually bounds this
-  # expensive path, then print the exact human follow-up.
-  msg "  unpin: $name verified clean against $unpin_ref (locked rev $pre_rev -> $post_rev)"
-  quarantine_record "$name" "input" "unpin-attempt" "$pinned_ref" \
-    "verified" "unpin-verified" "retry-after:$cadence" \
-    "verified $unpin_ref builds clean; locked rev $pre_rev -> $post_rev"
-  msg "  ==> ACTION REQUIRED to lift the '$name' pin:"
-  msg "        1. In flake.nix, replace the pinned url for '$name' with: $unpin_ref"
-  msg "        2. Run: nix flake lock"
-  msg "        3. Delete the '$name' entry from pinned_inputs[] in overlays/updates.json"
+  # edits, no overlays/updates.json edits. Record the attempt for every member
+  # (NOT clear it — quarantine_clear here was the bug that kept the cadence
+  # from ever engaging, since last_attempt was never written and
+  # unpin_retry_due always read "never attempted, due now") so the cadence
+  # actually bounds this expensive path, then print the exact human follow-up.
+  msg "  unpin: ${members[*]} verified clean together ($moved_summary)"
+  _unpin_record_group "verified" "unpin-verified" \
+    "verified together with ${members[*]}; $moved_summary"
+  msg "  ==> ACTION REQUIRED to lift the ${members[*]} pin(s) — they must move together:"
+  local i=1
+  for m in "${members[@]}"; do
+    msg "        $i. In flake.nix, replace the pinned url for '$m' with: ${unpin_ref[$m]}"
+    i=$((i + 1))
+  done
+  msg "        $i. Run: nix flake lock"
+  i=$((i + 1))
+  msg "        $i. Delete the ${members[*]} entries from pinned_inputs[] in overlays/updates.json"
   msg "      (the reason/risk/unpin_when/rollback_hint prose is a human call — not auto-removed)"
 
   cleanup_unpin_worktree

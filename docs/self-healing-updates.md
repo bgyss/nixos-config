@@ -35,8 +35,15 @@ accident):
    below for the budget in detail.
 3. `prepare` — updates whichever flake inputs (`nixpkgs`, `home-manager`, `darwin`, `secrets`)
    are due per their `cadence_hours`, including one speculative unpin *probe* per pinned
-   input's `retry_cadence_hours` (see "The unpin retry is a probe" below), builds the system
-   as evidence, and commits.
+   input's `retry_cadence_hours` (see "Reading `overlays/quarantine.json`" below), builds the
+   system as evidence, and commits. `nixpkgs`, `home-manager`, and `darwin` share
+   `unpin_group: "nixpkgs-darwin-family"` in `pinned_inputs[]` because they are coupled —
+   nix-darwin asserts its release branch matches nixpkgs's, and home-manager's
+   services-modular code needs a nixpkgs new enough to provide it — so a probe unpins,
+   locks, and builds every member of the group together in one throwaway worktree, never one
+   pin alone. (An earlier version probed each pin in isolation, which could never pass: the
+   other coupled inputs stayed on their old pin in the same worktree, so the branch-match
+   assertion failed every retry window, forever.)
 4. If anything moved (and it's more than just quarantine-ledger churn), a full
    `nix build .#darwinConfigurations.garmonbozia.system` runs as final evidence.
 5. On success, the built revision's sha is written to `logs/proposed-revision`.
