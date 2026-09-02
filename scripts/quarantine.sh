@@ -103,7 +103,8 @@ PYEOF
 # Upsert. First failure creates the entry (attempts=1); subsequent failures on
 # the SAME blocked_version increment attempts. A different blocked_version
 # resets the entry, because it is a genuinely new failure.
-# attempts >= 3 auto-promotes to frozen (spec §5.5).
+# attempts >= 3 auto-promotes to frozen (spec §5.5) — EXCEPT for `input`
+# entries, see below.
 quarantine_record() { # <name> <kind> <blocked_version> <known_good> <phase> <fingerprint> <policy> <excerpt>
   local name="$1" kind="$2" blocked="$3" good="$4" phase="$5" fp="$6" policy="$7" excerpt="$8"
   quarantine_init
@@ -118,7 +119,19 @@ quarantine_record() { # <name> <kind> <blocked_version> <known_good> <phase> <fi
     attempts=1
     first="$now"
   fi
-  [[ $attempts -ge 3 ]] && policy="frozen"
+  # `input` entries are the pinned_inputs[] unpin PROBE, and a probe must never
+  # freeze itself. The auto-freeze exists for overlays, where blocked_version is
+  # a specific upstream release: three strikes on the identical artifact means
+  # "stop trying until a human looks." An unpin probe instead re-tests a MOVING
+  # tracking ref (nixpkgs-unstable, master) on a fixed weekly cadence, so
+  # repeated failure is the expected steady state while upstream is still
+  # broken — exactly the situation the next probe is supposed to re-test.
+  # Promoting it to `frozen` did nothing useful (unpin_retry_due never consults
+  # retry_policy, so it did not even stop the probe) and did real damage: the
+  # ledger advertised the three pins as permanently frozen, and scheduled-check
+  # fired a spurious "packages frozen" page for a probe that was working as
+  # designed. Input probes stay on their retry-after cadence forever.
+  [[ $attempts -ge 3 && "$kind" != "input" ]] && policy="frozen"
 
   local safe_excerpt
   safe_excerpt="$(printf '%s' "$excerpt" | quarantine_sanitize)"

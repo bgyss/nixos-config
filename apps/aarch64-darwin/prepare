@@ -161,12 +161,24 @@ attempt_unpin() { # <input-name>
     fi
   done
 
-  # Record failure for every member of the group with the same phase/
+  # What this probe actually tried, as a ledger `blocked_version`. Every other
+  # ledger entry keys on the specific upstream artifact that failed, which is
+  # what makes a quarantine self-heal: upstream moves -> new blocked_version ->
+  # attempts resets -> it is retried. This used to pass the CONSTANT string
+  # "unpin-attempt", so the probe's attempts counter could never reset no
+  # matter how far upstream moved, and every window's failure incremented it
+  # toward the freeze ceiling. Once the target revs are resolved (post-`nix
+  # flake update`) they become the blocked_version, so the entry finally means
+  # "this exact set of upstream revs failed". Before that point there is
+  # nothing resolved to name, so early phases keep the old literal.
+  UNPIN_TARGET="unpin-attempt"
+
+  # Record the outcome for every member of the group with the same phase/
   # fingerprint/excerpt — a joint attempt has one joint outcome.
   _unpin_record_group() { # <phase> <fingerprint> <excerpt> -- records EVERY group member
     local phase="$1" fp="$2" excerpt="$3" mm
     for mm in "${members[@]}"; do
-      quarantine_record "$mm" "input" "unpin-attempt" "${pinned_ref[$mm]}" \
+      quarantine_record "$mm" "input" "$UNPIN_TARGET" "${pinned_ref[$mm]}" \
         "$phase" "$fp" "retry-after:$cadence" "$excerpt"
     done
   }
@@ -254,6 +266,13 @@ PYEOF
     moved_summary+="$m ${pre_rev[$m]} -> ${post_rev[$m]}; "
   done
 
+  # Every target rev is now resolved, so the ledger can name what was tried
+  # instead of the constant literal — see UNPIN_TARGET above. Short revs keep
+  # the string readable; `unpin:` prefixes it so it can never collide with an
+  # overlay's version string.
+  UNPIN_TARGET="unpin:$(for m in "${members[@]}"; do printf '%s@%s ' "$m" "${post_rev[$m]:0:7}"; done)"
+  UNPIN_TARGET="${UNPIN_TARGET% }"
+
   # Step 7: build in the worktree only, against every member's unpin_ref at
   # once — this is the check that a lone-input attempt could never pass for a
   # coupled group.
@@ -284,6 +303,25 @@ PYEOF
   i=$((i + 1))
   msg "        $i. Delete the ${members[*]} entries from pinned_inputs[] in overlays/updates.json"
   msg "      (the reason/risk/unpin_when/rollback_hint prose is a human call — not auto-removed)"
+
+  # Hand the verdict to scheduled-check so it can PAGE the operator. Without
+  # this the whole mechanism had no terminating action: a healthy scheduled run
+  # is silent by design (invariant 4), prepare's stdout goes to the run log, and
+  # nobody reads a log that reports success — so a probe that finally passed
+  # would keep passing, silently, every week, while the pins stayed forever.
+  # A marker file (mirroring logs/proposed-revision) keeps notification policy
+  # owned entirely by scheduled-check and leaves prepare unprivileged and
+  # side-effect-free against the tracked tree: logs/ is gitignored, so this can
+  # never reach a commit or the public mirror.
+  mkdir -p "$FLAKE_DIR/logs"
+  {
+    printf 'unpin verified %s\n' "$(now_iso)"
+    printf 'members: %s\n' "${members[*]}"
+    printf 'revs: %s\n' "$moved_summary"
+    for m in "${members[@]}"; do
+      printf 'flake.nix: %s -> %s\n' "$m" "${unpin_ref[$m]}"
+    done
+  } > "$FLAKE_DIR/logs/unpin-verified"
 
   cleanup_unpin_worktree
   rm -f "$log"

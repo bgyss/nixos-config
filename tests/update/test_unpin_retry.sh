@@ -391,4 +391,65 @@ attempts_darwin="$(jq -r '.entries[] | select(.name=="darwin") | .attempts' "$QU
 assert_no_worktree_leak "$G2"
 echo "PASS: test_unpin_retry (coupled group: joint build failure recorded for every member)"
 
+# ─── the probe must never freeze itself ────────────────────────────────────
+# Regression test: quarantine_record auto-promotes to `frozen` at attempts>=3,
+# which is right for an overlay (blocked_version is a specific upstream
+# release) and wrong for an unpin probe (a weekly re-test of a MOVING tracking
+# ref, whose repeated failure is the expected steady state while upstream is
+# broken). The old code passed a constant blocked_version, so the counter could
+# never reset and the probe froze itself on the third window — advertising the
+# pins as permanently frozen and firing a spurious "packages frozen" page.
+export QUARANTINE_FILE="$TMP/freeze-probe.json"
+rm -f "$QUARANTINE_FILE"
+quarantine_init
+for _ in 1 2 3 4; do
+  quarantine_record nixpkgs input "unpin:nixpkgs@abc1234" "af45a5c" \
+    "system-build" "unpin-failed" "retry-after:168" "still broken upstream"
+done
+probe_policy="$(quarantine_field nixpkgs retry_policy)"
+probe_attempts="$(quarantine_field nixpkgs attempts)"
+[[ "$probe_policy" == "retry-after:168" ]] \
+  || fail "input probe froze itself after $probe_attempts attempts (policy=$probe_policy)"
+echo "PASS: test_unpin_retry (input probe never auto-freezes; policy=$probe_policy after $probe_attempts attempts)"
+
+# An OVERLAY entry must still auto-freeze at 3 — the rule above is scoped to
+# `input`, not a blanket removal of the freeze ceiling.
+quarantine_record some-pkg overlay "1.2.3" "1.2.2" "build" "hash-mismatch" "next-version-only" "boom"
+quarantine_record some-pkg overlay "1.2.3" "1.2.2" "build" "hash-mismatch" "next-version-only" "boom"
+quarantine_record some-pkg overlay "1.2.3" "1.2.2" "build" "hash-mismatch" "next-version-only" "boom"
+overlay_policy="$(quarantine_field some-pkg retry_policy)"
+[[ "$overlay_policy" == "frozen" ]] \
+  || fail "overlay entry no longer auto-freezes at 3 attempts (policy=$overlay_policy)"
+echo "PASS: test_unpin_retry (overlay entries still auto-freeze at 3 attempts)"
+
+# ─── a verified probe records what it actually tried, and is announced ──────
+# The ledger's self-healing contract is "block exactly the artifact that
+# failed"; a constant blocked_version broke that for probes. And a verified
+# probe must leave a marker for scheduled-check, or the good news dies in a
+# log nobody reads.
+G3="$(setup_scratch_group)"
+run_attempt_unpin_group "$G3" nixpkgs 1
+[[ $rc -eq 0 ]] || fail "marker case: expected success, got $rc: $out"
+blocked_g3="$(jq -r '.entries[] | select(.name=="nixpkgs") | .blocked_version' "$QUARANTINE_FILE")"
+[[ "$blocked_g3" == unpin:* ]] \
+  || fail "verified probe did not record the resolved target revs: $blocked_g3"
+echo "$blocked_g3" | grep -q "${NEW_REV:0:7}" \
+  || fail "blocked_version does not name the nixpkgs rev actually tried: $blocked_g3"
+[[ -f "$G3/logs/unpin-verified" ]] \
+  || fail "verified probe wrote no logs/unpin-verified marker for scheduled-check"
+grep -q "members: " "$G3/logs/unpin-verified" \
+  || fail "unpin-verified marker missing the members: line scheduled-check parses"
+marker_members="$(sed -n 's/^members: //p' "$G3/logs/unpin-verified" | head -1)"
+[[ "$marker_members" == *nixpkgs* && "$marker_members" == *darwin* ]] \
+  || fail "unpin-verified marker does not name both coupled members: $marker_members"
+echo "PASS: test_unpin_retry (verified probe records resolved revs + writes the operator marker)"
+
+# A FAILED probe must NOT write the marker — only good news pages.
+G4="$(setup_scratch_group)"
+run_attempt_unpin_group "$G4" nixpkgs 0
+[[ $rc -eq 1 ]] || fail "no-marker-on-failure case: expected failure, got $rc"
+[[ ! -f "$G4/logs/unpin-verified" ]] \
+  || fail "a FAILED probe wrote logs/unpin-verified — would page the operator on bad news"
+echo "PASS: test_unpin_retry (failed probe writes no marker)"
+
 echo "PASS: test_unpin_retry"

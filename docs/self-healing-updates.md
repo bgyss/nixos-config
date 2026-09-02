@@ -92,8 +92,16 @@ Per the design spec, "you should hear from this system roughly never." Concretel
   agent ran today, don't wait for a notification — read `logs/nixos-scheduled-check.log` (see
   below). It records "activated `<sha>`, healthy" on every silent success.
 - Notifications *do* fire for: a package newly promoted to `frozen`, a Claude-authored repair
-  landing (review it — `git log -p`), a build failure, a health-check failure + rollback, and a
-  revision-level `frozen` entry.
+  landing (review it — `git log -p`), a build failure, a health-check failure + rollback, a
+  revision-level `frozen` entry, and **a speculative unpin probe that passed** ("pin(s) can be
+  lifted", details in `logs/unpin-verified`).
+- That last one is the only notification that is *good* news, and it exists because nothing
+  else in the pipeline acts on it: `prepare` deliberately will not rewrite `flake.nix` or
+  delete the manifest's human-written `reason`/`risk`/`rollback_hint` prose on its own, so
+  lifting a pin stays a human decision. It re-fires at most once a week (the probe's cadence)
+  until you act on it. Before this existed, a passing probe wrote its verdict to the run log
+  and nothing else — and since a healthy run is otherwise silent, nobody ever read it and the
+  pins stayed pinned indefinitely.
 
 ### Where to look
 
@@ -157,6 +165,17 @@ moves; nobody has to clear it by hand just because time passed.
   (`quarantine_record` in `scripts/quarantine.sh`), or (2) a revision-level failure
   (system-build or health-check) is recorded `frozen` immediately, on the first failure — see
   above for why those are never escalated or auto-retried.
+
+**`kind: input` entries never auto-freeze.** The `attempts >= 3` promotion is scoped to
+overlays and revisions. An input entry is the unpin *probe*, which re-tests a moving tracking
+ref (`nixpkgs-unstable`, `master`) on a fixed weekly cadence — repeated failure is its expected
+steady state while upstream is still broken, which is precisely the case the next probe exists
+to re-test. Freezing it never even stopped the probe (`unpin_retry_due` reads only the cadence
+and `last_attempt`, never `retry_policy`); it just made the ledger claim the pins were
+permanently frozen and fired a spurious "packages frozen" page. An input probe's
+`blocked_version` also names the **resolved target revs** it actually tried
+(`unpin:nixpkgs@e8be781 darwin@4cff07d …`), so, like every other ledger entry, it self-heals:
+upstream moves, `blocked_version` changes, `attempts` resets.
 
 ## Un-sticking a package
 

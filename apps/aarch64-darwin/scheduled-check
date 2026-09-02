@@ -201,6 +201,11 @@ run_propose_only() {
   local before after after_bump changed_paths
 
   rm -f "$LOG_DIR/proposed-revision"
+  # Cleared per run so the "pin can be lifted" alert reflects THIS run's probe.
+  # The probe only runs when its weekly cadence is due, so a still-liftable pin
+  # re-notifies at most once a week until a human acts on it — persistent
+  # enough not to be forgotten, quiet enough not to be noise.
+  rm -f "$LOG_DIR/unpin-verified"
 
   before="$(git rev-parse HEAD 2>/dev/null)" || {
     notify "nixos-config update FAILED" "could not determine git HEAD; check the checkout"
@@ -298,6 +303,19 @@ run_propose_only() {
     | paste -sd' ' - 2>/dev/null)"
   if [[ -n "$newly_frozen" ]]; then
     notify "nixos-config: packages frozen" "$newly_frozen — see overlays/quarantine.json"
+  fi
+
+  # A speculative unpin probe that PASSED is the one piece of good news worth
+  # interrupting for: it means a long-standing pin (nixpkgs & friends) can
+  # finally be lifted, and nothing else in the pipeline will ever act on it —
+  # prepare deliberately refuses to rewrite flake.nix or drop the manifest's
+  # human-written rationale on its own. Without this the verdict died in the
+  # run log and the pins stayed pinned indefinitely.
+  if [[ -f "$LOG_DIR/unpin-verified" ]]; then
+    local unpin_members
+    unpin_members="$(sed -n 's/^members: //p' "$LOG_DIR/unpin-verified" | head -1)"
+    notify "nixos-config: pin(s) can be lifted" \
+      "${unpin_members:-pinned inputs} verified clean — see $LOG_DIR/unpin-verified"
   fi
   if [[ ${#fixed_by_claude[@]} -gt 0 ]]; then
     notify "nixos-config: Claude repaired an overlay" \
