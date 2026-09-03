@@ -15,19 +15,6 @@
       "retry_policy": "retry-after:168"
     },
     {
-      "name": "revision-2afe4ef",
-      "kind": "revision",
-      "blocked_version": "2afe4ef9e5a877171bc8b9dcc296fa42f2a96fe9",
-      "known_good_version": "2afe4ef9e5a877171bc8b9dcc296fa42f2a96fe9",
-      "first_failed": "2026-08-28T16:07:05Z",
-      "last_attempt": "2026-08-28T16:07:05Z",
-      "attempts": 1,
-      "phase": "health-check",
-      "fingerprint": "health-failure",
-      "error_excerpt": "OK: claude-code (2.1.250)\nOK: codex-openai (0.150.1)\nSKIP: trailbase (not installed into any systemPackages/home-manager profile on this host; only exported as the buildable flake package `nix build .#trailbase` via optionalAttrs in flake.nix, so there is no `trail` binary on PATH to smoke-test)\nSKIP: igir (overlay provides pkgs.igir but it is not wired into any systemPackages/home-manager list or flake `packages` output on this host, so there is no `igir` binary on PATH to smoke-test)\nOK: uv (0.12.7)\nOK: mise (2026.8.14)\nOK: beads (1.2.2)\nOK: go (1.26.7)\nOK: ngrok (3.39.11)\nOK: c4 (runs; version not self-reported)\nOK: hey-cli (runs; version not self-reported)\nOK: tmux (3.7b)\nSKIP: tmux-resurrect (a tmux plugin (shell scripts sourced by tmux-continuum), not a binary on PATH -- no standalone version command to smoke-test)\nOK: aws-cdk-cli (2.1139.0)\nOK: dcg (0.13.9)\nFAIL: llama-cpp — expected version '10375', binary reports '10566'\nOK: launchd org.nixos.nixos-auto-update loaded\nFAILED: 1 health assertion(s)",
-      "retry_policy": "frozen"
-    },
-    {
       "name": "darwin",
       "kind": "input",
       "blocked_version": "unpin-attempt",
