@@ -95,7 +95,7 @@
     {
       "name": "mise",
       "overlay": "overlays/30-mise.nix",
-      "current_version": "2026.9.1",
+      "current_version": "2026.9.3",
       "check": {
         "method": "github-release",
         "repo": "jdx/mise"
@@ -179,8 +179,8 @@
     {
       "name": "hey-cli",
       "overlay": "overlays/94-hey-cli.nix",
-      "current_version": "0-unstable-2026-09-05",
-      "current_rev": "d5d5a9360266c74c95165939d478132bc2752344",
+      "current_version": "0-unstable-2026-09-08",
+      "current_rev": "a6e5ec62a20433db2c8fed9eb9910bc671a6a515",
       "check": {
         "method": "github-commits",
         "repo": "basecamp/hey-cli",
@@ -229,7 +229,7 @@
     {
       "name": "dcg",
       "overlay": "overlays/91-dcg.nix",
-      "current_version": "0.14.0",
+      "current_version": "0.14.1",
       "check": {
         "method": "github-release",
         "repo": "Dicklesworthstone/destructive_command_guard"
