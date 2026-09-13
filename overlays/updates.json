@@ -3,7 +3,7 @@
     {
       "name": "claude-code",
       "overlay": "overlays/41-claude-code.nix",
-      "current_version": "2.1.267",
+      "current_version": "2.1.270",
       "check": {
         "method": "github-release",
         "repo": "anthropics/claude-code"
@@ -35,7 +35,7 @@
     {
       "name": "trailbase",
       "overlay": "overlays/50-trailbase.nix",
-      "current_version": "0.33.13",
+      "current_version": "0.33.15",
       "check": {
         "method": "github-release",
         "repo": "trailbaseio/trailbase"
@@ -56,7 +56,7 @@
     {
       "name": "igir",
       "overlay": "overlays/70-igir.nix",
-      "current_version": "5.4.1",
+      "current_version": "5.5.0",
       "check": {
         "method": "github-release",
         "repo": "emmercm/igir"
@@ -80,7 +80,7 @@
     {
       "name": "uv",
       "overlay": "overlays/25-uv.nix",
-      "current_version": "0.12.12",
+      "current_version": "0.12.13",
       "check": {
         "method": "github-release",
         "repo": "astral-sh/uv"
@@ -95,7 +95,7 @@
     {
       "name": "mise",
       "overlay": "overlays/30-mise.nix",
-      "current_version": "2026.9.4",
+      "current_version": "2026.9.6",
       "check": {
         "method": "github-release",
         "repo": "jdx/mise"
@@ -229,7 +229,7 @@
     {
       "name": "dcg",
       "overlay": "overlays/91-dcg.nix",
-      "current_version": "0.14.2",
+      "current_version": "0.14.3",
       "check": {
         "method": "github-release",
         "repo": "Dicklesworthstone/destructive_command_guard"
