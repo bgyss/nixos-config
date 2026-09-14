@@ -35,7 +35,7 @@
     {
       "name": "trailbase",
       "overlay": "overlays/50-trailbase.nix",
-      "current_version": "0.33.15",
+      "current_version": "0.33.16",
       "check": {
         "method": "github-release",
         "repo": "trailbaseio/trailbase"
@@ -95,7 +95,7 @@
     {
       "name": "mise",
       "overlay": "overlays/30-mise.nix",
-      "current_version": "2026.9.6",
+      "current_version": "2026.9.7",
       "check": {
         "method": "github-release",
         "repo": "jdx/mise"
