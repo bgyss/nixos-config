@@ -14,6 +14,12 @@
       "timeout": 20
     },
     {
+      "package": "aerospace",
+      "command": "aerospace --version",
+      "version_regex": "([0-9]+\\.[0-9]+\\.[0-9]+-Beta)",
+      "timeout": 20
+    },
+    {
       "package": "trailbase",
       "skip": "not installed into any systemPackages/home-manager profile on this host; only exported as the buildable flake package `nix build .#trailbase` via optionalAttrs in flake.nix, so there is no `trail` binary on PATH to smoke-test"
     },

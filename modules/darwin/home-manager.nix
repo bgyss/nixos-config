@@ -128,6 +128,13 @@ in
               default-root-container-orientation = "auto";
               accordion-padding = 30;
 
+              # macOS 26 Tahoe's Accessibility API changes interact badly with
+              # AeroSpace's auto-unhide logic: windows from other workspaces
+              # bleed into the current one after switching, and Cmd+H-hidden
+              # windows reappear almost immediately. Disabling this avoids that
+              # class of bug (https://github.com/nikitabobko/AeroSpace/discussions/1969).
+              automatically-unhide-macos-hidden-apps = false;
+
               on-focused-monitor-changed = [ "move-mouse monitor-lazy-center" ];
 
               on-window-detected = [

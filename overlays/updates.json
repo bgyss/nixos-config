@@ -33,6 +33,26 @@
       }
     },
     {
+      "name": "aerospace",
+      "overlay": "overlays/42-aerospace.nix",
+      "current_version": "0.21.3-Beta",
+      "check": {
+        "method": "github-release",
+        "repo": "nikitabobko/AeroSpace",
+        "tag_prefix": "v"
+      },
+      "update_type": "prebuilt-binary-multiplatform",
+      "platforms": {
+        "aarch64-darwin": {
+          "url_template": "https://github.com/nikitabobko/AeroSpace/releases/download/v{version}/AeroSpace-v{version}.zip"
+        },
+        "x86_64-darwin": {
+          "url_template": "https://github.com/nikitabobko/AeroSpace/releases/download/v{version}/AeroSpace-v{version}.zip"
+        }
+      },
+      "notes": "Single universal-binary zip (same URL both darwin arches). Overlay overrides prev.aerospace via overrideAttrs (version + src only) rather than a full rewrite, so it tracks nixpkgs' own installPhase/postInstall. Added ahead of the pinned nixpkgs input to pick up Tahoe-era fixes without waiting for the pin to move."
+    },
+    {
       "name": "trailbase",
       "overlay": "overlays/50-trailbase.nix",
       "current_version": "0.33.16",
