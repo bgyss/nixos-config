@@ -39,24 +39,6 @@
       "fingerprint": "unpin-failed",
       "error_excerpt": "evaluation warning: stdenv.isLinux is deprecated, use stdenv.hostPlatform.isLinux instead\nevaluation warning: `fetchFromSavannah` is deprecated and will be removed in a future release.\nevaluation warning: stdenv.isDarwin is deprecated, use stdenv.hostPlatform.isDarwin instead\nerror:\n       … while calling the 'derivationStrict' builtin\n         at «nix-internal»/derivation-internal.nix:38:12:\n           37|\n           38|   strict = drvFunc drvAttrs;\n             |            ^\n           39|\n\n       … while evaluating derivation 'darwin-system-26.11.4cff07d'\n         whose name attribute is located at «github:NixOS/nixpkgs/aff8a0b»/pkgs/stdenv/generic/make-derivation.nix:651:11\n\n       … while evaluating attribute 'activationScript' of derivation 'darwin-system-26.11.4cff07d'\n         at «github:LnL7/nix-darwin/4cff07d»/modules/system/default.nix:89:7:\n           88|\n           89|       activationScript = cfg.activationScripts.script.text;\n             |       ^\n           90|\n\n       … while evaluating the option `system.activationScripts.script.text':\n\n       … while evaluating definitions from `<store>/source/modules/system/activation-scripts.nix':\n\n       … while evaluating the option `system.activationScripts.postActivation.text':\n\n       … while evaluating definitions from `<store>/source/nix-darwin':\n\n       … while evaluating the option `home-manager.users.briangyss.home.activation.checkFilesChanged.data':\n\n       … while evaluating definitions from `<store>/source/modules/files.nix':\n\n       … while evaluating the option `home-manager.users.briangyss.home.file.\"Library/Fonts/.home-manager-fonts-version\".onChange':\n\n       … while evaluating definitions from `<store>/source/modules/targets/darwin/fonts.nix':\n\n       (stack trace truncated; use '--show-trace' to show the full, detailed trace)\n\n       error: cocotb-2.0.1 not supported for interpreter python3.14",
       "retry_policy": "retry-after:168"
-    },
-    {
-      "name": "hey-cli",
-      "kind": "overlay",
-      "blocked_version": "0-unstable-2026-09-16",
-      "known_good_version": "0-unstable-2026-09-10",
-      "first_failed": "2026-09-16T16:12:55Z",
-      "last_attempt": "2026-09-16T16:12:55Z",
-      "attempts": 1,
-      "phase": "package-build",
-      "fingerprint": "unclassified",
-      "error_excerpt": "-- hey-cli: 1ac3ef0d9118de449d21cf52a46da419bbee6e02 -> 47475ff0083c6f7e4e3ae05e8e0782bf41881119 (0-unstable-2026-09-10 -> 0-unstable-2026-09-16)\n  could not resolve vendorHash from build error for hey-cli",
-      "retry_policy": "next-version-only",
-      "escalation": {
-        "status": "gave-up",
-        "verdict": "Bumped overlays/94-hey-cli.nix to rev 8976f638abd88217317d7862bfcf3642666fb38f (0-unstable-2026-09-12), re-prefetched the src hash (sha256-arF5gxXXU9wQ7o4dQZ3+4sj6tSLPi2BGMUOmFAS7fZ0=), and updated overlays/updates.json's current_version/current_rev to match. Blanking vendorHash and building failed with 'go: go.mod requires go >= 1.27.0 (running go 1.26.7; GOTOOLCHAIN=local)'. This is NOT the known false-negative scenario documented in the skill (where the scoped build sees nixpkgs' unpinned default go while the repo's real go pin is sufficient) -- I confirmed the failure reproduces identically against the full system build (`.#darwinConfigurations.garmonbozia.pkgs.hey-cli`), which uses this repo's actual go pin from overlays/55-go.nix (currently 1.26.7). Upstream hey-cli's go.mod now genuinely requires a newer Go than this repo provides anywhere. A real fix requires bumping overlays/55-go.nix to Go >= 1.27, which is a separate package/overlay and out of scope for a hey-cli-only repair (touching it would affect every buildGoModule derivation in the repo). A human should decide whether to bump the go overlay to 1.27.x (verifying it doesn't break other Go packages) or leave hey-cli quarantined at 0-unstable-2026-09-10 until nixpkgs' default go catches up.",
-        "at": "2026-09-12T16:03:50Z"
-      }
     }
   ]
 }
