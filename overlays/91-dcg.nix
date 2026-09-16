@@ -6,25 +6,25 @@ final: prev:
 let
   inherit (prev) fetchurl lib stdenv;
 
-  version = "0.14.3";
+  version = "0.14.4";
   base = "https://github.com/Dicklesworthstone/destructive_command_guard/releases/download/v${version}";
 
   versions = {
     "aarch64-darwin" = {
       url = "${base}/dcg-aarch64-apple-darwin.tar.xz";
-      sha256 = "sha256-oDnZUDh/y/VGAyIAjShcwGwZNkt2flvEonJaeOGHepc=";
+      sha256 = "sha256-twT+AZC/7sUbwmSlc/o9YgWQKGsrK2OyyiKTqiSq0BM=";
     };
     "x86_64-darwin" = {
       url = "${base}/dcg-x86_64-apple-darwin.tar.xz";
-      sha256 = "sha256-EU2ChOXVzYGK8EtpcloQACxxPXaLV/Er4k+r/apyjlg=";
+      sha256 = "sha256-2bTi5WXx4YUwObfJVvpM51dse7ZBOC/kHsRKDeq7Xwc=";
     };
     "aarch64-linux" = {
       url = "${base}/dcg-aarch64-unknown-linux-gnu.tar.xz";
-      sha256 = "sha256-7jNjjfOOKnkezyqMMpaLQ7u2k495TDtq7PxTkRvaNdk=";
+      sha256 = "sha256-DLak6FG7FiaAfhxfv9bVZSdTg6diQihnj4WFcL9Bbm8=";
     };
     "x86_64-linux" = {
       url = "${base}/dcg-x86_64-unknown-linux-musl.tar.xz";
-      sha256 = "sha256-Y3Ev19xUn2CGQMQVRb49hobBTouYnlEZS1SpkLQlX2k=";
+      sha256 = "sha256-Cdr3ZeIUV6dW5pzJ+LzkFjWDbGuVj1snx6amo3bL3iE=";
     };
   };
 

@@ -3,7 +3,7 @@
     {
       "name": "claude-code",
       "overlay": "overlays/41-claude-code.nix",
-      "current_version": "2.1.270",
+      "current_version": "2.1.273",
       "check": {
         "method": "github-release",
         "repo": "anthropics/claude-code"
@@ -55,7 +55,7 @@
     {
       "name": "trailbase",
       "overlay": "overlays/50-trailbase.nix",
-      "current_version": "0.33.16",
+      "current_version": "0.33.17",
       "check": {
         "method": "github-release",
         "repo": "trailbaseio/trailbase"
@@ -100,7 +100,7 @@
     {
       "name": "uv",
       "overlay": "overlays/25-uv.nix",
-      "current_version": "0.12.13",
+      "current_version": "0.12.15",
       "check": {
         "method": "github-release",
         "repo": "astral-sh/uv"
@@ -115,7 +115,7 @@
     {
       "name": "mise",
       "overlay": "overlays/30-mise.nix",
-      "current_version": "2026.9.7",
+      "current_version": "2026.9.9",
       "check": {
         "method": "github-release",
         "repo": "jdx/mise"
@@ -140,7 +140,7 @@
     {
       "name": "beads",
       "overlay": "overlays/60-beads.nix",
-      "current_version": "1.2.2",
+      "current_version": "1.3.0",
       "check": {
         "method": "github-release",
         "repo": "gastownhall/beads"
@@ -249,7 +249,7 @@
     {
       "name": "dcg",
       "overlay": "overlays/91-dcg.nix",
-      "current_version": "0.14.3",
+      "current_version": "0.14.4",
       "check": {
         "method": "github-release",
         "repo": "Dicklesworthstone/destructive_command_guard"
