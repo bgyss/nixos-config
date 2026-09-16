@@ -115,7 +115,7 @@ in sync. The ones pinning prebuilt binaries carry hashes that go stale when a pu
 re-uploads a release artifact (see `docs/troubleshooting.md`).
 
 Step-by-step version-bump recipes for every pinned overlay live in
-[docs/overlay-update-routine.md](docs/overlay-update-routine.md). claude-code, codex-openai, uv, trailbase, igir, dcg, aws-cdk-cli, mise, go (patch bumps), beads, c4, and hey-cli can be bumped automatically with `nix run .#bump-overlays` — see [docs/overlay-bump-tutorial.md](docs/overlay-bump-tutorial.md); everything else still follows the manual routine.
+[docs/overlay-update-routine.md](docs/overlay-update-routine.md). claude-code, codex-openai, uv, trailbase, igir, dcg, aws-cdk-cli, mise, beads, c4, and hey-cli can be bumped automatically with `nix run .#bump-overlays` — see [docs/overlay-bump-tutorial.md](docs/overlay-bump-tutorial.md); everything else still follows the manual routine. `go` is no longer in this list — as of 2026-09 it tracks `go_1_27` from the `nixpkgs-master` flake input (see `modules/shared/default.nix`'s `masterPkgs`) instead of an independent version pin, because nixpkgs' `go_1_26` derivation carries patches that don't apply cleanly across a 1.26→1.27 source bump; it floats automatically with the existing `nixpkgs-master` cadence.
 
 ## Customization
 

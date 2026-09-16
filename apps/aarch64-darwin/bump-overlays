@@ -413,14 +413,6 @@ while IFS=$'\t' read -r name latest; do
       continue
     fi
     GOSRC_NAMES_TARGET+=("$name")
-  elif [[ "$name" == "go" ]]; then
-    current="$(jq -r --arg n "$name" '.packages[] | select(.name==$n) | .current_version' "$MANIFEST")"
-    cur_mm="${current%.*}"; new_mm="${latest%.*}"
-    if [[ "$cur_mm" != "$new_mm" ]]; then
-      SKIPPED_NAMES+=("$name"); SKIPPED_REASONS+=("minor/major version change ($current -> $latest) needs manual go_1_XX attribute rename")
-      continue
-    fi
-    MECH_NAMES+=("$name"); MECH_VERSIONS+=("$latest")
   else
     is_mech=0
     for t in "${MECHANICAL_TYPES[@]}"; do [[ "$t" == "$update_type" ]] && is_mech=1 && break; done

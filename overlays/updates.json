@@ -149,30 +149,6 @@
       "notes": "Step 1: update version + src hash. Step 2: set vendorHash to empty string. Step 3: run nix build to get expected hash. Step 4: update vendorHash."
     },
     {
-      "name": "go",
-      "overlay": "overlays/55-go.nix",
-      "current_version": "1.26.7",
-      "check": {
-        "method": "go-dev"
-      },
-      "update_type": "prebuilt-binary-multiplatform",
-      "platforms": {
-        "aarch64-darwin": {
-          "url_template": "https://go.dev/dl/go{version}.darwin-arm64.tar.gz"
-        },
-        "x86_64-darwin": {
-          "url_template": "https://go.dev/dl/go{version}.darwin-amd64.tar.gz"
-        },
-        "x86_64-linux": {
-          "url_template": "https://go.dev/dl/go{version}.linux-amd64.tar.gz"
-        },
-        "aarch64-linux": {
-          "url_template": "https://go.dev/dl/go{version}.linux-arm64.tar.gz"
-        }
-      },
-      "notes": "When the minor version bumps (e.g. 1.26→1.27), also rename the go_1_26 attribute to go_1_27 in the overlay."
-    },
-    {
       "name": "ngrok",
       "overlay": "overlays/20-ngrok.nix",
       "current_version": "3.39.11",
@@ -316,6 +292,10 @@
     {
       "file": "92-lmstudio.nix",
       "reason": "macOS codesign workaround, not version-pinned"
+    },
+    {
+      "file": "55-go.nix",
+      "reason": "tracks go_1_27 from nixpkgs-master (see modules/shared/default.nix masterPkgs), not independently version-pinned — floats with the existing nixpkgs-master cadence"
     },
     {
       "file": "93-direnv.nix",

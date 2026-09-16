@@ -15,10 +15,9 @@ reach for.
    verifiable value substitution: fetch a new hash, substitute a literal
    version/hash string, verify with a scoped `nix build`, commit. In scope
    today: **claude-code, codex-openai, uv, trailbase, igir, dcg,
-   aws-cdk-cli, mise** (prebuilt binaries), **go** (only on a patch-level
-   bump — a minor bump needs a manual attribute rename, see below), and
-   **beads, c4, hey-cli** (Go-source overlays; one extra automated step to
-   resolve `vendorHash` from a build-error probe).
+   aws-cdk-cli, mise** (prebuilt binaries), and **beads, c4, hey-cli**
+   (Go-source overlays; one extra automated step to resolve `vendorHash`
+   from a build-error probe). `go` is no longer in this tier — see below.
 3. **Detection automated, application manual** — everything else:
    **yt-dlp/yt-dlp-ejs** (needs human review of `curl_cffi` version bounds
    in release notes), **ngrok** (its overlay declares a separate `version =
@@ -27,11 +26,26 @@ reach for.
    safety net requires exactly one match, correctly rejects the substitution,
    and reverts the file cleanly via `git checkout --`; it shows up under
    "Failed", not "Skipped". No structured single-URL data exists to fix this
-   without restructuring the overlay itself), **tmux** (different shape —
-   `overrideAttrs` + `fetchFromGitHub` tag, not automated), and **go on a
-   minor bump** (renaming `go_1_26` → `go_1_27` throughout the overlay is a
-   structural edit, not a substitution). For all of these, follow
-   `docs/overlay-update-routine.md` by hand.
+   without restructuring the overlay itself), and **tmux** (different shape —
+   `overrideAttrs` + `fetchFromGitHub` tag, not automated). For all of these,
+   follow `docs/overlay-update-routine.md` by hand.
+
+**`go` is untracked by any tier as of 2026-09.** `overlays/55-go.nix` now
+sets `go`/`buildGoModule` to `go_1_27` pulled from the `nixpkgs-master`
+flake input (see `masterPkgs` in `modules/shared/default.nix`, the same
+mechanism `llama-cpp`/`aegisub`/`yt-dlp-master` already use), instead of
+`overrideAttrs`-ing `go_1_26`'s prebuilt binary forward. That prior approach
+broke across the 1.26→1.27 boundary: nixpkgs' `go_1_26` derivation carries
+patches (e.g. `go_no_vendor_checks`) hand-fitted to 1.26's source layout,
+and they failed to apply against 1.27's source, which in turn broke every
+`buildGoModule` package in the config (kubectl, rclone, terraform,
+pocketbase, jjui, hey-cli). `go` has no `overlays/updates.json` `packages[]`
+entry and no `health-checks.json` assertion — like `yt-dlp-master`, it
+floats automatically with the `nixpkgs-master` weekly cadence, so
+`bump-overlays`/`prepare` never need to touch it, and the quarantine ledger
+can't pin or roll it back. Once the pinned `nixpkgs` input grows a
+`go_1_27` attribute of its own, switch `overlays/55-go.nix` to `prev.go_1_27`
+and drop the `nixpkgs-master` plumbing.
 
 ## Day-to-day usage
 
@@ -54,9 +68,8 @@ run .#bump-overlays -- --only uv,aws-cdk-cli`.
 ## When it reports a skip or a failure
 
 - **Skipped** — the package's `update_type` isn't in the automated subset
-  (tier 3 above), or it's `go` on a minor-version move. The summary line
-  names the package and points here. Follow the matching recipe in
-  `docs/overlay-update-routine.md`.
+  (tier 3 above). The summary line names the package and points here. Follow
+  the matching recipe in `docs/overlay-update-routine.md`.
 - **Failed** — something in the mechanical path itself broke: a hash fetch
   404'd, the version-substitution safety net found zero or more than one
   match (it never guesses), or the verification build failed. The script
@@ -86,7 +99,7 @@ matches the mechanical set, but its overlay still declares 6 separate
 `version = "3.39.10";` assignments (one per platform block) rather than one
 shared value, so every attempt fails the single-match check. Moving it to
 tier 2 in practice would mean refactoring `overlays/20-ngrok.nix` to a
-single shared `version` (as trailbase/igir/dcg/go already do), not an
+single shared `version` (as trailbase/igir/dcg already do), not an
 `updates.json` change.
 
 ## Relationship to the daily launchd job

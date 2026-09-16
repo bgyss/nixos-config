@@ -20,7 +20,7 @@ let
 
   # nixpkgs-master is instantiated exactly once, here, purely to pull the few
   # packages that need to be newer than the pinned nixpkgs (llama-cpp, aegisub,
-  # yt-dlp).
+  # yt-dlp, go_1_27).
   #
   # yt-dlp must come from master as a WHOLE package, not as an override on the
   # pinned nixpkgs. It is tightly coupled to `curl_cffi` and native
@@ -74,7 +74,7 @@ in
             masterPkgs = masterFor prev.stdenv.hostPlatform.system;
           in
           {
-            inherit (masterPkgs) llama-cpp aegisub;
+            inherit (masterPkgs) llama-cpp aegisub go_1_27;
             # Deliberately a NEW attribute rather than replacing `yt-dlp`.
             # nixpkgs' `gallery-dl` propagates `yt-dlp`, and master's is built
             # against a newer Python than the pinned nixpkgs — substituting it

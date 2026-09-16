@@ -1,50 +1,20 @@
-# go overlay – bump to 1.26.5 until nixpkgs catches up
+# go overlay – track go_1_27 from nixpkgs-master until the pinned nixpkgs
+# catches up.
+#
+# The pinned nixpkgs (as of 2026-09) doesn't expose a go_1_27 attribute yet.
+# Rather than overrideAttrs-ing go_1_26's src/version forward (which breaks:
+# nixpkgs' go_1_26 derivation carries patches, e.g. go_no_vendor_checks, that
+# are hand-fitted to 1.26's source layout and fail to apply against 1.27's),
+# this takes the whole go_1_27 derivation from nixpkgs-master — see
+# `masterPkgs`/`go_1_27` in modules/shared/default.nix — so its patches
+# already match its source. Once the pinned nixpkgs grows a go_1_27
+# attribute, switch `final.go_1_27` below back to `prev.go_1_27` and drop
+# the nixpkgs-master plumbing for this package.
 
-final: prev:
+final: prev: {
+  go = final.go_1_27;
 
-let
-  inherit (prev) fetchurl stdenv;
-
-  version = "1.26.7";
-
-  sources = {
-    "aarch64-darwin" = {
-      url = "https://go.dev/dl/go${version}.darwin-arm64.tar.gz";
-      hash = "sha256-AgoegiSBG+dRY+kgvHfgkmoTkKau6hm9zyP3S510n20=";
-    };
-    "x86_64-darwin" = {
-      url = "https://go.dev/dl/go${version}.darwin-amd64.tar.gz";
-      hash = "sha256-kuizS/88iasWQExZVmmsjLAEzC9nbcvR9bh6a43vO0c=";
-    };
-    "x86_64-linux" = {
-      url = "https://go.dev/dl/go${version}.linux-amd64.tar.gz";
-      hash = "sha256-/7X43hDGJVDf3atms2tXAwch4KRKMhjp4Rgde1nxIco=";
-    };
-    "aarch64-linux" = {
-      url = "https://go.dev/dl/go${version}.linux-arm64.tar.gz";
-      hash = "sha256-Wk7IgzedUe6c4QQNXof4014gOHV03YyUf+sB6rw8Gzc=";
-    };
+  buildGoModule = prev.buildGoModule.override {
+    go = final.go_1_27;
   };
-
-  source = sources.${stdenv.hostPlatform.system} or null;
-
-in
-if source == null then
-  { }
-else
-  {
-    go_1_26 = prev.go_1_26.overrideAttrs (old: {
-      inherit version;
-      src = fetchurl {
-        inherit (source) url hash;
-      };
-    });
-
-    # Override the default 'go' package
-    go = final.go_1_26;
-
-    # Override buildGoModule to use the new Go version
-    buildGoModule = prev.buildGoModule.override {
-      go = final.go_1_26;
-    };
-  }
+}
