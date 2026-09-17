@@ -31,7 +31,11 @@ in
 {
   # home.packages entry: a single derivation containing the full composed SDK
   # (platform-tools, build-tools, emulator, platforms, system images, NDK).
-  package = androidComposition.androidsdk;
+  # lowPrio: the bundled emulator ships its own bin/qemu-img, which collides
+  # with modules/shared/packages.nix's standalone `qemu` package at equal
+  # priority and makes buildEnv refuse to merge home.packages. Lower priority
+  # here just means the standalone qemu's qemu-img wins that one file.
+  package = pkgs.lib.lowPrio androidComposition.androidsdk;
 
   sessionVariables = {
     ANDROID_HOME = sdkRoot;
