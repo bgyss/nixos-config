@@ -15,6 +15,7 @@ let
   '';
   sharedFiles = import ../shared/files.nix { inherit config pkgs; };
   additionalFiles = import ./files.nix { inherit user config pkgs; };
+  android = import ./android.nix { inherit pkgs; };
 
   # AeroSpace workspaces beyond 1-9: letter-keyed, matching upstream's default-config
   # convention (A-Z). h/j/k/l are excluded (reserved for vim-style focus/move) and f is
@@ -104,6 +105,10 @@ in
             additionalFiles
             { "emacs-launcher.command".source = myEmacsLauncher; }
           ];
+          sessionVariables = android.sessionVariables // {
+            JAVA_HOME = "${pkgs.jdk17}";
+          };
+          inherit (android) sessionPath;
           stateVersion = "24.11";
         };
         # Use Determinate Nix; avoid Home Manager's nix module to prevent nix.package access when nix.enable is false.

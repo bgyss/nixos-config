@@ -16,6 +16,10 @@ let
     permittedInsecurePackages = [
       "libtiff-4.0.3-opentoonz"
     ];
+    # Accepting the Android SDK license here (rather than per-invocation via
+    # NIXPKGS_ACCEPT_ANDROID_SDK_LICENSE) is what lets androidenv.composeAndroidPackages
+    # in modules/darwin/android.nix build non-interactively under build-switch.
+    android_sdk.accept_license = true;
   };
 
   # nixpkgs-master is instantiated exactly once, here, purely to pull the few
