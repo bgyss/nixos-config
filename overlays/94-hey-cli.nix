@@ -4,8 +4,8 @@ final: prev:
 
 let
   inherit (final) buildGoModule fetchFromGitHub lib;
-  version = "0-unstable-2026-09-17";
-  rev = "f3ddf5ec6f8f4c98a479a4a5d3a9f06ea5cb9c93";
+  version = "0-unstable-2026-09-18";
+  rev = "d19300520d801bbb1885af6b9a5274668b816551";
 in
 {
   hey-cli = buildGoModule {
@@ -16,10 +16,10 @@ in
       owner = "basecamp";
       repo = "hey-cli";
       inherit rev;
-      hash = "sha256-qybZsBxhorA42+0Bs1Edb8rguXh1tk+nlqBR4AD2nos=";
+      hash = "sha256-OR27J6mLUdTkhO7JI3Z/HWxha01OIKJvDEdFyWUwwxA=";
     };
 
-    vendorHash = "sha256-2P84qbTSjjirTVpv3fx6ktuFeSg6LbpoIKtIxO+z1X8=";
+    vendorHash = "sha256-KWyASPpNdPhhzffQ4tXP9t3sDpMmJpLe1uVGE2sMQ5Y=";
 
     subPackages = [ "cmd/hey" ];
 
