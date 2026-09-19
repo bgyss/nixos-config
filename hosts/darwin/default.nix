@@ -21,6 +21,12 @@
     mode = "0400";
   };
 
+  age.secrets.typesafe-api-key = {
+    file = "${secrets}/typesafe-api-key.age";
+    owner = user;
+    mode = "0400";
+  };
+
   age.secrets.ssh-key = {
     file = "${secrets}/ssh-key.age";
     path = "/Users/${user}/.ssh/id_ed25519";

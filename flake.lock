@@ -332,11 +332,11 @@
     "secrets": {
       "flake": false,
       "locked": {
-        "lastModified": 1783990403,
-        "narHash": "sha256-THNrY4dbhM6vBf4gVWD7WLSfLPsF6tuksp56B/N6TYo=",
+        "lastModified": 1789860467,
+        "narHash": "sha256-kLpPycULZsuuYdHEoaCm7k22ypmt4gcEVK0836pjiIc=",
         "ref": "refs/heads/main",
-        "rev": "255acae3cf87ad76dc5c7e14ec4c7885a5f63920",
-        "revCount": 3,
+        "rev": "349705b5d67e771a49bdb5d903f0b5e97c6562de",
+        "revCount": 4,
         "type": "git",
         "url": "ssh://git@github.com/bgyss/nix-secrets.git"
       },

@@ -86,6 +86,11 @@ if [[ -r /run/agenix/openai-api-key ]]; then
   export OPENAI_API_KEY="$(< /run/agenix/openai-api-key)"
 fi
 
+# Typesafe API key, decrypted at activation by agenix
+if [[ -r /run/agenix/typesafe-api-key ]]; then
+  export TYPESAFE_API_KEY="$(< /run/agenix/typesafe-api-key)"
+fi
+
 # Activate mise for interactive shells
 if [[ -o interactive ]] && command -v mise &>/dev/null; then
   eval "$(mise activate zsh)"
