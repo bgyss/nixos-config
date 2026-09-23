@@ -25,6 +25,7 @@ in
       };
     };
     nix-direnv.enable = true;
+    mise.enable = true;
   };
 
   # Shared shell configuration
