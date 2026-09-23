@@ -19,7 +19,7 @@
     {
       "name": "codex-openai",
       "overlay": "overlays/40-codex-openai.nix",
-      "current_version": "0.155.1",
+      "current_version": "0.156.1",
       "check": {
         "method": "github-release",
         "repo": "openai/codex",
@@ -55,7 +55,7 @@
     {
       "name": "trailbase",
       "overlay": "overlays/50-trailbase.nix",
-      "current_version": "0.33.20",
+      "current_version": "0.33.21",
       "check": {
         "method": "github-release",
         "repo": "trailbaseio/trailbase"
@@ -100,7 +100,7 @@
     {
       "name": "uv",
       "overlay": "overlays/25-uv.nix",
-      "current_version": "0.12.17",
+      "current_version": "0.12.18",
       "check": {
         "method": "github-release",
         "repo": "astral-sh/uv"
@@ -214,7 +214,7 @@
     {
       "name": "aws-cdk-cli",
       "overlay": "overlays/95-aws-cdk-cli.nix",
-      "current_version": "2.1142.0",
+      "current_version": "2.1143.0",
       "check": {
         "method": "npm",
         "package": "aws-cdk"
