@@ -3,7 +3,7 @@
     {
       "name": "claude-code",
       "overlay": "overlays/41-claude-code.nix",
-      "current_version": "2.1.284",
+      "current_version": "2.1.285",
       "check": {
         "method": "github-release",
         "repo": "anthropics/claude-code"
@@ -19,7 +19,7 @@
     {
       "name": "codex-openai",
       "overlay": "overlays/40-codex-openai.nix",
-      "current_version": "0.159.0",
+      "current_version": "0.159.1",
       "check": {
         "method": "github-release",
         "repo": "openai/codex",
