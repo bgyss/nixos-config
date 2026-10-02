@@ -3,7 +3,7 @@
     {
       "name": "claude-code",
       "overlay": "overlays/41-claude-code.nix",
-      "current_version": "2.1.286",
+      "current_version": "2.1.287",
       "check": {
         "method": "github-release",
         "repo": "anthropics/claude-code"
@@ -19,7 +19,7 @@
     {
       "name": "codex-openai",
       "overlay": "overlays/40-codex-openai.nix",
-      "current_version": "0.159.3",
+      "current_version": "0.160.0",
       "check": {
         "method": "github-release",
         "repo": "openai/codex",
@@ -100,7 +100,7 @@
     {
       "name": "uv",
       "overlay": "overlays/25-uv.nix",
-      "current_version": "0.12.21",
+      "current_version": "0.12.22",
       "check": {
         "method": "github-release",
         "repo": "astral-sh/uv"
@@ -115,7 +115,7 @@
     {
       "name": "mise",
       "overlay": "overlays/30-mise.nix",
-      "current_version": "2026.9.18",
+      "current_version": "2026.10.0",
       "check": {
         "method": "github-release",
         "repo": "jdx/mise"
@@ -214,7 +214,7 @@
     {
       "name": "aws-cdk-cli",
       "overlay": "overlays/95-aws-cdk-cli.nix",
-      "current_version": "2.1143.0",
+      "current_version": "2.1144.0",
       "check": {
         "method": "npm",
         "package": "aws-cdk"
