@@ -38,6 +38,87 @@ let
       value = "move-node-to-workspace ${lib.toUpper letter}";
     }) extraWorkspaceLetters
   );
+  # Apps grouped onto shared workspaces (letters not used by the explicit rules in
+  # on-window-detected below). Every installed GUI app should land somewhere
+  # predictable; AeroSpace only runs these once per new window, so a manual
+  # move-node-to-workspace sticks until the window is re-created.
+  groupedWorkspaceApps = {
+    Q = [
+      "com.tinyspeck.slackmacgap"
+      "net.whatsapp.WhatsApp"
+      "ru.keepcoder.Telegram"
+      "com.microsoft.teams2"
+    ];
+    R = [
+      "md.obsidian"
+      "notion.mail.id"
+      "com.microsoft.Outlook"
+    ];
+    S = [
+      "com.apple.Safari"
+      "org.mozilla.firefox"
+      "company.thebrowser.Browser"
+      "company.thebrowser.dia"
+      "com.kagi.kagimacOS"
+    ];
+    T = [
+      "com.apple.dt.Xcode"
+      "com.microsoft.VSCode"
+      "dev.zed.Zed"
+      "com.google.antigravity"
+      "com.docker.docker"
+      "com.insomnia.app"
+      "com.tinyapp.TablePlus"
+      "at.eggerapps.Postico"
+    ];
+    U = [
+      "com.spotify.client"
+      "com.sonos.macController2"
+      "org.videolan.vlc"
+      "com.colliderli.iina"
+      "com.amazon.aiv.AIVApp"
+    ];
+    V = [
+      "com.figma.Desktop"
+      "org.blenderfoundation.blender"
+      "org.freecad.FreeCAD"
+      "com.canva.affinity"
+      "app.rive.editor"
+      "app.rive.ea-editor"
+      "com.scenegroup.cavalry"
+      "ca.derivative.TouchDesigner"
+    ];
+    W = [
+      "com.microsoft.Excel"
+      "com.microsoft.Powerpoint"
+      "com.microsoft.onenote.mac"
+      "org.libreoffice.script"
+    ];
+    X = [
+      "com.valvesoftware.steam"
+      "com.epicgames.EpicGamesLauncher"
+      "com.gog.galaxy"
+    ];
+    Y = [
+      "com.apple.iBooksX"
+      "com.amazon.Lassen"
+      "com.yacreader.YACReader"
+      "com.ToWatchList.SimpleComic"
+    ];
+    Z = [
+      "org.m0k.transmission"
+      "ch.protonvpn.mac"
+    ];
+  };
+  groupedWindowRules = lib.concatLists (
+    lib.mapAttrsToList (
+      ws: ids:
+      map (id: {
+        "if".app-id = id;
+        run = "move-node-to-workspace ${ws}";
+      }) ids
+    ) groupedWorkspaceApps
+  );
 in
 {
   imports = [
@@ -229,7 +310,8 @@ in
                     "move-node-to-workspace I"
                   ];
                 }
-              ];
+              ]
+              ++ groupedWindowRules;
 
               mode.main.binding = {
                 # Focus
