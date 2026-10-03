@@ -85,6 +85,10 @@ in
             # into gallery-dl's environment breaks its build outright. Only the
             # CLI we install (modules/shared/packages.nix) uses this one.
             yt-dlp-master = masterPkgs.yt-dlp;
+            # Same reasoning: the pinned nixpkgs ships cmake 4.1.x, but
+            # overriding `cmake` itself would rebuild every package that
+            # depends on it. Only the CLI we install uses this one.
+            cmake-master = masterPkgs.cmake;
           }
         )
       ]

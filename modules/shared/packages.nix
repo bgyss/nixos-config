@@ -100,7 +100,7 @@ with pkgs;
 
   # development tools
   clang-tools
-  cmake
+  cmake-master
   devenv
   nixd
   ruff
