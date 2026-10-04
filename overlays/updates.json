@@ -3,7 +3,7 @@
     {
       "name": "claude-code",
       "overlay": "overlays/41-claude-code.nix",
-      "current_version": "2.1.288",
+      "current_version": "2.1.289",
       "check": {
         "method": "github-release",
         "repo": "anthropics/claude-code"
@@ -100,7 +100,7 @@
     {
       "name": "uv",
       "overlay": "overlays/25-uv.nix",
-      "current_version": "0.12.22",
+      "current_version": "0.12.23",
       "check": {
         "method": "github-release",
         "repo": "astral-sh/uv"
@@ -115,7 +115,7 @@
     {
       "name": "mise",
       "overlay": "overlays/30-mise.nix",
-      "current_version": "2026.10.1",
+      "current_version": "2026.10.2",
       "check": {
         "method": "github-release",
         "repo": "jdx/mise"
@@ -175,8 +175,8 @@
     {
       "name": "hey-cli",
       "overlay": "overlays/94-hey-cli.nix",
-      "current_version": "0-unstable-2026-10-03",
-      "current_rev": "08dd3fdab0eb14e43765e00d99e9cd5d36d76e13",
+      "current_version": "0-unstable-2026-10-04",
+      "current_rev": "8bf9310c0b1df7448e39ed1f81826ae795bd8b5c",
       "check": {
         "method": "github-commits",
         "repo": "basecamp/hey-cli",
