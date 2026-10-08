@@ -73,6 +73,13 @@ nix-update-switch() {
 # ssh for warp
 ssh() { command ssh "$@"; }
 
+# Root shell on the Synology NAS (blacklodge). Its terminfo only has xterm*/vt*,
+# so tmux-256color / xterm-ghostty break the shell; force xterm-256color on both hops.
+nasroot() {
+  TERM=xterm-256color ssh -t blacklodge \
+    'sudo TERM=xterm-256color /bin/bash --noprofile --norc'
+}
+
 # brew completions
 if type brew &>/dev/null; then
   FPATH=$(brew --prefix)/share/zsh-completions:$FPATH
