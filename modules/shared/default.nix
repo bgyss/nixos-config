@@ -78,7 +78,12 @@ in
             masterPkgs = masterFor prev.stdenv.hostPlatform.system;
           in
           {
-            inherit (masterPkgs) llama-cpp aegisub go_1_27;
+            inherit (masterPkgs)
+              llama-cpp
+              aegisub
+              go_1_27
+              ffmpeg-full
+              ;
             # Deliberately a NEW attribute rather than replacing `yt-dlp`.
             # nixpkgs' `gallery-dl` propagates `yt-dlp`, and master's is built
             # against a newer Python than the pinned nixpkgs — substituting it
