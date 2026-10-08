@@ -70,14 +70,20 @@ nix-update-switch() {
   nix run "$flake_ref"#build-switch -- "$@"
 }
 
-# ssh for warp
-ssh() { command ssh "$@"; }
+# ssh for warp. Hosts whose terminfo lacks tmux-256color / xterm-ghostty (the Synology
+# NAS, blacklodge) get TERM=xterm-256color so interactive sessions render correctly.
+ssh() {
+  local host
+  host=$(command ssh -G "$@" 2>/dev/null | awk '$1 == "hostname" { print $2; exit }')
+  case $host in
+    blacklodge) TERM=xterm-256color command ssh "$@" ;;
+    *) command ssh "$@" ;;
+  esac
+}
 
-# Root shell on the Synology NAS (blacklodge). Its terminfo only has xterm*/vt*,
-# so tmux-256color / xterm-ghostty break the shell; force xterm-256color on both hops.
+# Root shell on blacklodge; the ssh() wrapper above handles the local TERM hop.
 nasroot() {
-  TERM=xterm-256color ssh -t blacklodge \
-    'sudo TERM=xterm-256color /bin/bash --noprofile --norc'
+  ssh -t blacklodge 'sudo TERM=xterm-256color /bin/bash --noprofile --norc'
 }
 
 # brew completions
