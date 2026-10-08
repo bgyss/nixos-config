@@ -348,6 +348,8 @@ in
       "blacklodge" = {
         user = "bgyss";
         port = 24;
+        # DSM's OpenSSH 8.2 has no post-quantum KEX; LAN-only host, so silence the warning.
+        extraOptions.WarnWeakCrypto = "no";
       };
     };
   };
