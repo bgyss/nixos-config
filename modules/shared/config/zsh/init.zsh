@@ -81,9 +81,24 @@ ssh() {
   esac
 }
 
-# Root shell on blacklodge; the ssh() wrapper above handles the local TERM hop.
+# Root shell on blacklodge; the ssh() wrapper above handles the local TERM hop. DSM has no
+# zsh, so a small bash rcfile (red root prompt, colors, aliases) is shipped inline as base64
+# and read through process substitution — nothing is written to the NAS.
 nasroot() {
-  ssh -t blacklodge 'sudo TERM=xterm-256color /bin/bash --noprofile --norc'
+  local rc b64
+  rc=$(cat <<'EOF'
+export PATH="$PATH:/usr/syno/sbin:/usr/syno/bin"
+PS1='\[\e[1;31m\]root\[\e[0m\]@\[\e[1;35m\]blacklodge\[\e[0m\] \[\e[1;34m\]\w\[\e[0m\] \[\e[1;31m\]#\[\e[0m\] '
+alias ls='ls --color=auto'
+alias ll='ls -lah'
+alias grep='grep --color=auto'
+HISTCONTROL=ignoreboth
+HISTSIZE=10000
+shopt -s checkwinsize histappend
+EOF
+)
+  b64=$(printf '%s\n' "$rc" | base64 | tr -d '\n')
+  ssh -t blacklodge "sudo TERM=xterm-256color /bin/bash -c 'exec /bin/bash --noprofile --rcfile <(echo $b64 | base64 -d) -i'"
 }
 
 # brew completions
