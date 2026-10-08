@@ -83,7 +83,6 @@ _:
   "steam"
   "epic-games"
   "dolphin"
-  "retroarch-metal"
   "multipatch"
 
   # GIS

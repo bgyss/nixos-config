@@ -308,6 +308,10 @@
     {
       "file": "05-permit-marked-packages.nix",
       "reason": "meta un-gate for lmstudio/wkhtmltopdf replacing global allowBroken/allowUnsupportedSystem (F10), not version-pinned"
+    },
+    {
+      "file": "99-retroarch.nix",
+      "reason": "prebuilt universal macOS dmg from libretro buildbot (nixpkgs retroarch-bare is broken on Darwin), manual bumps"
     }
   ],
   "inputs": {
