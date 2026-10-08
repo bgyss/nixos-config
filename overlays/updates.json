@@ -3,7 +3,7 @@
     {
       "name": "claude-code",
       "overlay": "overlays/41-claude-code.nix",
-      "current_version": "2.1.292",
+      "current_version": "2.1.294",
       "check": {
         "method": "github-release",
         "repo": "anthropics/claude-code"
@@ -76,7 +76,7 @@
     {
       "name": "igir",
       "overlay": "overlays/70-igir.nix",
-      "current_version": "5.7.0",
+      "current_version": "5.7.2",
       "check": {
         "method": "github-release",
         "repo": "emmercm/igir"
@@ -115,7 +115,7 @@
     {
       "name": "mise",
       "overlay": "overlays/30-mise.nix",
-      "current_version": "2026.10.3",
+      "current_version": "2026.10.4",
       "check": {
         "method": "github-release",
         "repo": "jdx/mise"
@@ -214,7 +214,7 @@
     {
       "name": "aws-cdk-cli",
       "overlay": "overlays/95-aws-cdk-cli.nix",
-      "current_version": "2.1144.0",
+      "current_version": "2.1145.0",
       "check": {
         "method": "npm",
         "package": "aws-cdk"
@@ -225,7 +225,7 @@
     {
       "name": "dcg",
       "overlay": "overlays/91-dcg.nix",
-      "current_version": "0.15.2",
+      "current_version": "0.15.3",
       "check": {
         "method": "github-release",
         "repo": "Dicklesworthstone/destructive_command_guard"
