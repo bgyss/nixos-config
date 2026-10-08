@@ -187,6 +187,7 @@ with pkgs;
   claude-monitor
   codex-openai
   hey-cli
+  rea
 
 ]
 ++ optionals stdenv.isDarwin [

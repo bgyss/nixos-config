@@ -286,6 +286,10 @@
       "reason": "build fix (doCheck=false)"
     },
     {
+      "file": "100-rea.nix",
+      "reason": "npm source build from bgyss/rea with no tagged releases — bump rev and both hashes manually"
+    },
+    {
       "file": "90-svg-term-cli.nix",
       "reason": "npm package with vendored package-lock.json — update manually"
     },
