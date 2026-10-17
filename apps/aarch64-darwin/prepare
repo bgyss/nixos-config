@@ -406,7 +406,14 @@ fi
 state_set_last_gate "$(now_iso)"
 
 warn "==> build ${FLAKE_SYSTEM_ATTR} (evidence; no activation)"
-nix build "${FLAKE_DIR}#${FLAKE_SYSTEM_ATTR}" --out-link ./result "$@"
+if ! nix build "${FLAKE_DIR}#${FLAKE_SYSTEM_ATTR}" --out-link ./result "$@"; then
+  # Don't leave the rejected flake.lock update dirty in the live tree: every later
+  # run (and scheduled-check's evidence build) would otherwise rebuild the same
+  # broken lock forever instead of retrying a newer upstream at the next cadence.
+  warn "==> build failed — restoring flake.lock to HEAD"
+  git -C "$FLAKE_DIR" show HEAD:flake.lock > "$FLAKE_DIR/flake.lock"
+  exit 1
+fi
 
 warn "==> closure diff (running system -> proposed)"
 nix store diff-closures /run/current-system ./result || true
