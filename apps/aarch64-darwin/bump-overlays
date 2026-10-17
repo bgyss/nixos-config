@@ -155,11 +155,18 @@ open(path, "w").write(text)
 PYEOF
 }
 
+# Build a Go-source overlay package from the live system's package set rather than a bare
+# `import <nixpkgs>`: the stock pinned nixpkgs ships Go 1.26, so any upstream whose go.mod
+# moved to >=1.27 fails there ("go.mod requires go >= 1.27.0") before the vendorHash "got:"
+# line ever prints. The system pkgs carry overlays/55-go.nix's go_1_27 buildGoModule, and the
+# flake reads the (dirty) working-tree overlay edit.
+go_pkg_build() {
+  nix build --no-link "${FLAKE_DIR}#${FLAKE_SYSTEM_ATTR%.system}.pkgs.${1}"
+}
+
 resolve_vendor_hash() {
   local overlay_rel="$1" name="$2" got
-  got="$(nix build --no-link --impure --expr \
-    "let pkgs = import <nixpkgs> { config.allowUnfree = true; overlays = [ (import ./$overlay_rel) ]; }; in pkgs.${name}" \
-    2>&1 | grep 'got:' | awk '{print $2}' | head -1)"
+  got="$(go_pkg_build "$name" 2>&1 | grep 'got:' | awk '{print $2}' | head -1)"
   [[ -n "$got" ]] || return 1
   printf '%s' "$got"
 }
@@ -247,9 +254,7 @@ print(m.group(1) if m else "")
   fi
   bump_field_string "$overlay_file" "vendorHash" "" "$vendor_hash" || { git checkout -- "$overlay_rel"; return 1; }
 
-  if ! nix build --no-link --impure --expr \
-      "let pkgs = import <nixpkgs> { config.allowUnfree = true; overlays = [ (import ./$overlay_rel) ]; }; in pkgs.${name}" \
-      >/tmp/bump-overlays-gosrc.$$.log 2>&1; then
+  if ! go_pkg_build "$name" >/tmp/bump-overlays-gosrc.$$.log 2>&1; then
     err "  verification build failed after vendorHash resolution:"
     tail -30 /tmp/bump-overlays-gosrc.$$.log >&2
     rm -f /tmp/bump-overlays-gosrc.$$.log

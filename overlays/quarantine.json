@@ -54,24 +54,6 @@
       "retry_policy": "frozen"
     },
     {
-      "name": "hey-cli",
-      "kind": "overlay",
-      "blocked_version": "0-unstable-2026-10-15",
-      "known_good_version": "0-unstable-2026-10-13",
-      "first_failed": "2026-10-15T16:06:16Z",
-      "last_attempt": "2026-10-15T16:06:16Z",
-      "attempts": 1,
-      "phase": "package-build",
-      "fingerprint": "unclassified",
-      "error_excerpt": "-- hey-cli: e386157353a42a6695e0af7e90f090f1cc2aff73 -> 76ea03f5e52651521fef86edc24224ca4033d374 (0-unstable-2026-10-13 -> 0-unstable-2026-10-15)\n  could not resolve vendorHash from build error for hey-cli",
-      "retry_policy": "next-version-only",
-      "escalation": {
-        "status": "stalled",
-        "verdict": "no verdict.json produced (claude exited 124) — session likely stalled rather than reached a real diagnosis",
-        "at": "2026-10-15T18:32:11Z"
-      }
-    },
-    {
       "name": "revision-19cc549",
       "kind": "revision",
       "blocked_version": "19cc549e154c429f41169f1e5ae9d20ec974dd5c",
