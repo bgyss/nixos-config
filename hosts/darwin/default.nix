@@ -141,6 +141,7 @@
     script = ''
       set -uo pipefail
       REPO=/Users/${user}/nixos-config
+      export NIXOS_CONFIG_REPO="$REPO" # locate_flake() uses this, not the network-dependent registry
       ${pkgs.nix}/bin/nix run "$REPO#scheduled-check" -- --propose-only
       rc=$?
       [ $rc -ne 0 ] && exit $rc

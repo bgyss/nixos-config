@@ -18,7 +18,13 @@ err()  { echo -e "${C_RED}$*${C_NC}" >&2; }
 # Try the nix registry first (set up by this config), then git.
 locate_flake() {
   local dir=""
-  if dir=$(nix registry list 2>/dev/null | awk '/flake:nixos-config/ {gsub(/^path:/, "", $3); print $3; exit}') && [[ -n "$dir" ]]; then
+  # Explicit override (the launchd agent exports this; no registry/network dependency).
+  if [[ -n "${NIXOS_CONFIG_REPO:-}" && -f "$NIXOS_CONFIG_REPO/flake.nix" ]]; then
+    printf '%s' "$NIXOS_CONFIG_REPO"; return 0
+  fi
+  # Empty flake-registry: read only the local registries. Fetching the global one needs the
+  # network, and an offline run (e.g. 09:00 launchd right after boot) printed nothing here.
+  if dir=$(nix registry list --option flake-registry "" 2>/dev/null | awk '/flake:nixos-config/ {gsub(/^path:/, "", $3); print $3; exit}') && [[ -n "$dir" ]]; then
     printf '%s' "$dir"; return 0
   fi
   if dir=$(git rev-parse --show-toplevel 2>/dev/null) && [[ -f "$dir/flake.nix" ]]; then
