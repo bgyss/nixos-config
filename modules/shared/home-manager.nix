@@ -286,6 +286,22 @@ in
     };
   };
 
+  btop = {
+    enable = true;
+    settings = {
+      # btop 1.4.6 on macOS intermittently freezes: the "Stall in Runner thread"
+      # watchdog calls pthread_cancel, which can't interrupt a semaphore wait, so
+      # the main thread hangs in pthread_join (aristocratos/btop#1349; fixed on
+      # main by #1662, unreleased as of 1.4.7). Sensor collection is the stalling
+      # path, so skip it. Drop these once a release ships the fix.
+      check_temp = false;
+      show_cpu_watts = false;
+      # The config is a read-only store symlink; btop would otherwise try to
+      # rewrite it on exit.
+      save_config_on_exit = false;
+    };
+  };
+
   ghostty = {
     enable = true;
     # nixpkgs' ghostty package is Linux-only; on Darwin the app comes from the
