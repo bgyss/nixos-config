@@ -31,7 +31,7 @@ reach for.
    follow `docs/overlay-update-routine.md` by hand.
 
 **`go` is untracked by any tier as of 2026-09.** `overlays/55-go.nix` now
-sets `go`/`buildGoModule` to `go_1_27` pulled from the `nixpkgs-master`
+sets `go` to `go_1_27` (and defines `buildGo127Module`) pulled from the `nixpkgs-master`
 flake input (see `masterPkgs` in `modules/shared/default.nix`, the same
 mechanism `llama-cpp`/`aegisub`/`yt-dlp-master` already use), instead of
 `overrideAttrs`-ing `go_1_26`'s prebuilt binary forward. That prior approach
@@ -43,7 +43,10 @@ pocketbase, jjui, hey-cli). `go` has no `overlays/updates.json` `packages[]`
 entry and no `health-checks.json` assertion — like `yt-dlp-master`, it
 floats automatically with the `nixpkgs-master` weekly cadence, so
 `bump-overlays`/`prepare` never need to touch it, and the quarantine ledger
-can't pin or roll it back. Once the pinned `nixpkgs` input grows a
+can't pin or roll it back. `buildGoModule` itself is left stock so nixpkgs' own Go
+packages (kubectl, rclone, ...) still substitute from cache.nixos.org; only the overlay
+packages whose `go.mod` needs Go >= 1.27 (c4, beads, hey-cli) use `final.buildGo127Module`.
+New Go overlays failing with `go.mod requires go >= 1.27` should do the same. Once the pinned `nixpkgs` input grows a
 `go_1_27` attribute of its own, switch `overlays/55-go.nix` to `prev.go_1_27`
 and drop the `nixpkgs-master` plumbing.
 

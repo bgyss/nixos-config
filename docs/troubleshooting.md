@@ -23,18 +23,19 @@ will use the master branch version instead of the unstable version.
 
 ## Python Test Failures in Nix Sandbox
 
-After `nix flake update`, Python packages frequently fail to build because their test suites
-are incompatible with the Nix build sandbox (no network, no dbus, no real timers). The fix is
-**not** to pin nixpkgs — instead, disable checks for the offending package.
+**Default: don't add `doCheck = false` overrides.** Every override changes the derivation hash of
+that package *and everything downstream*, so cache.nixos.org can no longer substitute any of it
+and the whole slice rebuilds locally (an earlier ~30-package override list in
+`overlays/81-python-disable-checks.nix` did exactly this and was removed). The same applies to
+`fmt`, `deno` and `nodejs`, whose `doCheck = false` overlays were also removed. Measure with
+`nix build .#darwinConfigurations.garmonbozia.system --dry-run --store /tmp/emptystore` — the
+"derivations will be built" count is what a cold machine must compile.
 
-**How it works**: `overlays/81-python-disable-checks.nix` uses
-`pythonX.override { packageOverrides = ...; }` to propagate `doCheck = false` through the
-interpreter's own scope, for **both** python313 and python314. This is critical —
-`overrideScope` alone does NOT propagate to `pythonX.withPackages` consumers. Both
-interpreters must be patched: our own package list (`modules/shared/packages.nix`) uses
-python314, but nixpkgs' internal `python3` alias is still python313, and several nixpkgs
-derivations (`glances`, `semgrep`, `curl-cffi`, `fastapi`, `mcp`, `jetbrains-mono`, `yt-dlp`,
-...) build against it internally.
+If a package genuinely fails its tests in the sandbox after a bump, override **just that one**
+in `overlays/81-python-disable-checks.nix` (inside `pyOverrides`), preferring leaf packages
+nothing else depends on. The file patches `python314` only (our own package list uses it);
+nixpkgs' internal `python3` alias is still python313 and is intentionally left stock so it is
+substituted from the cache.
 
 **Diagnosing which phase failed**:
 
@@ -44,32 +45,11 @@ derivations (`glances`, `semgrep`, `curl-cffi`, `fastapi`, `mcp`, `jetbrains-mon
 | `- <pkg> not installed` | `pythonRuntimeDepsCheck` | `dontCheckRuntimeDeps = true` |
 | `ModuleNotFoundError` during import check | `pythonImportsCheck` | `pythonImportsCheck = [ ]` |
 
-**Categories of known-flaky packages** (already covered in overlay):
-
-- **Async/networking** (timing assertions fail in sandbox): `aiohappyeyeballs`, `aiohttp`, `aiosignal`, `httpcore`, `httpx`, `anyio`, `uvloop`
-- **D-Bus/system services** (no `dbus-daemon`): `jeepney` (also needs `pythonImportsCheck = []`), `secretstorage`, `keyring`
-- **Crypto/SSH** (need agents or hardware): `paramiko` (also needs `dontCheckRuntimeDeps`), `cryptography`
-- **Sandbox-incompatible test suites**: `twisted`, `ffmpeg-python`, `black`, `tornado`
-- **AI/ML ecosystem** (network-dependent tests): `openai`, `anthropic`, `tiktoken`, `tokenizers`, `datasets`, `huggingface-hub`, `llm`, `fsspec`
-- **Misc**: `elasticsearch`, `elastic-transport`, `inline-snapshot` (needs `dontCheckRuntimeDeps` for pytest)
-
-**To add a new package**, edit `overlays/81-python-disable-checks.nix` and add to the
-`pyOverrides` set:
-
 ```nix
-# Simple case (flaky tests):
-mypackage = noCheck pyPrev.mypackage;
-
-# Runtime dep check failure:
 mypackage = pyPrev.mypackage.overridePythonAttrs {
   doCheck = false;
-  dontCheckRuntimeDeps = true;
-};
-
-# Import check failure:
-mypackage = pyPrev.mypackage.overridePythonAttrs {
-  doCheck = false;
-  pythonImportsCheck = [ ];
+  dontCheckRuntimeDeps = true; # only if the runtime dep check fails
+  pythonImportsCheck = [ ]; # only if the import check fails
 };
 ```
 

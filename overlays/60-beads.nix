@@ -4,7 +4,7 @@ final: prev:
 
 let
   inherit (final)
-    buildGoModule
+    buildGo127Module
     fetchFromGitHub
     lib
     sqlite
@@ -19,7 +19,7 @@ let
   };
 in
 {
-  beads = buildGoModule {
+  beads = buildGo127Module {
     pname = "beads";
     inherit version src;
 

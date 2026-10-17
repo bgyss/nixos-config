@@ -311,8 +311,7 @@
                   autoMigrate = true;
                 };
               }
-              # Import your darwin Home Manager module which itself configures HM
-              ./modules/darwin/home-manager.nix
+              # hosts/darwin imports modules/darwin/home-manager.nix itself
               ./hosts/darwin
             ];
           };

@@ -189,9 +189,7 @@ step manually.
 
 **Skip list** (build fixes, not version-pinned — never modify in automated runs):
 - `10-feather-font.nix` — intentionally pinned to v1.0
-- `80-llm.nix`, `82-fmt.nix`, `83-deno.nix` — `doCheck = false` workarounds
-- `81-python313-disable-checks.nix` — Python sandbox test suppression
-- `82-python313-httpcore.nix` — neutralized stub
+- `81-python-disable-checks.nix` — cocotb-on-Darwin build fix (python314)
 - `90-svg-term-cli.nix` — npm package with vendored lock file
 - `92-lmstudio.nix` — macOS codesign workaround
 - `93-direnv.nix` — CGO build fix

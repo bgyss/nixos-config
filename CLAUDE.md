@@ -84,6 +84,12 @@ unattended activation. If `prepare`/`bump-overlays` can't acquire the shared sta
 run already in progress) they exit 2 and `scheduled-check` stays silent rather than firing a
 failure notification.
 
+A root launchd daemon (`launchd.daemons.nix-gc`, Sundays 04:30) prunes system and user-profile
+generations older than 30 days and runs `nix-collect-garbage`; Determinate Nix has `nix.enable = false`,
+so nix-darwin's own `nix.gc` is unavailable. Avoid `doCheck = false` overlays on widely-used
+packages: they change the derivation hash of everything downstream and defeat the binary cache
+(measure with `nix build .#darwinConfigurations.garmonbozia.system --dry-run --store /tmp/emptystore`).
+
 Failures are recorded per-version in `overlays/quarantine.json` (self-healing: a quarantine
 blocks exactly the failing version/pin-ref, so anything newer is retried automatically) and
 `bump-overlays` skips whatever it currently blocks (`prepare` reads the ledger only for

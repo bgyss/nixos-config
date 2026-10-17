@@ -8,10 +8,7 @@ let
   androidComposition = pkgs.androidenv.composeAndroidPackages {
     cmdLineToolsVersion = "19.0";
     platformToolsVersion = "36.0.2";
-    platformVersions = [
-      "36"
-      "35"
-    ];
+    platformVersions = [ "36" ];
     buildToolsVersions = [ "36.1.0" ];
     includeEmulator = true;
     emulatorVersion = "36.4.2";

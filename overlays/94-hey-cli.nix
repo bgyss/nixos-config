@@ -3,12 +3,12 @@
 final: prev:
 
 let
-  inherit (final) buildGoModule fetchFromGitHub lib;
+  inherit (final) buildGo127Module fetchFromGitHub lib;
   version = "0-unstable-2026-10-17";
   rev = "76ea03f5e52651521fef86edc24224ca4033d374";
 in
 {
-  hey-cli = buildGoModule {
+  hey-cli = buildGo127Module {
     pname = "hey-cli";
     inherit version;
 

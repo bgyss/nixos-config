@@ -10,11 +10,17 @@
 # already match its source. Once the pinned nixpkgs grows a go_1_27
 # attribute, switch `final.go_1_27` below back to `prev.go_1_27` and drop
 # the nixpkgs-master plumbing for this package.
+#
+# `buildGoModule` itself is deliberately NOT overridden: swapping its toolchain
+# changes the derivation hash of every Go package (kubectl, rclone, gh, docker-*,
+# age, ...), which forces a local rebuild of each instead of a cache.nixos.org
+# substitution. Only the overlay packages whose go.mod needs Go >= 1.27 (c4,
+# beads, hey-cli) opt in via `buildGo127Module`.
 
 final: prev: {
   go = final.go_1_27;
 
-  buildGoModule = prev.buildGoModule.override {
+  buildGo127Module = prev.buildGoModule.override {
     go = final.go_1_27;
   };
 }

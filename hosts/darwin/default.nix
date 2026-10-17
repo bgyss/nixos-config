@@ -75,7 +75,7 @@
 
   environment.systemPackages = with pkgs; [
     beads
-    emacs-unstable
+    emacs # same 30.2 as the launchd daemon below; emacs-unstable was a second, locally built copy
     svg-term-cli
   ];
 
@@ -183,6 +183,37 @@
       "/usr/sbin"
       "/sbin"
     ];
+  };
+
+  # Weekly garbage collection. nix.enable = false (Determinate Nix) means
+  # nix-darwin's `nix.gc` is unavailable, and nothing else collects: before this
+  # existed there were 500 system and 458 user-profile generations on a volume
+  # that was 93% full. Keeps 30 days of generations so `rollback` and the
+  # auto-rollback in scheduled-check still have something to land on. Runs
+  # Sunday 04:30, well clear of the 09:00 update agent.
+  #
+  # Root is needed for the system profile; root's own `nix-collect-garbage`
+  # only prunes root's profiles, so the user's `~/.nix-profile` history is wiped
+  # explicitly by path.
+  launchd.daemons.nix-gc = {
+    script = ''
+      set -u
+      export PATH=/nix/var/nix/profiles/default/bin:/usr/bin:/bin
+      nix profile wipe-history --profile /Users/${user}/.local/state/nix/profiles/profile --older-than 30d
+      nix-collect-garbage --delete-older-than 30d
+    '';
+    serviceConfig = {
+      RunAtLoad = false;
+      StartCalendarInterval = [
+        {
+          Weekday = 0;
+          Hour = 4;
+          Minute = 30;
+        }
+      ];
+      StandardErrorPath = "/var/log/nix-gc.log";
+      StandardOutPath = "/var/log/nix-gc.log";
+    };
   };
 
   # To run a persistent local llama-server as a launchd agent, see the recipe

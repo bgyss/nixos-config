@@ -42,17 +42,17 @@ let
   # the quarantine ledger cannot pin or roll it back. For a tool that breaks
   # whenever a site changes and must stay current, that is the right trade.
   #
-  # It is NOT sufficient to use `nixpkgs-master.legacyPackages`: llama-cpp's
-  # build-time nodejs_26 dependency fails on sandbox-incompatible network tests,
-  # so master must carry the nodejs check-skip overlay (see
-  # overlays/84-nodejs-skip-flaky-tests.nix). That forces this one extra eval;
-  # keep it to these two packages so the cost stays bounded.
+  # This instance carries NO overlays on purpose: master's stock nodejs_26
+  # (llama-cpp's build-time web-UI bundler) is in cache.nixos.org, whereas the
+  # old doCheck=false overlay forced a multi-hour local nodejs source build.
+  # It is a separate import from `nixpkgs-master.legacyPackages` only so it can
+  # take nixpkgsConfig (allowUnfree); keep it to the few packages below so the
+  # extra eval stays bounded.
   masterFor =
     system:
     import nixpkgs-master {
       inherit system;
       config = nixpkgsConfig;
-      overlays = [ (import ../../overlays/84-nodejs-skip-flaky-tests.nix) ];
     };
 in
 {
@@ -78,8 +78,13 @@ in
             masterPkgs = masterFor prev.stdenv.hostPlatform.system;
           in
           {
+            # gallery-dl also comes from master (alongside yt-dlp-master below):
+            # the pinned one propagates the pinned nixpkgs' yt-dlp and its
+            # uncached curl-impersonate/curl-cffi chain, i.e. a second
+            # yt-dlp built from source locally for no benefit.
             inherit (masterPkgs)
               llama-cpp
+              gallery-dl
               aegisub
               go_1_27
               ffmpeg-full

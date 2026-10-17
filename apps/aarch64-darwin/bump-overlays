@@ -158,7 +158,7 @@ PYEOF
 # Build a Go-source overlay package from the live system's package set rather than a bare
 # `import <nixpkgs>`: the stock pinned nixpkgs ships Go 1.26, so any upstream whose go.mod
 # moved to >=1.27 fails there ("go.mod requires go >= 1.27.0") before the vendorHash "got:"
-# line ever prints. The system pkgs carry overlays/55-go.nix's go_1_27 buildGoModule, and the
+# line ever prints. The system pkgs carry overlays/55-go.nix's go_1_27 (buildGo127Module), and the
 # flake reads the (dirty) working-tree overlay edit.
 go_pkg_build() {
   nix build --no-link "${FLAKE_DIR}#${FLAKE_SYSTEM_ATTR%.system}.pkgs.${1}"

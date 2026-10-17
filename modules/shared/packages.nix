@@ -91,7 +91,6 @@ with pkgs;
   iina
   imagemagick
   noto-fonts
-  noto-fonts-color-emoji
   meslo-lgs-nf
 
   # Node.js development tools
@@ -128,7 +127,6 @@ with pkgs;
   htop
   hunspell
   iftop
-  jetbrains-mono
   jq
   ripgrep
   tree
@@ -197,6 +195,10 @@ with pkgs;
   # Note: darwin.apple_sdk.frameworks removed in nixpkgs; frameworks now provided via stdenv
 ]
 ++ optionals (!stdenv.isDarwin) [
+  # Built through the Python font toolchain (nototools/fontmake/afdko), which is
+  # not in the binary cache; macOS ships Apple Color Emoji, so Linux only.
+  noto-fonts-color-emoji
+  jetbrains-mono
   dolphin-emu
   # bittorrent (use Homebrew cask on Darwin)
   transmission_4
