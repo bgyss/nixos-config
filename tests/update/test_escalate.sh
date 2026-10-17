@@ -175,15 +175,15 @@ run_escalate "$d" "$stub" && rc=0 || rc=$?
 grep -q "1.0.0" "$d/overlays/99-demo.nix" || fail "case5: overlay was modified despite dedup"
 rm -rf "$d" "$stub"
 
-# A `nix` stub whose scoped `--expr` build passes but whose flake-attribute
-# (full system) build fails — distinguished by whether --expr is among the args.
+# A `nix` stub whose per-package build (`...garmonbozia.pkgs.<pkg>`) passes but whose
+# full system build (`...garmonbozia.system`) fails — distinguished by the attr suffix.
 stub_nix_scoped_pass_full_fail() { # <stub-dir>
   cat > "$1/nix" <<EOF
 #!/usr/bin/env bash
 case "\$1 \$2" in "registry list") exit 1 ;; esac
 if [[ "\$1" == "build" ]]; then
   for a in "\$@"; do
-    if [[ "\$a" == "--expr" ]]; then exit 0; fi
+    if [[ "\$a" == *.pkgs.* ]]; then exit 0; fi
   done
   echo "error: full system build still broken" >&2
   exit 1
@@ -277,8 +277,8 @@ run_escalate "$d" "$stub" && rc=0 || rc=$?
 grep -q "1.0.0" "$d/overlays/99-demo.nix" || fail "case9: committed despite scoped build failure"
 [[ "$(git -C "$d" log --oneline | wc -l | tr -d ' ')" == "2" ]] \
   || fail "case9: expected exactly one new commit (ledger only)"
-grep -q "did not reproduce" "$d/esc.log" \
-  || { cat "$d/esc.log"; fail "case9: failed for the wrong reason — expected the scoped-build message"; }
+grep -q "both scoped and full system build failed" "$d/esc.log" \
+  || { cat "$d/esc.log"; fail "case9: failed for the wrong reason — expected the package+full build failure message"; }
 [[ -z "$(git -C "$d" status --porcelain -- overlays/quarantine.json)" ]] \
   || fail "case9: quarantine.json left uncommitted"
 rm -rf "$d" "$stub"

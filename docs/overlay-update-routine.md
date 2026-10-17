@@ -115,8 +115,7 @@ do NOT wait for the build to finish in a single session. Procedure:
 4. Set `vendorHash = "";`.
 5. Run a quick build attempt to obtain the expected hash from the error output:
    ```bash
-   nix build --impure --expr \
-     'let pkgs = import <nixpkgs> { overlays = [ (import ./overlays/60-beads.nix) ]; }; in pkgs.beads' \
+   nix build --no-link '.#darwinConfigurations.garmonbozia.pkgs.beads' \
      2>&1 | grep 'got:' | awk '{print $2}'
    ```
 6. Update `vendorHash` with the printed `sha256-...` value.
@@ -208,8 +207,7 @@ After updating overlays, run a quick syntax check:
 nix-instantiate --parse overlays/MODIFIED_OVERLAY.nix > /dev/null
 
 # Optional: test build for prebuilt-binary overlays on this machine:
-nix build --impure --expr \
-  'let pkgs = import <nixpkgs> { overlays = [ (import ./overlays/OVERLAY.nix) ]; }; in pkgs.PACKAGE'
+nix build --no-link '.#darwinConfigurations.garmonbozia.pkgs.PACKAGE'
 ```
 
 Do NOT run `nix run .#build-switch` in a remote/cloud session — that requires root on the

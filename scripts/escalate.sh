@@ -139,8 +139,11 @@ $(tail -80 "$LOG" 2>/dev/null | quarantine_sanitize)
 1. Read $overlay_rel and the '$update_type' section of docs/overlay-update-routine.md.
 2. Make the minimal edit that could plausibly fix this, bumping the overlay's
    pinned version/hash AND overlays/updates.json's current_version together.
-3. Verify with a scoped build:
-   nix build --no-link --impure --expr 'let pkgs = import <nixpkgs> { config.allowUnfree = true; overlays = [ (import ./$overlay_rel) ]; }; in pkgs.$PACKAGE'
+3. Verify with a build of just this package from the live system package set (run it
+   from the worktree root). Do NOT use \`import <nixpkgs>\`: stock nixpkgs has Go 1.26 and
+   none of this repo's other overlay pins, so it false-negatives (e.g. a go.mod needing
+   Go >= 1.27, see overlays/55-go.nix):
+   nix build --no-link '.#darwinConfigurations.garmonbozia.pkgs.$PACKAGE'
 4. Write verdict.json in the worktree root (schema in the skill). Do NOT commit.
 
 This is a headless, single-shot session with no scheduler behind it: never
@@ -368,11 +371,13 @@ fi
 
 overlay_rel_wt="$overlay_rel"
 scoped_build_ok=1
-if ! ( cd "$wt" && nix build --no-link --impure --expr \
-        "let pkgs = import <nixpkgs> { config.allowUnfree = true; overlays = [ (import ./$overlay_rel_wt) ]; }; in pkgs.${PACKAGE}" ) \
+# Built from the live system package set (every overlay loaded, incl. overlays/55-go.nix's
+# go_1_27), NOT a bare `import <nixpkgs>`, which has stock Go 1.26 and false-negatives on
+# any package whose go.mod needs a newer toolchain.
+if ! ( cd "$wt" && nix build ".#darwinConfigurations.garmonbozia.pkgs.${PACKAGE}" --no-link ) \
       >>"$session_log" 2>&1; then
   scoped_build_ok=0
-  echo "escalate: scoped build failed — this single-overlay expression can false-negative when the package depends on another overlay's pin (e.g. the go/rust toolchain version pinned in overlays/55-go.nix), which only loads in the full overlay set. Falling through to the full-system build before giving up." >>"$session_log"
+  echo "escalate: package build failed. Falling through to the full-system build before giving up." >>"$session_log"
 fi
 
 # Full-system verification, hardcoded to this repo's one darwin host. Not
@@ -380,11 +385,10 @@ fi
 # meant to be sourced from apps/, not scripts/, and pulling it in here would
 # couple this script to that directory's assumptions for one constant.
 #
-# Run even when the scoped build above failed: a scoped-only failure can be a
-# false negative (see hey-cli, 2026-07-30 and 2026-07-31 — its go.mod bump
-# needed the go pin from overlays/55-go.nix, invisible to the scoped
-# single-overlay expression but present here since every overlay loads
-# together). Only treat the repair as gave-up if the full build fails too.
+# Run even when the package build above failed, as a belt-and-braces check (the
+# package build used to be a bare `import <nixpkgs>` that false-negatived on
+# hey-cli's go.mod bump, 2026-07-30/31). Only treat the repair as gave-up if the
+# full build fails too.
 if ! ( cd "$wt" && nix build ".#darwinConfigurations.garmonbozia.system" --no-link ) \
       >>"$session_log" 2>&1; then
   if [[ "$scoped_build_ok" -eq 1 ]]; then

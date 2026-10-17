@@ -103,38 +103,23 @@ Full recipes: `docs/overlay-update-routine.md`.
 ## Verify
 
 ```bash
-nix build --no-link --impure --expr \
-  'let pkgs = import <nixpkgs> { config.allowUnfree = true; overlays = [ (import ./overlays/<file>.nix) ]; }; in pkgs.<attr>'
+nix build --no-link '.#darwinConfigurations.garmonbozia.pkgs.<attr>'
 ```
 
 Run `nix fmt` if you changed a `.nix` file.
 
-**Cross-overlay dependencies can make this scoped build a false negative.**
-It loads ONLY the one overlay file, so any package whose build depends on
-another overlay's package override — e.g. `buildGoModule` derivations built
-against the pinned `go` from `overlays/55-go.nix` — sees nixpkgs' unpinned
-default instead. `hey-cli` hit this in July 2026: its `go.mod` required a
-newer Go than nixpkgs' default, the repo already pins a sufficient version via
-`55-go.nix`, but the scoped verify build used nixpkgs' older default `go` and
-failed with `could not resolve vendorHash from build error`, even though the
-fix was correct.
+This builds the package from the live system package set, so every overlay is loaded
+together (e.g. `overlays/55-go.nix`'s `go_1_27` for `buildGoModule`). Do NOT verify with
+`import <nixpkgs> { overlays = [ ... ]; }`: that loads ONLY the one overlay file, sees
+stock nixpkgs' older `go`, and false-negatives on any package whose `go.mod` needs a newer
+toolchain. `hey-cli` hit exactly this repeatedly (July-October 2026): the bump script and
+this skill's old verify command failed with `could not resolve vendorHash from build
+error` / `go.mod requires go >= 1.27.0` although the fix was correct.
 
-**This is no longer fatal on its own.** The wrapper (`scripts/escalate.sh`)
-falls through to a full-system build whenever the scoped build fails, and only
-records `gave-up` if that full build fails too — so write `verdict.json` with
-`status: "fixed"` as normal; you do not need to give up just because the
-scoped build above failed. It's still worth verifying with the real host attr
-yourself before writing the verdict, both to confirm your fix actually works
-and because it loads every overlay together the same way the wrapper's
-fallback does:
-
-```bash
-nix build --no-link --print-out-paths \
-  ".#darwinConfigurations.garmonbozia.pkgs.<attr>"
-```
-
-If even that fails, the fix is genuinely broken (or broken by something this
-overlay can't control) — write `gave-up` with a precise diagnosis.
+The wrapper (`scripts/escalate.sh`) re-runs the same package build and then the full
+system build after you finish, and records `gave-up` only if the full build fails. If the
+build above fails, the fix is genuinely broken (or broken by something this overlay can't
+control) - write `gave-up` with a precise diagnosis.
 
 ## Write the verdict
 
