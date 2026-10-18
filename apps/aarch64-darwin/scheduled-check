@@ -349,13 +349,16 @@ run_propose_only() {
     rm -f ./result
     # A system build that fails after per-package builds passed is a
     # collision or eval problem, not one package's fault — deliberately NOT
-    # escalated (spec §3): frozen and reported, and the notification names
+    # escalated (spec §3): recorded and reported, and the notification names
     # the range to bisect by hand. Leave the commits in place (a hard reset
     # could discard unrelated work).
+    # Not `frozen`: nothing was activated, so descendants are safe to ship once
+    # they build, and the activate guard only refuses frozen (health-failed)
+    # revisions — freezing here wedged every later day on a stale build error.
     local fp
     fp="$(classify_failure "$build_log" | cut -f1)"
     quarantine_record "revision-${after:0:7}" "revision" "$after" "$before" \
-      "system-build" "$fp" "frozen" "$(tail -40 "$build_log")"
+      "system-build" "$fp" "next-version-only" "$(tail -40 "$build_log")"
     notify "nixos-config update FAILED" \
       "system build failed at ${after:0:7} ($fp) — see $RUN_LOG; 'git reset --hard ${before:0:7}' discards it"
     exit 1

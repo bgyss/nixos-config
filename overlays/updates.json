@@ -55,7 +55,7 @@
     {
       "name": "trailbase",
       "overlay": "overlays/50-trailbase.nix",
-      "current_version": "0.34.7",
+      "current_version": "0.35.0",
       "check": {
         "method": "github-release",
         "repo": "trailbaseio/trailbase"
@@ -115,7 +115,7 @@
     {
       "name": "mise",
       "overlay": "overlays/30-mise.nix",
-      "current_version": "2026.10.12",
+      "current_version": "2026.10.13",
       "check": {
         "method": "github-release",
         "repo": "jdx/mise"
@@ -156,13 +156,13 @@
         "method": "ngrok-binary"
       },
       "update_type": "prebuilt-binary-multiplatform",
-      "notes": "Uses stable CDN URLs from bin.equinox.io \u2014 no versioned GitHub releases page, but the darwin-arm64 stable URL always serves the latest build. Check script downloads it and runs `ngrok version` to detect the current upstream version. Updating still requires manually fetching all six platform hashes."
+      "notes": "Uses stable CDN URLs from bin.equinox.io — no versioned GitHub releases page, but the darwin-arm64 stable URL always serves the latest build. Check script downloads it and runs `ngrok version` to detect the current upstream version. Updating still requires manually fetching all six platform hashes."
     },
     {
       "name": "c4",
       "overlay": "overlays/56-c4.nix",
-      "current_version": "0-unstable-2026-10-17",
-      "current_rev": "e3681da45937b7e79f443af8011d0142b1e6444e",
+      "current_version": "0-unstable-2026-10-18",
+      "current_rev": "aed98659b7a113eaace67ae5fbd6bdbedb853894",
       "check": {
         "method": "github-commits",
         "repo": "Avalanche-io/c4",
@@ -175,8 +175,8 @@
     {
       "name": "hey-cli",
       "overlay": "overlays/94-hey-cli.nix",
-      "current_version": "0-unstable-2026-10-17",
-      "current_rev": "76ea03f5e52651521fef86edc24224ca4033d374",
+      "current_version": "0-unstable-2026-10-18",
+      "current_rev": "1b063ce7cac0963ac494939f42b63f908bf9feec",
       "check": {
         "method": "github-commits",
         "repo": "basecamp/hey-cli",
@@ -195,7 +195,7 @@
         "repo": "tmux/tmux"
       },
       "update_type": "source-override",
-      "notes": "overrideAttrs on nixpkgs' tmux with a fetchFromGitHub src (tag == version, e.g. 3.7b). Not a url/hash prebuilt, so fix-hashes does NOT touch it \u2014 bump the tag + fetchFromGitHub hash by hand (nix-prefetch-url --unpack the tag tarball or blank the hash and read the build error)."
+      "notes": "overrideAttrs on nixpkgs' tmux with a fetchFromGitHub src (tag == version, e.g. 3.7b). Not a url/hash prebuilt, so fix-hashes does NOT touch it — bump the tag + fetchFromGitHub hash by hand (nix-prefetch-url --unpack the tag tarball or blank the hash and read the build error)."
     },
     {
       "name": "tmux-resurrect",
@@ -245,7 +245,7 @@
           "url_template": "https://github.com/Dicklesworthstone/destructive_command_guard/releases/download/v{version}/dcg-x86_64-unknown-linux-musl.tar.xz"
         }
       },
-      "notes": "Prebuilt release binary; no nixpkgs package exists. tar.xz archives \u2014 prefetch each platform with nix-prefetch-url (raw hash, not --unpack) and convert to SRI."
+      "notes": "Prebuilt release binary; no nixpkgs package exists. tar.xz archives — prefetch each platform with nix-prefetch-url (raw hash, not --unpack) and convert to SRI."
     },
     {
       "name": "llama-cpp",
@@ -257,13 +257,13 @@
         "tag_prefix": "b"
       },
       "update_type": "source-override",
-      "notes": "overrideAttrs on nixpkgs' llama-cpp (currently pinned much further behind, e.g. b8667) with a fetchFromGitHub src pinned to the latest release tag (b<version>), so `llama`/`llama-server` on PATH stay current for new model architectures. Not a url/hash prebuilt, so fix-hashes does NOT touch it. Bumping needs TWO hashes by hand: the fetchFromGitHub src hash (leaveDotGit \u2014 blank it and read the build error, or nix-prefetch-git won't match since it doesn't run the postFetch script), and npmDepsHash for the webui's npm lockfile (also blank+rebuild). The webui's path within the repo (npmRoot) has moved before (tools/server/webui -> tools/ui as of b10375) \u2014 check it still exists at the new tag before assuming npmRoot is unchanged."
+      "notes": "overrideAttrs on nixpkgs' llama-cpp (currently pinned much further behind, e.g. b8667) with a fetchFromGitHub src pinned to the latest release tag (b<version>), so `llama`/`llama-server` on PATH stay current for new model architectures. Not a url/hash prebuilt, so fix-hashes does NOT touch it. Bumping needs TWO hashes by hand: the fetchFromGitHub src hash (leaveDotGit — blank it and read the build error, or nix-prefetch-git won't match since it doesn't run the postFetch script), and npmDepsHash for the webui's npm lockfile (also blank+rebuild). The webui's path within the repo (npmRoot) has moved before (tools/server/webui -> tools/ui as of b10375) — check it still exists at the new tag before assuming npmRoot is unchanged."
     }
   ],
   "skip": [
     {
       "file": "10-feather-font.nix",
-      "reason": "intentionally pinned to v1.0 \u2014 do not bump"
+      "reason": "intentionally pinned to v1.0 — do not bump"
     },
     {
       "file": "81-python-disable-checks.nix",
@@ -271,11 +271,11 @@
     },
     {
       "file": "100-rea.nix",
-      "reason": "npm source build from bgyss/rea with no tagged releases \u2014 bump rev and both hashes manually"
+      "reason": "npm source build from bgyss/rea with no tagged releases — bump rev and both hashes manually"
     },
     {
       "file": "90-svg-term-cli.nix",
-      "reason": "npm package with vendored package-lock.json \u2014 update manually"
+      "reason": "npm package with vendored package-lock.json — update manually"
     },
     {
       "file": "92-lmstudio.nix",
@@ -283,7 +283,7 @@
     },
     {
       "file": "55-go.nix",
-      "reason": "tracks go_1_27 from nixpkgs-master (see modules/shared/default.nix masterPkgs), not independently version-pinned \u2014 floats with the existing nixpkgs-master cadence"
+      "reason": "tracks go_1_27 from nixpkgs-master (see modules/shared/default.nix masterPkgs), not independently version-pinned — floats with the existing nixpkgs-master cadence"
     },
     {
       "file": "93-direnv.nix",
