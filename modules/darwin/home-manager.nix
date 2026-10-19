@@ -191,6 +191,19 @@ in
           };
           inherit (android) sessionPath;
           stateVersion = "24.11";
+          # Spotlight/Launchpad skip symlinks into /nix/store (what linkApps makes), so give
+          # RetroArch a real copy in ~/Applications. Re-copied only when the store path changes.
+          activation.copyRetroArch = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+            src="${pkgs.retroarch}/Applications/RetroArch.app"
+            dest="$HOME/Applications/RetroArch.app"
+            stamp="$HOME/Applications/.RetroArch.store-path"
+            if [[ ! -d "$dest" || "$(cat "$stamp" 2>/dev/null)" != "$src" ]]; then
+              run rm -rf "$dest"
+              run /usr/bin/ditto "$src" "$dest"
+              run chmod -R u+w "$dest"
+              run bash -c 'printf %s "$1" > "$2"' _ "$src" "$stamp"
+            fi
+          '';
         };
         # Use Determinate Nix; avoid Home Manager's nix module to prevent nix.package access when nix.enable is false.
         nix.enable = false;
