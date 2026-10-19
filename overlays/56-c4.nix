@@ -1,13 +1,13 @@
 final: prev: {
   c4 = final.buildGo127Module rec {
     pname = "c4";
-    version = "0-unstable-2026-10-18";
+    version = "0-unstable-2026-10-19";
 
     src = prev.fetchFromGitHub {
       owner = "Avalanche-io";
       repo = "c4";
-      rev = "aed98659b7a113eaace67ae5fbd6bdbedb853894";
-      hash = "sha256-gjKdoQmxRc3CYO6EwEgqTDSefOCCjx7pdu2jWcic0t8=";
+      rev = "050c87a28d6cc78478bc8665b56ca3518f4f67ab";
+      hash = "sha256-w3czeWm2q4wy2KbG9x6herSp+a+mYnqQE8Oeua/J0nQ=";
     };
 
     vendorHash = null;
