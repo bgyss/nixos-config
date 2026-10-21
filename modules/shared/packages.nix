@@ -190,6 +190,8 @@ with pkgs;
 ]
 ++ optionals stdenv.isDarwin [
   retroarch # prebuilt via overlays/99-retroarch.nix (nixpkgs build is broken on Darwin)
+  rpcs3 # prebuilt via overlays/99-rpcs3.nix (nixpkgs is Linux-only)
+  shadps4 # prebuilt via overlays/99-shadps4.nix (nixpkgs is Linux-only)
   # macOS-specific libraries needed for Rust builds (ring crate, etc.)
   # libiconv  # disabled: Rust now managed by mise, not Nix
   # Note: darwin.apple_sdk.frameworks removed in nixpkgs; frameworks now provided via stdenv

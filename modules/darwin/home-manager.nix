@@ -204,6 +204,17 @@ in
               run bash -c 'printf %s "$1" > "$2"' _ "$src" "$stamp"
             fi
           '';
+          activation.copyRPCS3 = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+            src="${pkgs.rpcs3}/Applications/RPCS3.app"
+            dest="$HOME/Applications/RPCS3.app"
+            stamp="$HOME/Applications/.RPCS3.store-path"
+            if [[ ! -d "$dest" || "$(cat "$stamp" 2>/dev/null)" != "$src" ]]; then
+              run rm -rf "$dest"
+              run /usr/bin/ditto "$src" "$dest"
+              run chmod -R u+w "$dest"
+              run bash -c 'printf %s "$1" > "$2"' _ "$src" "$stamp"
+            fi
+          '';
         };
         # Use Determinate Nix; avoid Home Manager's nix module to prevent nix.package access when nix.enable is false.
         nix.enable = false;

@@ -83,6 +83,7 @@ _:
   "steam"
   "epic-games"
   "dolphin"
+  "xemu"
   "multipatch"
 
   # GIS

@@ -3,7 +3,7 @@
     {
       "name": "claude-code",
       "overlay": "overlays/41-claude-code.nix",
-      "current_version": "2.1.304",
+      "current_version": "2.1.306",
       "check": {
         "method": "github-release",
         "repo": "anthropics/claude-code"
@@ -76,7 +76,7 @@
     {
       "name": "igir",
       "overlay": "overlays/70-igir.nix",
-      "current_version": "5.7.2",
+      "current_version": "5.8.0",
       "check": {
         "method": "github-release",
         "repo": "emmercm/igir"
@@ -115,7 +115,7 @@
     {
       "name": "mise",
       "overlay": "overlays/30-mise.nix",
-      "current_version": "2026.10.15",
+      "current_version": "2026.10.17",
       "check": {
         "method": "github-release",
         "repo": "jdx/mise"
@@ -161,8 +161,8 @@
     {
       "name": "c4",
       "overlay": "overlays/56-c4.nix",
-      "current_version": "0-unstable-2026-10-20",
-      "current_rev": "e926ea5e91e264fe7ac5d470c2f03ff0164f4ea3",
+      "current_version": "0-unstable-2026-10-21",
+      "current_rev": "22f2850f06cb2b3382e815798931f3b13484eaa5",
       "check": {
         "method": "github-commits",
         "repo": "Avalanche-io/c4",
@@ -175,8 +175,8 @@
     {
       "name": "hey-cli",
       "overlay": "overlays/94-hey-cli.nix",
-      "current_version": "0-unstable-2026-10-20",
-      "current_rev": "eef0bd8b1166a69bf53b383c0d270394c482e301",
+      "current_version": "0-unstable-2026-10-21",
+      "current_rev": "2f061c618c173b73d613cd22a540fdf2bce4db42",
       "check": {
         "method": "github-commits",
         "repo": "basecamp/hey-cli",
@@ -296,6 +296,14 @@
     {
       "file": "99-retroarch.nix",
       "reason": "prebuilt universal macOS dmg from libretro buildbot (nixpkgs retroarch-bare is broken on Darwin), manual bumps"
+    },
+    {
+      "file": "99-rpcs3.nix",
+      "reason": "prebuilt macOS arm64 7z from RPCS3/rpcs3-binaries-mac (nixpkgs rpcs3 is Linux-only), manual bumps"
+    },
+    {
+      "file": "99-shadps4.nix",
+      "reason": "prebuilt macOS zip from shadps4-emu/shadPS4 releases (nixpkgs shadps4 is Linux-only), manual bumps"
     }
   ],
   "inputs": {
