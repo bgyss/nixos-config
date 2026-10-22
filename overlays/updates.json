@@ -3,7 +3,7 @@
     {
       "name": "claude-code",
       "overlay": "overlays/41-claude-code.nix",
-      "current_version": "2.1.306",
+      "current_version": "2.1.308",
       "check": {
         "method": "github-release",
         "repo": "anthropics/claude-code"
@@ -55,7 +55,7 @@
     {
       "name": "trailbase",
       "overlay": "overlays/50-trailbase.nix",
-      "current_version": "0.35.1",
+      "current_version": "0.35.2",
       "check": {
         "method": "github-release",
         "repo": "trailbaseio/trailbase"
@@ -100,7 +100,7 @@
     {
       "name": "uv",
       "overlay": "overlays/25-uv.nix",
-      "current_version": "0.13.4",
+      "current_version": "0.13.5",
       "check": {
         "method": "github-release",
         "repo": "astral-sh/uv"
@@ -151,7 +151,7 @@
     {
       "name": "ngrok",
       "overlay": "overlays/20-ngrok.nix",
-      "current_version": "3.39.11",
+      "current_version": "3.39.12",
       "check": {
         "method": "ngrok-binary"
       },

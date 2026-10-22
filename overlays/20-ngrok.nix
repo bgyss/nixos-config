@@ -1,4 +1,4 @@
-# ngrok overlay – bump to 3.39.11 until nixpkgs catches up
+# ngrok overlay – bump to 3.39.12 until nixpkgs catches up
 
 final: prev:
 
@@ -12,34 +12,34 @@ let
 
   versions = {
     "linux-386" = {
-      version = "3.39.11";
+      version = "3.39.12";
       url = "https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-linux-386.tgz";
-      sha256 = "sha256-reDZ/AabmQ0BA7uHYA1pkx2FyxO7aNlKTfy2uK1U1xQ=";
+      sha256 = "sha256-JGYZ68UuessiMqwEoSBkLcAIia+XiGp2c1yQLDC2MlI=";
     };
     "linux-amd64" = {
-      version = "3.39.11";
+      version = "3.39.12";
       url = "https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-linux-amd64.tgz";
-      sha256 = "sha256-zsC0mX/MX1Kd/HS6yJBQNU0RqRX5aHIGAAOXOP3zMM8=";
+      sha256 = "sha256-AfeXSbx1JzoMY0xZ7sTmI1w6tyZtW8agLLrGx/5kcrA=";
     };
     "linux-arm" = {
-      version = "3.39.11";
+      version = "3.39.12";
       url = "https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-linux-arm.tgz";
-      sha256 = "sha256-Os5R7VfRjrjTVARykSFlTqoZrhp/0sNx65kcrBHA6ts=";
+      sha256 = "sha256-fIrIJdMdoQBdY0+RMP11EqL0qy0Ttj7uDtEtxqFucn0=";
     };
     "linux-arm64" = {
-      version = "3.39.11";
+      version = "3.39.12";
       url = "https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-linux-arm64.tgz";
-      sha256 = "sha256-O2ugWp2VhcNBV/oIGfqVzbE4OfW1BrnmMgRwXPf3nik=";
+      sha256 = "sha256-mK26xIeETgAiOyPJb2gx3T9iELKwRreOeKe9NLwKxzQ=";
     };
     "darwin-amd64" = {
-      version = "3.39.11";
+      version = "3.39.12";
       url = "https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-darwin-amd64.zip";
-      sha256 = "sha256-xrmz2RhPwIwz+4sYHZ8kHY9dYRYqC+BSG238HxGBOpY=";
+      sha256 = "sha256-85OuZy5buBE1UFqm+ZM6ilK3ixJ4ZDx1iSfSiT4TqoQ=";
     };
     "darwin-arm64" = {
-      version = "3.39.11";
+      version = "3.39.12";
       url = "https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-darwin-arm64.zip";
-      sha256 = "sha256-kySmVS104l1b39vtxLMkIslvBE/aN4d0mK2O8Qvd9/c=";
+      sha256 = "sha256-xJfnP+iT/3WcVOSBkWSfbE3EL04N/UjdSNXHgTUBaDg=";
     };
   };
 
