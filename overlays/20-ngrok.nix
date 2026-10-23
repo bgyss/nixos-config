@@ -12,34 +12,34 @@ let
 
   versions = {
     "linux-386" = {
-      version = "3.39.12";
+      version = "3.39.13";
       url = "https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-linux-386.tgz";
-      sha256 = "sha256-JGYZ68UuessiMqwEoSBkLcAIia+XiGp2c1yQLDC2MlI=";
+      sha256 = "sha256-2smllKzQ1kJJWxCNHrBltTFAMRrb/yhK5K+jPkg4IUw=";
     };
     "linux-amd64" = {
-      version = "3.39.12";
+      version = "3.39.13";
       url = "https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-linux-amd64.tgz";
-      sha256 = "sha256-AfeXSbx1JzoMY0xZ7sTmI1w6tyZtW8agLLrGx/5kcrA=";
+      sha256 = "sha256-Iz4GR4SZE+ZAQVDB6cXk8xwTaK7+4zCVjQONev7Ljy4=";
     };
     "linux-arm" = {
-      version = "3.39.12";
+      version = "3.39.13";
       url = "https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-linux-arm.tgz";
-      sha256 = "sha256-fIrIJdMdoQBdY0+RMP11EqL0qy0Ttj7uDtEtxqFucn0=";
+      sha256 = "sha256-VdcScQDU6yEdYkmlPB8BuzUyQeK+P/C5ezBPLpz01SE=";
     };
     "linux-arm64" = {
-      version = "3.39.12";
+      version = "3.39.13";
       url = "https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-linux-arm64.tgz";
-      sha256 = "sha256-mK26xIeETgAiOyPJb2gx3T9iELKwRreOeKe9NLwKxzQ=";
+      sha256 = "sha256-+0HujyUZafbjme8DEi95GuU3FV39msTAuvEIrKlcF9c=";
     };
     "darwin-amd64" = {
-      version = "3.39.12";
+      version = "3.39.13";
       url = "https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-darwin-amd64.zip";
-      sha256 = "sha256-85OuZy5buBE1UFqm+ZM6ilK3ixJ4ZDx1iSfSiT4TqoQ=";
+      sha256 = "sha256-sOyHhjFf1B5NpJCqiM94aPVU736ihztDXOlx0Clhwak=";
     };
     "darwin-arm64" = {
-      version = "3.39.12";
+      version = "3.39.13";
       url = "https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-darwin-arm64.zip";
-      sha256 = "sha256-xJfnP+iT/3WcVOSBkWSfbE3EL04N/UjdSNXHgTUBaDg=";
+      sha256 = "sha256-UUlnSAVGuWjofp7Efv1RPOUBLhEACVf5aWoFxzsFuQg=";
     };
   };
 

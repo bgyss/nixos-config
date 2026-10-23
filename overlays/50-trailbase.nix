@@ -12,19 +12,19 @@ let
     unzip
     ;
 
-  version = "0.35.2";
+  version = "0.35.3";
   sources = {
     "aarch64-darwin" = {
       url = "https://github.com/trailbaseio/trailbase/releases/download/v${version}/trailbase_v${version}_aarch64_apple_darwin.zip";
-      hash = "sha256-JXcLEBcYist1FZoowJMujKekQ6GBAib+UBuoMN8SV8s=";
+      hash = "sha256-A9+AyQM/UUN1p+88PnNeyb+tU5MtMrEyNV78P93ibnM=";
     };
     "x86_64-darwin" = {
       url = "https://github.com/trailbaseio/trailbase/releases/download/v${version}/trailbase_v${version}_x86_64_apple_darwin.zip";
-      hash = "sha256-mhsA2LfcWbBN7Lj9i8ENO31MyHaAAXyFs5M2ncyKs9c=";
+      hash = "sha256-LWcruA39l3VCY6fBEuyoEPQ0CFgw5ILHJUD+dXDVJ7s=";
     };
     "x86_64-linux" = {
       url = "https://github.com/trailbaseio/trailbase/releases/download/v${version}/trailbase_v${version}_x86_64_linux.zip";
-      hash = "sha256-fwcPBna7t9kXXuvKlEsmH2XFEf1LsImT+ooIs3XGypc=";
+      hash = "sha256-sK6Si11Yr0y25QCv/NN8P8smqelKuJiQzzvLMQo6ewo=";
     };
   };
 
