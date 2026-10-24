@@ -134,9 +134,31 @@ if [[ -o interactive ]] && [[ -z "$TMUX" ]] && [[ -z "$INSIDE_EMACS" ]] && comma
   # tmux-resurrect). Give that a head start before falling back to creating
   # a brand-new "main" session, or the fallback wins the race and leaves you
   # with an empty session instead of your restored one.
+  #
+  # After a login several terminal windows can reopen at once. continuum
+  # skips its restore when it sees more than one other tmux process, so
+  # exactly one shell (the mkdir-lock winner) starts the server and, if
+  # continuum didn't restore, runs resurrect's restore itself; the rest wait.
   if ! tmux info &>/dev/null; then
-    tmux start-server
-    sleep 2
+    _tmux_lock="${TMPDIR:-/tmp}/tmux-startup.lock"
+    # Drop a stale lock left by a crash/reboot (older than a minute).
+    [[ -d $_tmux_lock && -n $(find "$_tmux_lock" -maxdepth 0 -mmin +1 2>/dev/null) ]] && rmdir "$_tmux_lock" 2>/dev/null
+    if mkdir "$_tmux_lock" 2>/dev/null; then
+      tmux start-server
+      sleep 2
+      if ! tmux has-session -t main 2>/dev/null && [[ -e ~/.cache/tmux/resurrect/last ]]; then
+        _tmux_restore="$(tmux show -gv @resurrect-restore-script-path 2>/dev/null)"
+        [[ -x $_tmux_restore ]] && "$_tmux_restore" &>/dev/null
+        sleep 1
+      fi
+      rmdir "$_tmux_lock" 2>/dev/null
+    else
+      for _ in {1..20}; do
+        [[ -d $_tmux_lock ]] || break
+        sleep 0.5
+      done
+    fi
+    unset _tmux_lock _tmux_restore
   fi
   tmux attach -t main 2>/dev/null || tmux new -s main
 fi
