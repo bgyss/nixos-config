@@ -115,7 +115,7 @@
     {
       "name": "mise",
       "overlay": "overlays/30-mise.nix",
-      "current_version": "2026.10.18",
+      "current_version": "2026.10.19",
       "check": {
         "method": "github-release",
         "repo": "jdx/mise"
@@ -175,8 +175,8 @@
     {
       "name": "hey-cli",
       "overlay": "overlays/94-hey-cli.nix",
-      "current_version": "0-unstable-2026-10-21",
-      "current_rev": "2f061c618c173b73d613cd22a540fdf2bce4db42",
+      "current_version": "0-unstable-2026-10-25",
+      "current_rev": "5388a803cd43c8fba1d93dee5fd970e4da823d41",
       "check": {
         "method": "github-commits",
         "repo": "basecamp/hey-cli",
