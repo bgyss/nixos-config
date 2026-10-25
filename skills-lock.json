@@ -49,6 +49,12 @@
       "skillPath": "skills/sendcutsend/SKILL.md",
       "computedHash": "b0ca26bc60f8ffc65e9abafe6fc22110aa2a6cf088ca8e8f2c4793b19ca44a56"
     },
+    "shader-art-coding": {
+      "source": "gokayfem/shader-skills",
+      "sourceType": "github",
+      "skillPath": "skills/shader-art-coding/SKILL.md",
+      "computedHash": "c0f1631007a327ccd9951e078ff0acd11f3c5ce2aea5326b3977e0e3e29f845c"
+    },
     "srdf": {
       "source": "earthtojake/text-to-cad",
       "sourceType": "github",
