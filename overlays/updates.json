@@ -55,7 +55,7 @@
     {
       "name": "trailbase",
       "overlay": "overlays/50-trailbase.nix",
-      "current_version": "0.35.3",
+      "current_version": "0.35.4",
       "check": {
         "method": "github-release",
         "repo": "trailbaseio/trailbase"
@@ -175,8 +175,8 @@
     {
       "name": "hey-cli",
       "overlay": "overlays/94-hey-cli.nix",
-      "current_version": "0-unstable-2026-10-25",
-      "current_rev": "5388a803cd43c8fba1d93dee5fd970e4da823d41",
+      "current_version": "0-unstable-2026-10-26",
+      "current_rev": "6557bdab29b146604d29ad6f31f26ccbd5c8adce",
       "check": {
         "method": "github-commits",
         "repo": "basecamp/hey-cli",
