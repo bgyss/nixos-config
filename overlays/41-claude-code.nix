@@ -1,11 +1,11 @@
 final: prev: {
   claude-code = prev.stdenvNoCC.mkDerivation rec {
     pname = "claude-code";
-    version = "2.1.310";
+    version = "2.1.311";
 
     src = prev.fetchurl {
       url = "https://storage.googleapis.com/claude-code-dist-86c565f3-f756-42ad-8dfa-d59b1c096819/claude-code-releases/${version}/darwin-arm64/claude";
-      hash = "sha256-/7ZDMbwO4bae+3wsQovTq1Frwxt1v2CIazVsl8HCX/0=";
+      hash = "sha256-hdjAhwf8/R54/6AgTu+8bsnk/iLzdfsnZ++F2VftMWE=";
     };
 
     dontUnpack = true;
