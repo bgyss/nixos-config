@@ -58,6 +58,7 @@ with pkgs;
   # Emulation
   qemu
   dosbox-staging
+  igir
   # mesen  # disabled: depends on dotnet which depends on Swift (build failure)
   scummvm
 
