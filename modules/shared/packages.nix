@@ -133,6 +133,7 @@ with pkgs;
   tmux
   unrar
   unzip
+  _7zip-zstd # 7-Zip fork with zstd, brotli, lz4 codecs (provides 7z)
   zsh-powerlevel10k
   pv
   glances

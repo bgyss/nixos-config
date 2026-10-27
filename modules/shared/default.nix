@@ -88,6 +88,7 @@ in
               aegisub
               go_1_27
               ffmpeg-full
+              _7zip-zstd
               ;
             # Deliberately a NEW attribute rather than replacing `yt-dlp`.
             # nixpkgs' `gallery-dl` propagates `yt-dlp`, and master's is built
