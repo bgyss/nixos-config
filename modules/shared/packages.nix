@@ -131,9 +131,8 @@ with pkgs;
   ripgrep
   tree
   tmux
-  unrar
   unzip
-  _7zip-zstd # 7-Zip fork with zstd, brotli, lz4 codecs (provides 7z)
+  _7zip-zstd-rar # 7-Zip fork with zstd, brotli, lz4 codecs + RAR support (provides 7z)
   zsh-powerlevel10k
   pv
   glances
