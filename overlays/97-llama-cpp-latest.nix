@@ -25,6 +25,12 @@
 # `version`) even though the binary itself built and runs fine — caught this
 # way on 2026-08-28 (revision 2afe4ef, quarantined). Both must be explicitly
 # force-overridden below to keep the health check's version assertion true.
+#
+# Tests are force-disabled: nixpkgs began setting `doCheck = true` for llama-cpp
+# (2026-10-29), but its test exclusions target the older base version. Against
+# this overlay's newer source the check phase runs sandbox-incompatible tests
+# (test-download-model needs network; test-generate-models loads no backend),
+# which failed `prepare`'s evidence build and blocked the whole system closure.
 final: prev: {
   llama-cpp = prev.llama-cpp.overrideAttrs (
     old:
@@ -54,6 +60,7 @@ final: prev: {
           find "$out" -name .git -print0 | xargs -0 rm -rf
         '';
       };
+      doCheck = false;
       npmRoot = "tools/ui";
       npmDepsHash = "sha256-2Q7XhaLAArmviOLdQsNbYTfdyDE5pW9lR26cRHEVl9k=";
       cmakeFlags = map (
