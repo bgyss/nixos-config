@@ -3,7 +3,7 @@
     {
       "name": "claude-code",
       "overlay": "overlays/41-claude-code.nix",
-      "current_version": "2.1.312",
+      "current_version": "2.1.314",
       "check": {
         "method": "github-release",
         "repo": "anthropics/claude-code"
@@ -19,7 +19,7 @@
     {
       "name": "codex-openai",
       "overlay": "overlays/40-codex-openai.nix",
-      "current_version": "0.165.0",
+      "current_version": "0.166.0",
       "check": {
         "method": "github-release",
         "repo": "openai/codex",
@@ -115,7 +115,7 @@
     {
       "name": "mise",
       "overlay": "overlays/30-mise.nix",
-      "current_version": "2026.10.23",
+      "current_version": "2026.10.24",
       "check": {
         "method": "github-release",
         "repo": "jdx/mise"
