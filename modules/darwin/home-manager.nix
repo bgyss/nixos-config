@@ -253,6 +253,10 @@ in
                   run = "move-node-to-workspace 1";
                 }
                 {
+                  "if".app-id = "com.superlogical.rex";
+                  run = "move-node-to-workspace 1";
+                }
+                {
                   "if".app-id = "com.hey.app.desktop";
                   run = "move-node-to-workspace 2";
                 }
