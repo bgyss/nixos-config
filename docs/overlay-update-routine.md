@@ -55,8 +55,10 @@ These overlays fetch pre-built binaries directly from upstream. The update proce
 **claude-code** (`overlays/41-claude-code.nix`): single aarch64-darwin binary (not an archive
 — use `nix-prefetch-url` without `--unpack`).
 
-**codex-openai** (`overlays/40-codex-openai.nix`): single aarch64-darwin archive. The GitHub
-release tag is `rust-vX.Y.Z`; the version field in the overlay is `X.Y.Z`.
+**codex-openai** (`overlays/40-codex-openai.nix`): single aarch64-darwin archive — the
+`codex-package-*` asset (full packaged layout, not the bare `codex-*` binary, which the Rex
+app-server daemon rejects). The GitHub release tag is `rust-vX.Y.Z`; the version field in the
+overlay is `X.Y.Z`.
 
 **uv** (`overlays/25-uv.nix`): single aarch64-darwin archive. GitHub tag is `X.Y.Z` (no `v`
 prefix).

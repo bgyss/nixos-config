@@ -4,22 +4,23 @@ final: prev: {
     version = "0.165.0";
 
     src = prev.fetchurl {
-      url = "https://github.com/openai/codex/releases/download/rust-v${version}/codex-aarch64-apple-darwin.tar.gz";
-      hash = "sha256-eOqcF40tyP3nHWSU3zueq5Av1tbeCoTmUjQiDZO7YUQ=";
+      url = "https://github.com/openai/codex/releases/download/rust-v${version}/codex-package-aarch64-apple-darwin.tar.gz";
+      hash = "sha256-NNEjhNkPjgmwuauqvyoKwCpSCTsTFQSuryghB/VKRLI=";
     };
 
-    # It's a prebuilt binary tarball
+    # Official packaged layout (codex-package.json, bin/, codex-resources/, codex-path/).
+    # Codex >= 0.165 requires it intact for the app-server daemon that Rex starts;
+    # the bare binary fails with "this CLI has no complete local package".
     dontConfigure = true;
     dontBuild = true;
+    dontFixup = true; # leave the signed Mach-O binaries untouched
 
-    unpackPhase = ''
-      tar -xzf "$src"
-    '';
+    sourceRoot = ".";
 
     installPhase = ''
-      mkdir -p "$out/bin"
-      # The archive contains a binary named 'codex-aarch64-apple-darwin'
-      install -m755 codex-aarch64-apple-darwin "$out/bin/codex"
+      mkdir -p "$out/bin" "$out/libexec/codex"
+      cp -R bin codex-package.json codex-path codex-resources "$out/libexec/codex/"
+      ln -s "$out/libexec/codex/bin/codex" "$out/bin/codex"
     '';
 
     meta = with prev.lib; {

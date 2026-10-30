@@ -28,7 +28,7 @@
       "update_type": "prebuilt-binary",
       "platforms": {
         "aarch64-darwin": {
-          "url_template": "https://github.com/openai/codex/releases/download/rust-v{version}/codex-aarch64-apple-darwin.tar.gz"
+          "url_template": "https://github.com/openai/codex/releases/download/rust-v{version}/codex-package-aarch64-apple-darwin.tar.gz"
         }
       }
     },
