@@ -296,6 +296,12 @@ in
       # path, so skip it. Drop these once a release ships the fix.
       check_temp = false;
       show_cpu_watts = false;
+      # Sensors alone weren't enough: the disk collector also statvfs()es every
+      # mount, and btop's default use_fstab=true disables only_physical, so the
+      # SMB shares (/Volumes/media etc.) get polled. A slow/asleep SMB server
+      # blocks that call past the stall watchdog and triggers the same hang.
+      use_fstab = false;
+      only_physical = true;
       # The config is a read-only store symlink; btop would otherwise try to
       # rewrite it on exit.
       save_config_on_exit = false;
