@@ -125,9 +125,10 @@ if [[ -o interactive ]] && command -v mise &>/dev/null; then
 fi
 
 # Auto-attach to a shared tmux session for every new interactive shell.
-# Skip when already inside tmux, inside Emacs' shell, or in a non-interactive
-# context (e.g. scp, rsync, CI) so this never breaks non-terminal use.
-if [[ -o interactive ]] && [[ -z "$TMUX" ]] && [[ -z "$INSIDE_EMACS" ]] && command -v tmux &>/dev/null; then
+# Skip when already inside tmux, inside Emacs' shell, inside Rex (which is its
+# own multiplexer), or in a non-interactive context (e.g. scp, rsync, CI) so
+# this never breaks non-terminal use.
+if [[ -o interactive ]] && [[ -z "$TMUX" ]] && [[ -z "$INSIDE_EMACS" ]] && [[ "$TERM_PROGRAM" != rex ]] && command -v tmux &>/dev/null; then
   # If no tmux server is running yet (e.g. right after a reboot/login), this
   # is about to start one, which triggers tmux-continuum's restore hook in
   # the background (it sleeps 1s, then replays the last saved session via
