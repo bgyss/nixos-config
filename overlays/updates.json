@@ -198,6 +198,18 @@
       "notes": "overrideAttrs on nixpkgs' tmux with a fetchFromGitHub src (tag == version, e.g. 3.7b). Not a url/hash prebuilt, so fix-hashes does NOT touch it — bump the tag + fetchFromGitHub hash by hand (nix-prefetch-url --unpack the tag tarball or blank the hash and read the build error)."
     },
     {
+      "name": "btop",
+      "overlay": "overlays/97-btop.nix",
+      "current_version": "1.4.8",
+      "check": {
+        "method": "github-release",
+        "repo": "aristocratos/btop",
+        "tag_prefix": "v"
+      },
+      "update_type": "source-override",
+      "notes": "overrideAttrs on nixpkgs' btop with a fetchFromGitHub src (tag v<version>). fix-hashes does NOT touch it — bump the tag + hash by hand. Exists for the macOS runner-thread hang fix (#1662); drop once nixpkgs ships >= 1.4.8."
+    },
+    {
       "name": "tmux-resurrect",
       "overlay": "overlays/98-tmux-resurrect.nix",
       "current_version": "0-unstable-2023-03-06",
