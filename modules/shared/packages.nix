@@ -17,6 +17,7 @@ with pkgs;
   bat
   beads
   binaryen
+  pkgsCross.mingwW64.buildPackages.gcc # x86_64-w64-mingw32-gcc
   browsh
   btop
   coreutils
