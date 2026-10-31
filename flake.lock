@@ -40,11 +40,11 @@
     "dagger-tap": {
       "flake": false,
       "locked": {
-        "lastModified": 1792623045,
-        "narHash": "sha256-9stF5t7+CGKSxzeFVKgRslTv+2cYb4bN2HRSO/85oj0=",
+        "lastModified": 1793404696,
+        "narHash": "sha256-qOq1bnUAB6luqM2RNM9gp2kh0+rvDduCgJWHmdE1EVs=",
         "owner": "dagger",
         "repo": "homebrew-tap",
-        "rev": "20891217661a78826ae1fba2672c7c2ad4c87802",
+        "rev": "54d2b3eed9a8b8f3f76a6679a9d48bc25453c131",
         "type": "github"
       },
       "original": {

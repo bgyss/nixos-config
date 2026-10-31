@@ -17,23 +17,23 @@ let
     stdenvNoCC
     ;
 
-  version = "2026.10.24";
+  version = "2026.10.25";
   sources = {
     "aarch64-darwin" = {
       url = "https://github.com/jdx/mise/releases/download/v${version}/mise-v${version}-macos-arm64.tar.gz";
-      hash = "sha256-qi/FkkLbEI+X6p+y0uLLQv8UZ/yv48keSNUchBumemU=";
+      hash = "sha256-d0I24yR+SNeAeMC8555TJ9TkR58alMhIeCfxeBl+45s=";
     };
     "x86_64-darwin" = {
       url = "https://github.com/jdx/mise/releases/download/v${version}/mise-v${version}-macos-x64.tar.gz";
-      hash = "sha256-g6NjVb9u58FmAwDhLdlEZN5cZy2rG4zDPsTRk1bn3aw=";
+      hash = "sha256-KzGvwe93xGv5ywg326k2atdE9FI0Og+LANPfHu+JL4Q=";
     };
     "aarch64-linux" = {
       url = "https://github.com/jdx/mise/releases/download/v${version}/mise-v${version}-linux-arm64.tar.gz";
-      hash = "sha256-jI9df3SL8670MdxQ8K13YnDzYCXHiKohx04vq9u9bT4=";
+      hash = "sha256-p9HirdU0Qf925+lx56P7FcEXdBg2zlHAJvX7fuvn288=";
     };
     "x86_64-linux" = {
       url = "https://github.com/jdx/mise/releases/download/v${version}/mise-v${version}-linux-x64.tar.gz";
-      hash = "sha256-mmycVfXGNy0K9wqZef5tdCrqN5MmepKeFzgCIUPEZsw=";
+      hash = "sha256-GZlm7arRsgjrTHKVXxci2vuPp5n1ddtyDeoFqqghZUY=";
     };
   };
 
