@@ -16,6 +16,7 @@ with pkgs;
   bash-completion
   bat
   beads
+  binaryen
   browsh
   btop
   coreutils
