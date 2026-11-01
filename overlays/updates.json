@@ -175,8 +175,8 @@
     {
       "name": "hey-cli",
       "overlay": "overlays/94-hey-cli.nix",
-      "current_version": "0-unstable-2026-10-28",
-      "current_rev": "9ddf3e67a82af9fc9c07b6beea15fb6b0368582f",
+      "current_version": "0-unstable-2026-11-01",
+      "current_rev": "505948d2b24c4f1ba30b51fcba8d43c7ddba74a8",
       "check": {
         "method": "github-commits",
         "repo": "basecamp/hey-cli",
@@ -237,7 +237,7 @@
     {
       "name": "dcg",
       "overlay": "overlays/91-dcg.nix",
-      "current_version": "0.15.3",
+      "current_version": "0.16.0",
       "check": {
         "method": "github-release",
         "repo": "Dicklesworthstone/destructive_command_guard"
