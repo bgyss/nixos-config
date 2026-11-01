@@ -10,6 +10,7 @@ shared-packages
   apple-sdk_15
   fswatch
   jdk17
+  moltenvk
   android.package
   # dockutil  # moved to Homebrew to avoid Swift build failure
 ]

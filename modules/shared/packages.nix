@@ -29,6 +29,7 @@ with pkgs;
   gcc
   gh
   ghidra
+  glslang
   hcloud
   just
   jujutsu
@@ -46,8 +47,13 @@ with pkgs;
   openssh
   pixi
   pocketbase
+  spirv-headers
+  spirv-tools
   sqlite
   uv
+  vulkan-headers
+  vulkan-loader
+  vulkan-tools
   wget
   zip
 
