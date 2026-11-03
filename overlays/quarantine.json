@@ -2,24 +2,6 @@
   "comment": "Machine-written quarantine ledger. See docs/superpowers/specs/2026-07-25-self-healing-updates-design.md §2. Do not hand-edit while the daily pipeline may be running; use scripts/quarantine.sh.",
   "entries": [
     {
-      "name": "c4",
-      "kind": "overlay",
-      "blocked_version": "0-unstable-2026-11-03",
-      "known_good_version": "0-unstable-2026-10-28",
-      "first_failed": "2026-11-03T17:03:36Z",
-      "last_attempt": "2026-11-03T17:03:36Z",
-      "attempts": 1,
-      "phase": "package-build",
-      "fingerprint": "unclassified",
-      "error_excerpt": "-- c4: a626a4f32579708119b4620a5d8a9b2d2ad2a1ee -> a34534bb7f459ba4be0c291f6471887b60c8443f (0-unstable-2026-10-28 -> 0-unstable-2026-11-03)\n  could not resolve vendorHash from build error for c4",
-      "retry_policy": "next-version-only",
-      "escalation": {
-        "status": "gave-up",
-        "verdict": "verification: scoped build passed, full system build failed: The bump script failed with 'could not resolve vendorHash' but c4 has vendorHash = null (no vendored deps), so there was no vendor hash to resolve; the mechanical bump simply never completed. I manually bumped rev to a34534bb7f459ba4be0c291f6471887b60c8443f, version to 0-unstable-2026-11-03, and the src hash (prefetched with nix-prefetch-url --unpack, converted to SRI), and updated updates.json current_version and current_rev together. Scoped build 'nix build --no-link .#darwinConfigurations.garmonbozia.pkgs.c4' completed successfully. No checks were newly disabled (doCheck = false was already present).",
-        "at": "2026-11-03T17:06:58Z"
-      }
-    },
-    {
       "name": "nixpkgs",
       "kind": "input",
       "blocked_version": "unpin:nixpkgs@ea9e3ef home-manager@095fef2 darwin@ff0e21a",
