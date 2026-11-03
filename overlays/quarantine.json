@@ -2,43 +2,74 @@
   "comment": "Machine-written quarantine ledger. See docs/superpowers/specs/2026-07-25-self-healing-updates-design.md §2. Do not hand-edit while the daily pipeline may be running; use scripts/quarantine.sh.",
   "entries": [
     {
+      "name": "c4",
+      "kind": "overlay",
+      "blocked_version": "0-unstable-2026-11-03",
+      "known_good_version": "0-unstable-2026-10-28",
+      "first_failed": "2026-11-03T17:03:36Z",
+      "last_attempt": "2026-11-03T17:03:36Z",
+      "attempts": 1,
+      "phase": "package-build",
+      "fingerprint": "unclassified",
+      "error_excerpt": "-- c4: a626a4f32579708119b4620a5d8a9b2d2ad2a1ee -> a34534bb7f459ba4be0c291f6471887b60c8443f (0-unstable-2026-10-28 -> 0-unstable-2026-11-03)\n  could not resolve vendorHash from build error for c4",
+      "retry_policy": "next-version-only",
+      "escalation": {
+        "status": "gave-up",
+        "verdict": "verification: scoped build passed, full system build failed: The bump script failed with 'could not resolve vendorHash' but c4 has vendorHash = null (no vendored deps), so there was no vendor hash to resolve; the mechanical bump simply never completed. I manually bumped rev to a34534bb7f459ba4be0c291f6471887b60c8443f, version to 0-unstable-2026-11-03, and the src hash (prefetched with nix-prefetch-url --unpack, converted to SRI), and updated updates.json current_version and current_rev together. Scoped build 'nix build --no-link .#darwinConfigurations.garmonbozia.pkgs.c4' completed successfully. No checks were newly disabled (doCheck = false was already present).",
+        "at": "2026-11-03T17:06:58Z"
+      }
+    },
+    {
       "name": "nixpkgs",
       "kind": "input",
-      "blocked_version": "unpin:nixpkgs@d3b13ad home-manager@7db163b darwin@bb0b90d",
+      "blocked_version": "unpin:nixpkgs@ea9e3ef home-manager@095fef2 darwin@ff0e21a",
       "known_good_version": "af45a5c7362bcf6585aff1ffd1de09663cce80c8",
-      "first_failed": "2026-10-27T16:12:26Z",
-      "last_attempt": "2026-10-27T16:12:26Z",
+      "first_failed": "2026-11-03T17:08:35Z",
+      "last_attempt": "2026-11-03T17:08:35Z",
       "attempts": 1,
       "phase": "system-build",
       "fingerprint": "unpin-failed",
-      "error_excerpt": "error:\n       … while calling the 'derivationStrict' builtin\n         at «nix-internal»/derivation-internal.nix:38:12:\n           37|\n           38|   strict = drvFunc drvAttrs;\n             |            ^\n           39|\n\n       … while evaluating derivation 'darwin-system-26.11.bb0b90d'\n         whose name attribute is located at «github:NixOS/nixpkgs/d3b13ad»/pkgs/stdenv/generic/make-derivation.nix:651:11\n\n       … while evaluating attribute 'activationScript' of derivation 'darwin-system-26.11.bb0b90d'\n         at «github:LnL7/nix-darwin/bb0b90d»/modules/system/default.nix:89:7:\n           88|\n           89|       activationScript = cfg.activationScripts.script.text;\n             |       ^\n           90|\n\n       … while evaluating the option `system.activationScripts.script.text':\n\n       … while evaluating definitions from `<store>/source/modules/system/activation-scripts.nix':\n\n       … while evaluating the option `system.activationScripts.postActivation.text':\n\n       … while evaluating definitions from `<store>/source/nix-darwin':\n\n       … while evaluating the option `home-manager.users.briangyss.home.activation.checkFilesChanged.data':\n\n       … while evaluating definitions from `<store>/source/modules/files.nix':\n\n       … while evaluating the option `home-manager.users.briangyss.home.file.\"Library/Fonts/.home-manager-fonts-version\".onChange':\n\n       … while evaluating definitions from `<store>/source/modules/targets/darwin/fonts.nix':\n\n       … while evaluating definitions from `<store>/source/modules/darwin/home-manager.nix':\n\n       (stack trace truncated; use '--show-trace' to show the full, detailed trace)\n\n       error: The version 36.0.2 is missing in package platform-tools.\n       The only available versions are 37.0.1.",
+      "error_excerpt": "error:\n       … while calling the 'derivationStrict' builtin\n         at «nix-internal»/derivation-internal.nix:38:12:\n           37|\n           38|   strict = drvFunc drvAttrs;\n             |            ^\n           39|\n\n       … while evaluating derivation 'darwin-system-26.11.ff0e21a'\n         whose name attribute is located at «github:NixOS/nixpkgs/ea9e3ef»/pkgs/stdenv/generic/make-derivation.nix:651:11\n\n       … while evaluating attribute 'activationScript' of derivation 'darwin-system-26.11.ff0e21a'\n         at «github:LnL7/nix-darwin/ff0e21a»/modules/system/default.nix:89:7:\n           88|\n           89|       activationScript = cfg.activationScripts.script.text;\n             |       ^\n           90|\n\n       … while evaluating the option `system.activationScripts.script.text':\n\n       … while evaluating definitions from `<store>/source/modules/system/activation-scripts.nix':\n\n       … while evaluating the option `system.activationScripts.postActivation.text':\n\n       … while evaluating definitions from `<store>/source/nix-darwin':\n\n       … while evaluating the option `home-manager.users.briangyss.home.activation.checkFilesChanged.data':\n\n       … while evaluating definitions from `<store>/source/modules/files.nix':\n\n       … while evaluating the option `home-manager.users.briangyss.home.file.\"Library/Fonts/.home-manager-fonts-version\".onChange':\n\n       … while evaluating definitions from `<store>/source/modules/targets/darwin/fonts.nix':\n\n       … while evaluating definitions from `<store>/source/modules/darwin/home-manager.nix':\n\n       (stack trace truncated; use '--show-trace' to show the full, detailed trace)\n\n       error: The version 36.0.2 is missing in package platform-tools.\n       The only available versions are 37.0.1.",
       "retry_policy": "retry-after:168"
     },
     {
       "name": "home-manager",
       "kind": "input",
-      "blocked_version": "unpin:nixpkgs@d3b13ad home-manager@7db163b darwin@bb0b90d",
+      "blocked_version": "unpin:nixpkgs@ea9e3ef home-manager@095fef2 darwin@ff0e21a",
       "known_good_version": "9ce9f7f",
-      "first_failed": "2026-10-27T16:12:26Z",
-      "last_attempt": "2026-10-27T16:12:26Z",
+      "first_failed": "2026-11-03T17:08:35Z",
+      "last_attempt": "2026-11-03T17:08:35Z",
       "attempts": 1,
       "phase": "system-build",
       "fingerprint": "unpin-failed",
-      "error_excerpt": "error:\n       … while calling the 'derivationStrict' builtin\n         at «nix-internal»/derivation-internal.nix:38:12:\n           37|\n           38|   strict = drvFunc drvAttrs;\n             |            ^\n           39|\n\n       … while evaluating derivation 'darwin-system-26.11.bb0b90d'\n         whose name attribute is located at «github:NixOS/nixpkgs/d3b13ad»/pkgs/stdenv/generic/make-derivation.nix:651:11\n\n       … while evaluating attribute 'activationScript' of derivation 'darwin-system-26.11.bb0b90d'\n         at «github:LnL7/nix-darwin/bb0b90d»/modules/system/default.nix:89:7:\n           88|\n           89|       activationScript = cfg.activationScripts.script.text;\n             |       ^\n           90|\n\n       … while evaluating the option `system.activationScripts.script.text':\n\n       … while evaluating definitions from `<store>/source/modules/system/activation-scripts.nix':\n\n       … while evaluating the option `system.activationScripts.postActivation.text':\n\n       … while evaluating definitions from `<store>/source/nix-darwin':\n\n       … while evaluating the option `home-manager.users.briangyss.home.activation.checkFilesChanged.data':\n\n       … while evaluating definitions from `<store>/source/modules/files.nix':\n\n       … while evaluating the option `home-manager.users.briangyss.home.file.\"Library/Fonts/.home-manager-fonts-version\".onChange':\n\n       … while evaluating definitions from `<store>/source/modules/targets/darwin/fonts.nix':\n\n       … while evaluating definitions from `<store>/source/modules/darwin/home-manager.nix':\n\n       (stack trace truncated; use '--show-trace' to show the full, detailed trace)\n\n       error: The version 36.0.2 is missing in package platform-tools.\n       The only available versions are 37.0.1.",
+      "error_excerpt": "error:\n       … while calling the 'derivationStrict' builtin\n         at «nix-internal»/derivation-internal.nix:38:12:\n           37|\n           38|   strict = drvFunc drvAttrs;\n             |            ^\n           39|\n\n       … while evaluating derivation 'darwin-system-26.11.ff0e21a'\n         whose name attribute is located at «github:NixOS/nixpkgs/ea9e3ef»/pkgs/stdenv/generic/make-derivation.nix:651:11\n\n       … while evaluating attribute 'activationScript' of derivation 'darwin-system-26.11.ff0e21a'\n         at «github:LnL7/nix-darwin/ff0e21a»/modules/system/default.nix:89:7:\n           88|\n           89|       activationScript = cfg.activationScripts.script.text;\n             |       ^\n           90|\n\n       … while evaluating the option `system.activationScripts.script.text':\n\n       … while evaluating definitions from `<store>/source/modules/system/activation-scripts.nix':\n\n       … while evaluating the option `system.activationScripts.postActivation.text':\n\n       … while evaluating definitions from `<store>/source/nix-darwin':\n\n       … while evaluating the option `home-manager.users.briangyss.home.activation.checkFilesChanged.data':\n\n       … while evaluating definitions from `<store>/source/modules/files.nix':\n\n       … while evaluating the option `home-manager.users.briangyss.home.file.\"Library/Fonts/.home-manager-fonts-version\".onChange':\n\n       … while evaluating definitions from `<store>/source/modules/targets/darwin/fonts.nix':\n\n       … while evaluating definitions from `<store>/source/modules/darwin/home-manager.nix':\n\n       (stack trace truncated; use '--show-trace' to show the full, detailed trace)\n\n       error: The version 36.0.2 is missing in package platform-tools.\n       The only available versions are 37.0.1.",
       "retry_policy": "retry-after:168"
     },
     {
       "name": "darwin",
       "kind": "input",
-      "blocked_version": "unpin:nixpkgs@d3b13ad home-manager@7db163b darwin@bb0b90d",
+      "blocked_version": "unpin:nixpkgs@ea9e3ef home-manager@095fef2 darwin@ff0e21a",
       "known_good_version": "nix-darwin-26.05",
-      "first_failed": "2026-10-27T16:12:26Z",
-      "last_attempt": "2026-10-27T16:12:26Z",
+      "first_failed": "2026-11-03T17:08:35Z",
+      "last_attempt": "2026-11-03T17:08:35Z",
       "attempts": 1,
       "phase": "system-build",
       "fingerprint": "unpin-failed",
-      "error_excerpt": "error:\n       … while calling the 'derivationStrict' builtin\n         at «nix-internal»/derivation-internal.nix:38:12:\n           37|\n           38|   strict = drvFunc drvAttrs;\n             |            ^\n           39|\n\n       … while evaluating derivation 'darwin-system-26.11.bb0b90d'\n         whose name attribute is located at «github:NixOS/nixpkgs/d3b13ad»/pkgs/stdenv/generic/make-derivation.nix:651:11\n\n       … while evaluating attribute 'activationScript' of derivation 'darwin-system-26.11.bb0b90d'\n         at «github:LnL7/nix-darwin/bb0b90d»/modules/system/default.nix:89:7:\n           88|\n           89|       activationScript = cfg.activationScripts.script.text;\n             |       ^\n           90|\n\n       … while evaluating the option `system.activationScripts.script.text':\n\n       … while evaluating definitions from `<store>/source/modules/system/activation-scripts.nix':\n\n       … while evaluating the option `system.activationScripts.postActivation.text':\n\n       … while evaluating definitions from `<store>/source/nix-darwin':\n\n       … while evaluating the option `home-manager.users.briangyss.home.activation.checkFilesChanged.data':\n\n       … while evaluating definitions from `<store>/source/modules/files.nix':\n\n       … while evaluating the option `home-manager.users.briangyss.home.file.\"Library/Fonts/.home-manager-fonts-version\".onChange':\n\n       … while evaluating definitions from `<store>/source/modules/targets/darwin/fonts.nix':\n\n       … while evaluating definitions from `<store>/source/modules/darwin/home-manager.nix':\n\n       (stack trace truncated; use '--show-trace' to show the full, detailed trace)\n\n       error: The version 36.0.2 is missing in package platform-tools.\n       The only available versions are 37.0.1.",
+      "error_excerpt": "error:\n       … while calling the 'derivationStrict' builtin\n         at «nix-internal»/derivation-internal.nix:38:12:\n           37|\n           38|   strict = drvFunc drvAttrs;\n             |            ^\n           39|\n\n       … while evaluating derivation 'darwin-system-26.11.ff0e21a'\n         whose name attribute is located at «github:NixOS/nixpkgs/ea9e3ef»/pkgs/stdenv/generic/make-derivation.nix:651:11\n\n       … while evaluating attribute 'activationScript' of derivation 'darwin-system-26.11.ff0e21a'\n         at «github:LnL7/nix-darwin/ff0e21a»/modules/system/default.nix:89:7:\n           88|\n           89|       activationScript = cfg.activationScripts.script.text;\n             |       ^\n           90|\n\n       … while evaluating the option `system.activationScripts.script.text':\n\n       … while evaluating definitions from `<store>/source/modules/system/activation-scripts.nix':\n\n       … while evaluating the option `system.activationScripts.postActivation.text':\n\n       … while evaluating definitions from `<store>/source/nix-darwin':\n\n       … while evaluating the option `home-manager.users.briangyss.home.activation.checkFilesChanged.data':\n\n       … while evaluating definitions from `<store>/source/modules/files.nix':\n\n       … while evaluating the option `home-manager.users.briangyss.home.file.\"Library/Fonts/.home-manager-fonts-version\".onChange':\n\n       … while evaluating definitions from `<store>/source/modules/targets/darwin/fonts.nix':\n\n       … while evaluating definitions from `<store>/source/modules/darwin/home-manager.nix':\n\n       (stack trace truncated; use '--show-trace' to show the full, detailed trace)\n\n       error: The version 36.0.2 is missing in package platform-tools.\n       The only available versions are 37.0.1.",
       "retry_policy": "retry-after:168"
+    },
+    {
+      "name": "revision-378ee3d",
+      "kind": "revision",
+      "blocked_version": "378ee3d65fc79e5f0ef8422ef562018d503909f6",
+      "known_good_version": "47fb046427f01d80a43ddf51ab87d65fbdc07f2b",
+      "first_failed": "2026-11-03T17:08:49Z",
+      "last_attempt": "2026-11-03T17:08:49Z",
+      "attempts": 1,
+      "phase": "system-build",
+      "fingerprint": "unclassified",
+      "error_excerpt": "these 9 derivations will be built:\n  <store>/home-manager-applications.drv\n  <store>/home-manager-path.drv\n  <store>/home-manager-fonts.drv\n  <store>/hm_LibraryFonts.homemanagerfontsversion.drv\n  <store>/home-manager-files.drv\n  <store>/activation-script.drv\n  <store>/home-manager-generation.drv\n  <store>/activation-briangyss.drv\n  <store>/darwin-system-26.05.c3e90c8.drv\nbuilding '<store>/home-manager-path.drv'...\nbuilding '<store>/home-manager-applications.drv'...\nbuilding '<store>/home-manager-fonts.drv'...\nerror: Cannot build '<store>/home-manager-path.drv'.\n       Reason: builder failed with exit code 25.\n       Output paths:\n         <store>/home-manager-path\n       Last 5 log lines:\n       > pkgs.buildEnv error: two given paths contain a conflicting subpath:\n       >   `<store>/spirv-tools-1.4.335.0/bin/spirv-diff' and\n       >   `<store>/glslang-16.1.0-bin/bin/spirv-diff'\n       > hint: this may be caused by two different versions of the same package in buildEnv's `paths` parameter\n       > hint: `pkgs.nix-diff` can be used to compare derivations\n       For full logs, run:\n         nix log <store>/home-manager-path.drv\nerror: Cannot build '<store>/home-manager-generation.drv'.\n       Reason: 1 dependency failed.\n       Output paths:\n         <store>/home-manager-generation\nerror: Cannot build '<store>/activation-briangyss.drv'.\n       Reason: 1 dependency failed.\n       Output paths:\n         <store>/activation-briangyss\n❌ git+file:///Users/briangyss/nixos-config#darwinConfigurations.garmonbozia.system\nerror: Cannot build '<store>/darwin-system-26.05.c3e90c8.drv'.\n       Reason: 1 dependency failed.\n       Output paths:\n         <store>/darwin-system-26.05.c3e90c8",
+      "retry_policy": "next-version-only"
     }
   ]
 }

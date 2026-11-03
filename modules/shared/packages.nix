@@ -29,7 +29,7 @@ with pkgs;
   gcc
   gh
   ghidra
-  glslang
+  (lib.lowPrio glslang) # spirv-diff collides with spirv-tools
   hcloud
   just
   jujutsu
