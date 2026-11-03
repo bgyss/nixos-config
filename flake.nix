@@ -265,7 +265,13 @@
           basePkgs = nixpkgs.legacyPackages.${system};
           pkgs = basePkgs.extend (
             final: prev:
-            (import ./overlays/40-codex-openai.nix final prev)
+            # beads needs buildGo127Module: mirror modules/shared/default.nix by
+            # taking go_1_27 from nixpkgs-master, then layering overlays/55-go.nix.
+            {
+              inherit (nixpkgs-master.legacyPackages.${system}) go_1_27;
+            }
+            // (import ./overlays/55-go.nix final prev)
+            // (import ./overlays/40-codex-openai.nix final prev)
             // (import ./overlays/50-trailbase.nix final prev)
             // (import ./overlays/60-beads.nix final prev)
             // (import ./overlays/90-svg-term-cli.nix final prev)
