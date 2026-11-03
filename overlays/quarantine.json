@@ -52,19 +52,6 @@
       "fingerprint": "unclassified",
       "error_excerpt": "these 9 derivations will be built:\n  <store>/home-manager-applications.drv\n  <store>/home-manager-path.drv\n  <store>/home-manager-fonts.drv\n  <store>/hm_LibraryFonts.homemanagerfontsversion.drv\n  <store>/home-manager-files.drv\n  <store>/activation-script.drv\n  <store>/home-manager-generation.drv\n  <store>/activation-briangyss.drv\n  <store>/darwin-system-26.05.c3e90c8.drv\nbuilding '<store>/home-manager-path.drv'...\nbuilding '<store>/home-manager-applications.drv'...\nbuilding '<store>/home-manager-fonts.drv'...\nerror: Cannot build '<store>/home-manager-path.drv'.\n       Reason: builder failed with exit code 25.\n       Output paths:\n         <store>/home-manager-path\n       Last 5 log lines:\n       > pkgs.buildEnv error: two given paths contain a conflicting subpath:\n       >   `<store>/spirv-tools-1.4.335.0/bin/spirv-diff' and\n       >   `<store>/glslang-16.1.0-bin/bin/spirv-diff'\n       > hint: this may be caused by two different versions of the same package in buildEnv's `paths` parameter\n       > hint: `pkgs.nix-diff` can be used to compare derivations\n       For full logs, run:\n         nix log <store>/home-manager-path.drv\nerror: Cannot build '<store>/home-manager-generation.drv'.\n       Reason: 1 dependency failed.\n       Output paths:\n         <store>/home-manager-generation\nerror: Cannot build '<store>/activation-briangyss.drv'.\n       Reason: 1 dependency failed.\n       Output paths:\n         <store>/activation-briangyss\n❌ git+file:///Users/briangyss/nixos-config#darwinConfigurations.garmonbozia.system\nerror: Cannot build '<store>/darwin-system-26.05.c3e90c8.drv'.\n       Reason: 1 dependency failed.\n       Output paths:\n         <store>/darwin-system-26.05.c3e90c8",
       "retry_policy": "next-version-only"
-    },
-    {
-      "name": "c4",
-      "kind": "overlay",
-      "blocked_version": "0-unstable-2026-11-03",
-      "known_good_version": "0-unstable-2026-10-28",
-      "first_failed": "2026-11-03T17:14:55Z",
-      "last_attempt": "2026-11-03T17:14:55Z",
-      "attempts": 1,
-      "phase": "package-build",
-      "fingerprint": "unclassified",
-      "error_excerpt": "-- c4: a626a4f32579708119b4620a5d8a9b2d2ad2a1ee -> a34534bb7f459ba4be0c291f6471887b60c8443f (0-unstable-2026-10-28 -> 0-unstable-2026-11-03)\n  could not resolve vendorHash from build error for c4",
-      "retry_policy": "next-version-only"
     }
   ]
 }
