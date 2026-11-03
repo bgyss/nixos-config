@@ -432,7 +432,7 @@ in
   local.dock.enable = true;
   local.dock.entries = [
     { path = "/System/Applications/Messages.app/"; }
-    { path = "/Applications/Ghostty.app/"; }
+    { path = "/Applications/Rex Beta.app/"; }
     { path = "/Applications/Slack.app/"; }
     { path = "/Applications/Discord.app/"; }
     { path = "/Applications/HEY.app/"; }
