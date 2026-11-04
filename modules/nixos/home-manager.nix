@@ -125,6 +125,8 @@ in
     };
   };
 
+  imports = [ ../shared/no-mise-direnv.nix ];
+
   programs = shared-programs // {
     home-manager.enable = true;
   };

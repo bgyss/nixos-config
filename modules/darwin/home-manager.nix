@@ -169,7 +169,10 @@ in
   home-manager = {
     useGlobalPkgs = true;
     backupFileExtension = "hm-bak";
-    sharedModules = [ ./hm-nix-darwin-fix.nix ];
+    sharedModules = [
+      ./hm-nix-darwin-fix.nix
+      ../shared/no-mise-direnv.nix
+    ];
     users.${user} =
       {
         pkgs,

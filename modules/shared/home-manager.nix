@@ -25,7 +25,10 @@ in
       };
     };
     nix-direnv.enable = true;
-    mise.enable = true;
+    # Must stay false: mise's direnv integration is deprecated (removed in mise
+    # 2027.10.4) and warns in every direnv directory. Enforced by an assertion in
+    # ./no-mise-direnv.nix; mise is activated in zsh instead.
+    mise.enable = false;
   };
 
   # Shared shell configuration
