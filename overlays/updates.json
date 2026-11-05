@@ -115,7 +115,7 @@
     {
       "name": "mise",
       "overlay": "overlays/30-mise.nix",
-      "current_version": "2026.11.0",
+      "current_version": "2026.11.2",
       "check": {
         "method": "github-release",
         "repo": "jdx/mise"
@@ -161,8 +161,8 @@
     {
       "name": "c4",
       "overlay": "overlays/56-c4.nix",
-      "current_version": "0-unstable-2026-11-03",
-      "current_rev": "a34534bb7f459ba4be0c291f6471887b60c8443f",
+      "current_version": "0-unstable-2026-11-05",
+      "current_rev": "e2fd9c5fe452b3d93ec9327fcf99dc8a3611c1fd",
       "check": {
         "method": "github-commits",
         "repo": "Avalanche-io/c4",
@@ -175,8 +175,8 @@
     {
       "name": "hey-cli",
       "overlay": "overlays/94-hey-cli.nix",
-      "current_version": "0-unstable-2026-11-03",
-      "current_rev": "98430d8adeb6570278d511ac1c10ad3f91783f6e",
+      "current_version": "0-unstable-2026-11-05",
+      "current_rev": "ed44b2a66ebe7a40133cc83f6bcf019a4fcffd93",
       "check": {
         "method": "github-commits",
         "repo": "basecamp/hey-cli",
@@ -226,7 +226,7 @@
     {
       "name": "aws-cdk-cli",
       "overlay": "overlays/95-aws-cdk-cli.nix",
-      "current_version": "2.1147.0",
+      "current_version": "2.1148.0",
       "check": {
         "method": "npm",
         "package": "aws-cdk"
