@@ -19,7 +19,7 @@
     {
       "name": "codex-openai",
       "overlay": "overlays/40-codex-openai.nix",
-      "current_version": "0.166.0",
+      "current_version": "0.167.0",
       "check": {
         "method": "github-release",
         "repo": "openai/codex",
@@ -115,7 +115,7 @@
     {
       "name": "mise",
       "overlay": "overlays/30-mise.nix",
-      "current_version": "2026.11.2",
+      "current_version": "2026.11.3",
       "check": {
         "method": "github-release",
         "repo": "jdx/mise"
@@ -175,8 +175,8 @@
     {
       "name": "hey-cli",
       "overlay": "overlays/94-hey-cli.nix",
-      "current_version": "0-unstable-2026-11-05",
-      "current_rev": "ed44b2a66ebe7a40133cc83f6bcf019a4fcffd93",
+      "current_version": "0-unstable-2026-11-06",
+      "current_rev": "f84e241fb04f8fb9345b73a7a82db3f58c0b9a5c",
       "check": {
         "method": "github-commits",
         "repo": "basecamp/hey-cli",
