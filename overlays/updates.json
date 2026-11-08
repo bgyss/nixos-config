@@ -161,8 +161,8 @@
     {
       "name": "c4",
       "overlay": "overlays/56-c4.nix",
-      "current_version": "0-unstable-2026-11-05",
-      "current_rev": "e2fd9c5fe452b3d93ec9327fcf99dc8a3611c1fd",
+      "current_version": "0-unstable-2026-11-08",
+      "current_rev": "6aa19d8d7f512f76d0ba0b87896d7d141c768bfa",
       "check": {
         "method": "github-commits",
         "repo": "Avalanche-io/c4",
