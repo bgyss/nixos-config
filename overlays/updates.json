@@ -3,7 +3,7 @@
     {
       "name": "claude-code",
       "overlay": "overlays/41-claude-code.nix",
-      "current_version": "2.1.319",
+      "current_version": "2.1.322",
       "check": {
         "method": "github-release",
         "repo": "anthropics/claude-code"
@@ -55,7 +55,7 @@
     {
       "name": "trailbase",
       "overlay": "overlays/50-trailbase.nix",
-      "current_version": "0.35.11",
+      "current_version": "0.35.12",
       "check": {
         "method": "github-release",
         "repo": "trailbaseio/trailbase"
@@ -115,7 +115,7 @@
     {
       "name": "mise",
       "overlay": "overlays/30-mise.nix",
-      "current_version": "2026.11.5",
+      "current_version": "2026.11.6",
       "check": {
         "method": "github-release",
         "repo": "jdx/mise"
@@ -161,8 +161,8 @@
     {
       "name": "c4",
       "overlay": "overlays/56-c4.nix",
-      "current_version": "0-unstable-2026-11-08",
-      "current_rev": "6aa19d8d7f512f76d0ba0b87896d7d141c768bfa",
+      "current_version": "0-unstable-2026-11-10",
+      "current_rev": "4b1fe0adcea58c6a5ad824e4683b0c1052dbb652",
       "check": {
         "method": "github-commits",
         "repo": "Avalanche-io/c4",
@@ -175,8 +175,8 @@
     {
       "name": "hey-cli",
       "overlay": "overlays/94-hey-cli.nix",
-      "current_version": "0-unstable-2026-11-09",
-      "current_rev": "6c45b8b6364eda7fdde7b8bc03facb78860371d0",
+      "current_version": "0-unstable-2026-11-10",
+      "current_rev": "ccc56d0fe39c632d1635eced8b6fdd686e30196d",
       "check": {
         "method": "github-commits",
         "repo": "basecamp/hey-cli",
