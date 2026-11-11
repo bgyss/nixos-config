@@ -12,7 +12,16 @@ if prev.stdenv.hostPlatform.system == "aarch64-darwin" then
       installPhase = ''
         runHook preInstall
         mkdir -p $out/Applications
-        cp -r *.app $out/Applications
+        # The bundle sits at the source root on the pinned nixpkgs (hdiutil
+        # unpackCmd) but one level down on newer nixpkgs (7zz unpacks the DMG
+        # into a "LM Studio <version>/" volume directory). Accept both: a bare
+        # `cp -r *.app` failed on the newer layout, which was what kept the
+        # weekly nixpkgs unpin probe from ever passing.
+        find . -maxdepth 2 -name '*.app' -prune -exec cp -R {} $out/Applications/ \;
+        [ -d "$out/Applications/LM Studio.app" ] || {
+          echo "LM Studio.app not found in the unpacked DMG" >&2
+          exit 1
+        }
 
         # Bypass the /Applications path check in the main index.js
         local indexJs="$out/Applications/LM Studio.app/Contents/Resources/app/.webpack/main/index.js"

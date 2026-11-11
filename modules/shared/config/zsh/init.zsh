@@ -101,12 +101,11 @@ EOF
   ssh -t blacklodge "sudo TERM=xterm-256color /bin/bash -c 'exec /bin/bash --noprofile --rcfile <(echo $b64 | base64 -d) -i'"
 }
 
-# brew completions
+# brew completions: only extend fpath here. Home Manager's zsh module runs
+# compinit once, later, after every fpath entry is in place — calling it here
+# as well made each shell rebuild ~/.zcompdump twice more.
 if type brew &>/dev/null; then
   FPATH=$(brew --prefix)/share/zsh-completions:$FPATH
-
-  autoload -Uz compinit
-  compinit
 fi
 
 # OpenAI API key, decrypted at activation by agenix (see secrets/secrets.nix)

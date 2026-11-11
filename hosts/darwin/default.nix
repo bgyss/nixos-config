@@ -73,6 +73,12 @@
     briangyss ALL=(root) NOPASSWD: /run/current-system/sw/bin/darwin-rebuild
   '';
 
+  # Home Manager's zsh module already runs compinit, after the full fpath
+  # (nix profiles, brew, plugins) is assembled. nix-darwin's /etc/zshrc ran it
+  # too, earlier and with a shorter fpath, so the two kept invalidating and
+  # rewriting ~/.zcompdump on every shell start (~2.6s per interactive shell).
+  programs.zsh.enableGlobalCompInit = false;
+
   environment.systemPackages = with pkgs; [
     beads
     emacs # same 30.2 as the launchd daemon below; emacs-unstable was a second, locally built copy
