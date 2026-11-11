@@ -9,6 +9,8 @@ JSON=0
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 MANIFEST="$REPO_ROOT/overlays/updates.json"
+# shellcheck source=/dev/null
+source "$REPO_ROOT/scripts/github-api.sh"
 
 OUTDATED=0
 UP_TO_DATE=0
@@ -16,17 +18,24 @@ ERRORS=0
 
 # ── Upstream check helpers ────────────────────────────────────────────────────
 
-github_latest() {
-  local repo="$1" tag_prefix="${2:-}"
-  local tag
-  tag=$(curl -sf --max-time 15 \
-    -H "Accept: application/vnd.github+json" \
-    "https://api.github.com/repos/${repo}/releases/latest" 2>/dev/null \
-    | jq -r '.tag_name // empty') || { printf 'ERROR'; return; }
-  [[ -z "$tag" ]] && { printf 'ERROR'; return; }
-  printf '%s' "${tag#"$tag_prefix"}"
-  # strip leading 'v' if no explicit prefix was given
-  [[ -z "$tag_prefix" ]] && printf '%s' "${tag#v}" || printf '%s' "${tag#"$tag_prefix"}"
+# Latest release tag for a repo. /releases/latest is trusted only when it exists
+# and carries the tag_prefix (llama.cpp's "b<N>"; its "latest" is now v0.9.0);
+# otherwise fall back to the release list. Prints the tag
+# (unstripped) or ERROR.
+github_release_tag() { # <repo> [tag_prefix]
+  local repo="$1" prefix="${2:-}" tag
+  tag="$(github_api "repos/${repo}/releases/latest" 2>/dev/null | jq -r '.tag_name // empty')" || tag=""
+  if [[ -n "$tag" && ( -z "$prefix" || "$tag" == "$prefix"* ) ]]; then
+    printf '%s' "$tag"; return
+  fi
+  # Fallback: newest non-draft release carrying the prefix. Pre-releases are
+  # deliberately INCLUDED: AeroSpace and llama.cpp publish every release flagged
+  # pre-release, so /releases/latest 404s (AeroSpace — which made its probe error
+  # silently from the day it was added) or points at an unrelated tag (llama.cpp).
+  tag="$(github_api "repos/${repo}/releases?per_page=100" 2>/dev/null \
+    | jq -r --arg p "$prefix" '[.[] | select((.draft|not) and (.tag_name|startswith($p)))][0].tag_name // empty')" || tag=""
+  [[ -n "$tag" ]] && { printf '%s' "$tag"; return; }
+  printf 'ERROR'
 }
 
 go_dev_latest() {
@@ -51,9 +60,7 @@ npm_latest() {
 
 github_latest_commit() {
   local repo="$1" branch="${2:-master}"
-  curl -sf --max-time 15 \
-    -H "Accept: application/vnd.github+json" \
-    "https://api.github.com/repos/${repo}/commits/${branch}" 2>/dev/null \
+  github_api "repos/${repo}/commits/${branch}" 2>/dev/null \
     | jq -r '.sha[:12] // empty' \
     || printf 'ERROR'
 }
@@ -99,10 +106,7 @@ while IFS= read -r pkg; do
       repo=$(   jq -r '.check.repo'             <<<"$pkg")
       prefix=$( jq -r '.check.tag_prefix // ""' <<<"$pkg")
       # Strip the prefix, then also strip a leading 'v' if no explicit prefix
-      raw=$(curl -sf --max-time 15 \
-        -H "Accept: application/vnd.github+json" \
-        "https://api.github.com/repos/${repo}/releases/latest" 2>/dev/null \
-        | jq -r '.tag_name // "ERROR"') || raw="ERROR"
+      raw="$(github_release_tag "$repo" "$prefix")"
       if [[ "$raw" == "ERROR" || -z "$raw" ]]; then
         latest="ERROR"
       elif [[ -n "$prefix" ]]; then

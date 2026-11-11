@@ -34,6 +34,7 @@ cp "$REPO/apps/aarch64-darwin/_common.sh" "$scratch/apps/aarch64-darwin/_common.
 cp "$REPO/scripts/update-state.sh" "$scratch/scripts/update-state.sh"
 cp "$REPO/scripts/quarantine.sh" "$scratch/scripts/quarantine.sh"
 cp "$REPO/scripts/classify-failure.sh" "$scratch/scripts/classify-failure.sh"
+cp "$REPO/scripts/github-api.sh" "$scratch/scripts/github-api.sh"
 cp "$REPO/apps/aarch64-darwin/bump-overlays" "$scratch/apps/aarch64-darwin/bump-overlays"
 chmod +x "$scratch/apps/aarch64-darwin/bump-overlays"
 

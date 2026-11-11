@@ -10,6 +10,9 @@ _manifest() {
   printf '%s/overlays/updates.json' "$d"
 }
 
+# shellcheck source=/dev/null
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/github-api.sh"
+
 # iso8601 -> epoch seconds (GNU date -d or BSD date -j)
 _iso_to_epoch() {
   local s="$1"
@@ -57,6 +60,13 @@ probe_overlays() {
     echo "warning: overlay version probe returned nothing (check-overlay-versions.sh failed) — treating as 'nothing outdated'" >&2
     printf ''; return 0
   fi
+  # Name every package whose probe errored. check-overlay-versions reports
+  # those as status ERROR (rate limit, network, a changed tag scheme) and they
+  # are never "outdated", so a persistently failing probe used to look exactly
+  # like a quiet upstream. stderr lands in the run log.
+  local errored
+  errored="$(echo "$json" | jq -r '[.[] | select(.status=="ERROR") | .name] | join(" ")' 2>/dev/null)"
+  [[ -n "$errored" ]] && echo "warning: overlay version probe FAILED for: $errored (rate limit / network / tag scheme?) — these were NOT checked" >&2
   # record known_latest for successfully-probed overlays
   while IFS=$'\t' read -r name latest; do
     [[ -n "$name" ]] && state_set_overlay "$name" "$latest" "$(now_iso)"
@@ -79,8 +89,7 @@ _input_upstream_moved() { # <name>  -> exit 0 only if confirmed moved
   owner="$(echo "$node" | jq -r '.owner')"; name="$(echo "$node" | jq -r '.repo')"
   rev="$(echo "$node" | jq -r '.rev')"; branch="$(echo "$node" | jq -r '.ref // "HEAD"')"
   local head
-  head="$(curl -sf --max-time 15 -H 'Accept: application/vnd.github+json' \
-    "https://api.github.com/repos/$owner/$name/commits/$branch" 2>/dev/null \
+  head="$(github_api "repos/$owner/$name/commits/$branch" 2>/dev/null \
     | jq -r '.sha // empty')" || return 1
   [[ -z "$head" ]] && return 1            # probe failed -> not confirmed moved -> no update
   [[ "$head" != "$rev" ]]

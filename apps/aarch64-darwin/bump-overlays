@@ -23,6 +23,8 @@ source "$FLAKE_DIR/scripts/update-state.sh"
 source "$FLAKE_DIR/scripts/quarantine.sh"
 # shellcheck source=/dev/null
 source "$FLAKE_DIR/scripts/classify-failure.sh"
+# shellcheck source=/dev/null
+source "$FLAKE_DIR/scripts/github-api.sh"
 cd "$FLAKE_DIR"
 
 MANIFEST="$FLAKE_DIR/overlays/updates.json"
@@ -184,8 +186,7 @@ resolve_vendor_hash() {
 
 github_full_sha() {
   local repo="$1" branch="$2"
-  curl -sf --max-time 15 -H 'Accept: application/vnd.github+json' \
-    "https://api.github.com/repos/${repo}/commits/${branch}" 2>/dev/null \
+  github_api "repos/${repo}/commits/${branch}" 2>/dev/null \
     | jq -r '.sha // empty'
 }
 
@@ -300,6 +301,99 @@ print(m.group(1) if m else "")
   return 0
 }
 
+# Read the string literal assigned to <field> in an overlay (first match, field
+# not preceded by a letter so `hash` never matches `npmDepsHash`).
+overlay_field_value() { # <file> <field>
+  python3 - "$1" "$2" <<'PYEOF'
+import re, sys
+text = open(sys.argv[1]).read()
+m = re.search(r'(?<![A-Za-z])' + re.escape(sys.argv[2]) + r'\s*=\s*"([^"]*)"', text)
+print(m.group(1) if m else "", end="")
+PYEOF
+}
+
+# Source-override overlays (tmux, btop, llama-cpp, tmux-resurrect): an
+# overrideAttrs with a pinned version, a tag/rev, and one or more fixed-output
+# hashes. Mechanical because every moving part is a literal: substitute the
+# version and tag/rev, then resolve each hash by blanking it and reading the
+# expected value out of the build's "got:" line — the same routine the manual
+# recipe describes, and the only way to get hashes a prefetch can't produce
+# (llama-cpp's leaveDotGit source and its npm deps). Hash fields handled:
+# `hash` (the source) and `npmDepsHash`, in that order, since the npm deps
+# build needs the source fetched first. A bump that changes anything beyond
+# those literals (a new patch to drop, a moved npmRoot) fails verification and
+# goes through the usual quarantine -> escalation path.
+bump_source_override() {
+  local name="$1"
+  local overlay_rel overlay_file attr check_method prefix current_version current_rev
+  overlay_rel="$(jq -r --arg n "$name" '.packages[] | select(.name==$n) | .overlay' "$MANIFEST")"
+  overlay_file="$FLAKE_DIR/$overlay_rel"
+  attr="$(jq -r --arg n "$name" '.packages[] | select(.name==$n) | .attr // .name' "$MANIFEST")"
+  check_method="$(jq -r --arg n "$name" '.packages[] | select(.name==$n) | .check.method' "$MANIFEST")"
+  prefix="$(jq -r --arg n "$name" '.packages[] | select(.name==$n) | .check.tag_prefix // ""' "$MANIFEST")"
+  current_version="$(jq -r --arg n "$name" '.packages[] | select(.name==$n) | .current_version' "$MANIFEST")"
+
+  local new_version new_rev=""
+  if [[ "$check_method" == "github-commits" ]]; then
+    local repo branch
+    repo="$(jq -r --arg n "$name" '.packages[] | select(.name==$n) | .check.repo' "$MANIFEST")"
+    branch="$(jq -r --arg n "$name" '.packages[] | select(.name==$n) | .check.branch' "$MANIFEST")"
+    current_rev="$(jq -r --arg n "$name" '.packages[] | select(.name==$n) | .current_rev' "$MANIFEST")"
+    new_rev="$(github_full_sha "$repo" "$branch")"
+    if [[ -z "$new_rev" ]]; then err "  could not fetch latest commit SHA for $repo@$branch"; return 1; fi
+    if [[ "$new_rev" == "$current_rev" ]]; then msg "-- $name: already at latest commit, nothing to do"; return 0; fi
+    new_version="0-unstable-$(date -u +%Y-%m-%d)"
+    GOSRC_ATTEMPTED_VERSION="$new_version"
+    msg "-- $name: $current_rev -> $new_rev ($current_version -> $new_version)"
+    bump_field_string "$overlay_file" "rev" "$current_rev" "$new_rev" || return 1
+  else
+    new_version="$(echo "$json" | jq -r --arg n "$name" '.[] | select(.name==$n) | .latest')"
+    GOSRC_ATTEMPTED_VERSION="$new_version"
+    msg "-- $name: $current_version -> $new_version"
+    bump_field_string "$overlay_file" "tag" "${prefix}${current_version}" "${prefix}${new_version}" \
+      || { git checkout -- "$overlay_rel"; return 1; }
+  fi
+  bump_version_string "$overlay_file" "$current_version" "$new_version" \
+    || { git checkout -- "$overlay_rel"; return 1; }
+
+  local field old got
+  for field in hash npmDepsHash; do
+    old="$(overlay_field_value "$overlay_file" "$field")"
+    [[ -z "$old" ]] && continue
+    bump_field_string "$overlay_file" "$field" "$old" "" || { git checkout -- "$overlay_rel"; return 1; }
+    got="$(system_pkg_build "$attr" 2>&1 | grep 'got:' | awk '{print $2}' | head -1)"
+    if [[ -z "$got" ]]; then
+      err "  could not resolve $field for $name from the build error"
+      git checkout -- "$overlay_rel"
+      return 1
+    fi
+    bump_field_string "$overlay_file" "$field" "" "$got" || { git checkout -- "$overlay_rel"; return 1; }
+    msg "  $field -> $got"
+  done
+
+  if ! system_pkg_build "$attr" >/tmp/bump-overlays-srcovr.$$.log 2>&1; then
+    err "  verification build failed:"
+    tail -30 /tmp/bump-overlays-srcovr.$$.log >&2
+    rm -f /tmp/bump-overlays-srcovr.$$.log
+    git checkout -- "$overlay_rel"
+    return 1
+  fi
+  rm -f /tmp/bump-overlays-srcovr.$$.log
+
+  jq --arg n "$name" --arg v "$new_version" \
+    '(.packages[] | select(.name==$n) | .current_version) = $v' \
+    "$MANIFEST" > "$MANIFEST.tmp" && mv "$MANIFEST.tmp" "$MANIFEST"
+  if [[ -n "$new_rev" ]]; then
+    jq --arg n "$name" --arg r "$new_rev" \
+      '(.packages[] | select(.name==$n) | .current_rev) = $r' \
+      "$MANIFEST" > "$MANIFEST.tmp" && mv "$MANIFEST.tmp" "$MANIFEST"
+  fi
+  git add "$overlay_rel" "$MANIFEST"
+  git -c core.hooksPath=/dev/null commit -q -m "overlays: update $name to v$new_version"
+  msg "  committed: overlays: update $name to v$new_version"
+  return 0
+}
+
 # Per-package cadence. Absent cadence_hours means daily. c4/hey-cli declare 168
 # because they track a branch with no releases — a daily bump would chase HEAD.
 pkg_cadence_hours() { # <name>
@@ -404,6 +498,7 @@ json="$(bash "$FLAKE_DIR/scripts/check-overlay-versions.sh" --json)" || true
 
 declare -a MECH_NAMES=() MECH_VERSIONS=()
 declare -a GOSRC_NAMES_TARGET=()
+declare -a SRCOVR_NAMES_TARGET=()
 declare -a SKIPPED_NAMES=() SKIPPED_REASONS=()
 
 while IFS=$'\t' read -r name latest; do
@@ -445,13 +540,19 @@ while IFS=$'\t' read -r name latest; do
     for t in "${MECHANICAL_TYPES[@]}"; do [[ "$t" == "$update_type" ]] && is_mech=1 && break; done
     if [[ $is_mech -eq 1 ]]; then
       MECH_NAMES+=("$name"); MECH_VERSIONS+=("$latest")
+    elif [[ "$update_type" == "source-override" ]]; then
+      if [[ $MECHANICAL_ONLY -eq 1 ]]; then
+        SKIPPED_NAMES+=("$name"); SKIPPED_REASONS+=("source-override bump excluded by --mechanical-only")
+      else
+        SRCOVR_NAMES_TARGET+=("$name")
+      fi
     else
       SKIPPED_NAMES+=("$name"); SKIPPED_REASONS+=("update_type '$update_type' not automated — see docs/overlay-update-routine.md")
     fi
   fi
 done < <(echo "$json" | jq -r '.[] | select(.outdated) | "\(.name)\t\(.latest)"')
 
-if [[ ${#MECH_NAMES[@]} -eq 0 && ${#GOSRC_NAMES_TARGET[@]} -eq 0 ]]; then
+if [[ ${#MECH_NAMES[@]} -eq 0 && ${#GOSRC_NAMES_TARGET[@]} -eq 0 && ${#SRCOVR_NAMES_TARGET[@]} -eq 0 ]]; then
   msg "Nothing to bump."
   if [[ ${#SKIPPED_NAMES[@]} -gt 0 ]]; then
     warn "Outdated but not automated:"
@@ -464,6 +565,7 @@ fi
 
 msg "Planned mechanical bumps: ${MECH_NAMES[*]:-none}"
 msg "Planned go-source bumps: ${GOSRC_NAMES_TARGET[*]:-none}"
+msg "Planned source-override bumps: ${SRCOVR_NAMES_TARGET[*]:-none}"
 if [[ ${#SKIPPED_NAMES[@]} -gt 0 ]]; then
   warn "Skipped (not automated):"
   for i in "${!SKIPPED_NAMES[@]}"; do
@@ -513,6 +615,33 @@ for name in "${GOSRC_NAMES_TARGET[@]}"; do
   GOSRC_ATTEMPTED_VERSION=""
   bump_log="$FLAKE_DIR/logs/bump-${name}.log"
   if declare -F bump_gosource >/dev/null && bump_gosource "$name" >"$bump_log" 2>&1; then
+    cat "$bump_log"
+    BUMPED+=("$name")
+    quarantine_clear "$name"
+  else
+    FAILED+=("$name")
+    tail -30 "$bump_log" >&2
+    # Fall back to the pinned version only if the failure happened before the
+    # target was resolved (e.g. the upstream probe itself failed).
+    new_version="${GOSRC_ATTEMPTED_VERSION:-$(jq -r --arg n "$name" \
+      '.packages[] | select(.name==$n) | .current_version' "$MANIFEST")}"
+    fp="$(record_bump_failure "$name" "$new_version" "package-build" "$bump_log")"
+    err "  quarantined $name@$new_version as '$fp'"
+  fi
+done
+
+for name in "${SRCOVR_NAMES_TARGET[@]}"; do
+  state_set_overlay_bumped_at "$name" "$(now_iso)"
+  # bump_source_override resolves the target version internally (a tag for beads, a
+  # dated 0-unstable-<date> for the branch-tracked ones) and exports it via
+  # GOSRC_ATTEMPTED_VERSION. Recording the manifest's CURRENT version here
+  # instead would put the known-good version in the ledger as blocked_version,
+  # which then breaks escalate.sh both ways: its "updates.json current_version
+  # == $VERSION" gate would reject a correct repair, while its "old version is
+  # gone" and "overlay pins $VERSION" gates would pass vacuously (old == new).
+  GOSRC_ATTEMPTED_VERSION=""
+  bump_log="$FLAKE_DIR/logs/bump-${name}.log"
+  if declare -F bump_source_override >/dev/null && bump_source_override "$name" >"$bump_log" 2>&1; then
     cat "$bump_log"
     BUMPED+=("$name")
     quarantine_clear "$name"

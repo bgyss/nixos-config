@@ -21,7 +21,7 @@ d="$(mktemp -d)"; stub="$(mktemp -d)"
 mkdir -p "$d/overlays" "$d/scripts" "$d/apps/aarch64-darwin" "$d/logs"
 cp "$REPO/scripts/quarantine.sh" "$REPO/scripts/update-state.sh" \
    "$REPO/scripts/classify-failure.sh" "$REPO/scripts/update-probe.sh" \
-   "$REPO/scripts/update-notify.sh" "$REPO/scripts/check-overlay-versions.sh" \
+   "$REPO/scripts/update-notify.sh" "$REPO/scripts/check-overlay-versions.sh" "$REPO/scripts/github-api.sh" \
    "$d/scripts/"
 cp "$REPO/apps/aarch64-darwin/_common.sh" "$REPO/apps/aarch64-darwin/bump-overlays" \
    "$d/apps/aarch64-darwin/"

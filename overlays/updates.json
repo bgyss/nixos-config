@@ -30,7 +30,8 @@
         "aarch64-darwin": {
           "url_template": "https://github.com/openai/codex/releases/download/rust-v{version}/codex-package-aarch64-apple-darwin.tar.gz"
         }
-      }
+      },
+      "notes": ""
     },
     {
       "name": "aerospace",
@@ -71,7 +72,8 @@
         "x86_64-linux": {
           "url_template": "https://github.com/trailbaseio/trailbase/releases/download/v{version}/trailbase_v{version}_x86_64_linux.zip"
         }
-      }
+      },
+      "notes": ""
     },
     {
       "name": "igir",
@@ -95,7 +97,8 @@
         "x86_64-linux": {
           "url_template": "https://github.com/emmercm/igir/releases/download/v{version}/igir-{version}-Linux-amd64.tar.gz"
         }
-      }
+      },
+      "notes": ""
     },
     {
       "name": "uv",
@@ -110,7 +113,8 @@
         "aarch64-darwin": {
           "url_template": "https://github.com/astral-sh/uv/releases/download/{version}/uv-aarch64-apple-darwin.tar.gz"
         }
-      }
+      },
+      "notes": ""
     },
     {
       "name": "mise",
@@ -195,7 +199,7 @@
         "repo": "tmux/tmux"
       },
       "update_type": "source-override",
-      "notes": "overrideAttrs on nixpkgs' tmux with a fetchFromGitHub src (tag == version, e.g. 3.7b). Not a url/hash prebuilt, so fix-hashes does NOT touch it — bump the tag + fetchFromGitHub hash by hand (nix-prefetch-url --unpack the tag tarball or blank the hash and read the build error)."
+      "notes": "overrideAttrs on nixpkgs' tmux with a fetchFromGitHub src (tag == version, e.g. 3.7b). Not a url/hash prebuilt, so fix-hashes does NOT touch it; bump-overlays' source-override path substitutes version + tag and resolves the hash from the build error."
     },
     {
       "name": "btop",
@@ -207,7 +211,7 @@
         "tag_prefix": "v"
       },
       "update_type": "source-override",
-      "notes": "overrideAttrs on nixpkgs' btop with a fetchFromGitHub src (tag v<version>). fix-hashes does NOT touch it — bump the tag + hash by hand. Exists for the macOS runner-thread hang fix (#1662); drop once nixpkgs ships >= 1.4.8."
+      "notes": "overrideAttrs on nixpkgs' btop with a fetchFromGitHub src (tag v<version>). bump-overlays' source-override path handles it (tag + hash substitution). Exists for the macOS runner-thread hang fix (#1662); drop once nixpkgs ships >= 1.4.8."
     },
     {
       "name": "tmux-resurrect",
@@ -220,8 +224,9 @@
         "branch": "master"
       },
       "update_type": "source-override",
-      "notes": "overrideAttrs on nixpkgs' tmuxPlugins.resurrect (pinned to unstable-2022-05-01) with a fetchFromGitHub src pinned to upstream master. Project is unmaintained (no commits since 2023-03-06), so this pin is effectively 'latest ever' -- re-check occasionally in case that changes. Not a url/hash prebuilt, so fix-hashes does NOT touch it; bump rev + version date string + fetchFromGitHub hash by hand (nix-prefetch-url --unpack the archive URL, convert to SRI).",
-      "cadence_hours": 168
+      "notes": "overrideAttrs on nixpkgs' tmuxPlugins.resurrect (pinned to unstable-2022-05-01) with a fetchFromGitHub src pinned to upstream master. Project is unmaintained (no commits since 2023-03-06), so this pin is effectively 'latest ever' -- re-check occasionally in case that changes. Not a url/hash prebuilt, so fix-hashes does NOT touch it; bump-overlays' source-override path substitutes rev + version date and resolves the hash from the build error (uses `attr` for the package path).",
+      "cadence_hours": 168,
+      "attr": "tmuxPlugins.resurrect"
     },
     {
       "name": "aws-cdk-cli",
@@ -269,7 +274,8 @@
         "tag_prefix": "b"
       },
       "update_type": "source-override",
-      "notes": "overrideAttrs on nixpkgs' llama-cpp (currently pinned much further behind, e.g. b8667) with a fetchFromGitHub src pinned to the latest release tag (b<version>), so `llama`/`llama-server` on PATH stay current for new model architectures. Not a url/hash prebuilt, so fix-hashes does NOT touch it. Bumping needs TWO hashes by hand: the fetchFromGitHub src hash (leaveDotGit — blank it and read the build error, or nix-prefetch-git won't match since it doesn't run the postFetch script), and npmDepsHash for the webui's npm lockfile (also blank+rebuild). The webui's path within the repo (npmRoot) has moved before (tools/server/webui -> tools/ui as of b10375) — check it still exists at the new tag before assuming npmRoot is unchanged."
+      "notes": "overrideAttrs on nixpkgs' llama-cpp (currently pinned much further behind, e.g. b8667) with a fetchFromGitHub src pinned to the latest release tag (b<version>), so `llama`/`llama-server` on PATH stay current for new model architectures. Not a url/hash prebuilt, so fix-hashes does NOT touch it. Bumping needs TWO hashes by hand: the fetchFromGitHub src hash (leaveDotGit — blank it and read the build error, or nix-prefetch-git won't match since it doesn't run the postFetch script), and npmDepsHash for the webui's npm lockfile (also blank+rebuild). The webui's path within the repo (npmRoot) has moved before (tools/server/webui -> tools/ui as of b10375) — check it still exists at the new tag before assuming npmRoot is unchanged. Automated by bump-overlays' source-override path (blank each hash, read `got:`); weekly cadence because upstream tags a build per commit.",
+      "cadence_hours": 168
     }
   ],
   "skip": [
