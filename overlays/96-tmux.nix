@@ -12,5 +12,9 @@ final: prev: {
     # The NULL-deref control-mode fix nixpkgs backports onto 3.6a is
     # already part of the 3.7 release; nothing to patch on top.
     patches = [ ];
+    # tmux 3.8's configure refuses to run on macOS unless told what to do about
+    # jemalloc (system calloc misbehaves on some allocations). nixpkgs does not
+    # pass either flag, so choose: no jemalloc. Older releases just ignore it.
+    configureFlags = (old.configureFlags or [ ]) ++ [ "--disable-jemalloc" ];
   });
 }

@@ -45,7 +45,7 @@ classify_failure() { # <logfile>
   fi
 
   # 5. Any other builder failure: a real compile/build break in the new version.
-  if grep -qiE -m1 "builder for '[^']*' failed|make: \*\*\*|error\[E[0-9]+\]:|undefined: |cannot find package" "$log"; then
+  if grep -qiE -m1 "builder for '[^']*' failed|Reason: builder failed|configure: error:|make: \*\*\*|error\[E[0-9]+\]:|undefined: |cannot find package" "$log"; then
     printf 'compile-failure\tnext-version-only\t1\tnone\n'; return 0
   fi
 

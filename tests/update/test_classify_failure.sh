@@ -50,6 +50,15 @@ check "compile-failure" \
 ./main.go:12:2: undefined: SomeSymbol
 error: builder for '/nix/store/x-beads-1.1.0.drv' failed with exit code 1"
 
+# Newer nix words a builder failure as "Cannot build ... Reason: builder failed",
+# and a configure-time stop (tmux 3.8 wants an explicit jemalloc choice) never
+# reaches a compiler — both were labelled `unclassified`.
+check "compile-failure-new-nix-wording" \
+  "compile-failure	next-version-only	1	none" \
+  "configure: error: must give --enable-jemalloc or --disable-jemalloc
+error: Cannot build '/nix/store/x-tmux-3.8.drv'.
+       Reason: builder failed with exit code 1."
+
 check "test-failure" \
   "test-failure	next-version-only	1	none" \
   "running tests
