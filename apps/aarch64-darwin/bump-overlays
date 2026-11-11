@@ -55,6 +55,13 @@ MECHANICAL_TYPES=("prebuilt-binary" "prebuilt-binary-multiplatform" "prebuilt-np
 # Packages with bespoke go-source handling (Task 4), regardless of update_type.
 GOSRC_NAMES=("beads" "c4" "hey-cli")
 
+# Build one package out of the live system's package set: the flake's locked
+# nixpkgs with EVERY overlay applied, reading the (dirty) working-tree overlay
+# edit. Shared by the mechanical and go-source verification builds.
+system_pkg_build() { # <pkgs attr>
+  nix build --no-link "${FLAKE_DIR}#${FLAKE_SYSTEM_ATTR%.system}.pkgs.${1}"
+}
+
 # Substitute the literal `version = "OLD";` assignment for `version = "NEW";`.
 # Aborts (prints to stderr, returns 1) unless exactly one such assignment is
 # found — never guesses, never touches comment text that happens to mention
@@ -97,9 +104,14 @@ bump_mechanical() {
   fi
   rm -f /tmp/bump-overlays-fixhashes.$$.log
 
-  if ! nix build --no-link --impure --expr \
-      "let pkgs = import <nixpkgs> { config.allowUnfree = true; overlays = [ (import ./$overlay_rel) ]; }; in pkgs.${name}" \
-      >/tmp/bump-overlays-build.$$.log 2>&1; then
+  # Verify against the live system's package set (every overlay loaded, the
+  # flake's locked nixpkgs), not a bare `import <nixpkgs>`. The bare import
+  # resolved <nixpkgs> through NIX_PATH — a DIFFERENT nixpkgs than the one the
+  # system is built from — and loaded only this one overlay, so it both
+  # false-negatived on cross-overlay dependencies and produced a derivation the
+  # system build could not reuse. This builds the exact derivation the full
+  # system build needs next, so the work is done once.
+  if ! system_pkg_build "$name" >/tmp/bump-overlays-build.$$.log 2>&1; then
     err "  verification build failed:"
     tail -30 /tmp/bump-overlays-build.$$.log >&2
     rm -f /tmp/bump-overlays-build.$$.log
@@ -136,9 +148,10 @@ open(path, "w").write(pattern.sub(field + r'\g<1>' + new + r'\g<2>', text))
 PYEOF
 }
 
-# vendorHash is sometimes `null` (bare, unquoted) rather than a string (c4's
-# current state) — normalize it to an empty string first so bump_field_string
-# has a quoted literal to anchor on.
+# Blank the vendorHash string so the next build prints the expected hash and
+# bump_field_string has a quoted literal to anchor on. Callers skip this
+# entirely for `vendorHash = null` overlays (see bump_gosource); the null
+# branch below is kept only so a direct call still behaves sensibly.
 normalize_vendor_hash_to_blank() {
   local file="$1"
   python3 - "$file" <<'PYEOF'
@@ -160,9 +173,7 @@ PYEOF
 # moved to >=1.27 fails there ("go.mod requires go >= 1.27.0") before the vendorHash "got:"
 # line ever prints. The system pkgs carry overlays/55-go.nix's go_1_27 (buildGo127Module), and the
 # flake reads the (dirty) working-tree overlay edit.
-go_pkg_build() {
-  nix build --no-link "${FLAKE_DIR}#${FLAKE_SYSTEM_ATTR%.system}.pkgs.${1}"
-}
+go_pkg_build() { system_pkg_build "$1"; }
 
 resolve_vendor_hash() {
   local overlay_rel="$1" name="$2" got
@@ -244,15 +255,26 @@ print(m.group(1) if m else "")
   }
   bump_field_string "$overlay_file" "hash" "$current_src_hash" "$new_src_hash" || { git checkout -- "$overlay_rel"; return 1; }
 
-  normalize_vendor_hash_to_blank "$overlay_file" || { git checkout -- "$overlay_rel"; return 1; }
-  local vendor_hash
-  vendor_hash="$(resolve_vendor_hash "$overlay_rel" "$name")"
-  if [[ -z "$vendor_hash" ]]; then
-    err "  could not resolve vendorHash from build error for $name"
-    git checkout -- "$overlay_rel"
-    return 1
+  # `vendorHash = null` means the module has no vendored dependencies to hash
+  # (c4). Leave it alone: blanking it to "" makes buildGoModule fail with
+  # "vendor folder is empty, please set 'vendorHash = null;'" — no `got:` line
+  # to scrape — so every single c4 bump failed here, was quarantined, and cost
+  # a Claude repair session whose whole fix was the src hash already computed
+  # above. If upstream ever gains dependencies the verification build below
+  # fails with a clear message and escalation handles that one-off.
+  if grep -qE 'vendorHash[[:space:]]*=[[:space:]]*null[[:space:]]*;' "$overlay_file"; then
+    msg "  vendorHash = null (no vendored deps) — skipping vendorHash resolution"
+  else
+    normalize_vendor_hash_to_blank "$overlay_file" || { git checkout -- "$overlay_rel"; return 1; }
+    local vendor_hash
+    vendor_hash="$(resolve_vendor_hash "$overlay_rel" "$name")"
+    if [[ -z "$vendor_hash" ]]; then
+      err "  could not resolve vendorHash from build error for $name"
+      git checkout -- "$overlay_rel"
+      return 1
+    fi
+    bump_field_string "$overlay_file" "vendorHash" "" "$vendor_hash" || { git checkout -- "$overlay_rel"; return 1; }
   fi
-  bump_field_string "$overlay_file" "vendorHash" "" "$vendor_hash" || { git checkout -- "$overlay_rel"; return 1; }
 
   if ! go_pkg_build "$name" >/tmp/bump-overlays-gosrc.$$.log 2>&1; then
     err "  verification build failed after vendorHash resolution:"

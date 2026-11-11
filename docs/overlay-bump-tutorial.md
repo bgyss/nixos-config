@@ -59,9 +59,10 @@ git log --oneline -5                   # review what landed
 nix run .#build-switch                 # actually switch the running system to the new binaries
 ```
 
-`bump-overlays`'s own verification (`nix build --impure --expr
-'...pkgs.PACKAGE'`) only proves the package builds in isolation — it does
-**not** switch your running system. Run `nix run .#build-switch` afterward
+`bump-overlays`'s own verification (`nix build
+.#darwinConfigurations.garmonbozia.pkgs.PACKAGE` — the live system's package
+set, so the result is reused by the next system build) only proves the
+package builds — it does **not** switch your running system. Run `nix run .#build-switch` afterward
 to actually pick up the new binaries, same as after any other overlay
 change.
 

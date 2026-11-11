@@ -170,7 +170,7 @@ grep -q "activate" "$d/order.log" && fail "case2: activated with nothing to do"
 [[ ! -f "$d/logs/proposed-revision" ]] || fail "case2: proposed-revision written with nothing to propose"
 rm -rf "$d" "$s"
 
-# === Case 3: build fails -> exit 1, revision quarantined+frozen, notified ==
+# === Case 3: build fails -> exit 1, revision quarantined, notified =========
 # Not escalated (spec §3): a system-build failure after per-package builds
 # passed is a collision or eval problem, not one package's fault.
 d="$(setup bumped)"; s="$(stubs "$d" broken)"
@@ -182,8 +182,15 @@ grep -qi "fail" "$d/notify.log" || fail "case3: no failure notification"
 [[ ! -f "$d/logs/proposed-revision" ]] || fail "case3: proposed-revision written despite build failure"
 [[ "$(jq -r '[.entries[] | select(.kind=="revision")] | length' "$d/overlays/quarantine.json")" == "1" ]] \
   || fail "case3: no revision-kind quarantine entry written"
-[[ "$(jq -r '.entries[] | select(.kind=="revision") | .retry_policy' "$d/overlays/quarantine.json")" == "frozen" ]] \
-  || fail "case3: revision entry not frozen"
+# next-version-only, deliberately NOT frozen: nothing was activated, and the
+# activate guard refuses every descendant of a frozen revision — freezing a
+# mere build failure wedged every later day on a stale error (see the comment
+# at the quarantine_record call in scheduled-check).
+[[ "$(jq -r '.entries[] | select(.kind=="revision") | .retry_policy' "$d/overlays/quarantine.json")" == "next-version-only" ]] \
+  || fail "case3: revision entry should be next-version-only (a build failure must not freeze descendants)"
+# Every invocation leaves a copy in logs/runs/, so the failure stays readable
+# after the next run starts a fresh "latest" log.
+ls "$d"/logs/runs/*-propose.log >/dev/null 2>&1 || fail "case3: run log not archived to logs/runs/"
 rm -rf "$d" "$s"
 
 # === Case 3b: a ledger-only commit is NOT a revision ========================

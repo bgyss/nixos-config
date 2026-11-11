@@ -101,6 +101,20 @@ locked_rev_for_input() { # <flake.lock path> <input-name>
   jq -r --arg node "$node" '.nodes[$node].locked.rev // empty' "$lock" 2>/dev/null
 }
 
+# Names of the derivations whose OWN builder failed in a nix build log — the
+# root causes, as opposed to the long tail of "1 dependency failed" casualties
+# above them. Handles both message shapes nix has used. Space-separated, empty
+# when none is found (e.g. an evaluation error).
+unpin_root_failures() { # <logfile>
+  awk '
+    /Cannot build .*\.drv/            { drv = $0 }
+    /Reason: builder failed/          { if (drv != "") print drv; drv = "" }
+    /builder for .*\.drv.* failed/    { print $0 }
+  ' "$1" 2>/dev/null \
+    | sed -nE "s#.*/nix/store/[a-z0-9]{32}-([^']*)\.drv.*#\1#p" \
+    | sort -u | paste -sd' ' -
+}
+
 cleanup_unpin_worktree() {
   [[ -n "${UNPIN_WT:-}" ]] && git -C "$FLAKE_DIR" worktree remove --force "$UNPIN_WT" >/dev/null 2>&1
   [[ -n "${UNPIN_WT_PARENT:-}" ]] && rm -rf "$UNPIN_WT_PARENT"
@@ -177,6 +191,13 @@ attempt_unpin() { # <input-name>
   # fingerprint/excerpt — a joint attempt has one joint outcome.
   _unpin_record_group() { # <phase> <fingerprint> <excerpt> -- records EVERY group member
     local phase="$1" fp="$2" excerpt="$3" mm
+    # Keep the full log of the most recent attempt. It used to live only in a
+    # mktemp file deleted on return, leaving the ledger's 40-line tail — mostly
+    # unrelated "copying path" noise — as the only evidence of WHY a pin is
+    # still stuck. Every return path records the group first, so this one copy
+    # covers them all. logs/ is gitignored.
+    mkdir -p "$FLAKE_DIR/logs" 2>/dev/null \
+      && cp "$log" "$FLAKE_DIR/logs/unpin-attempt.log" 2>/dev/null || true
     for mm in "${members[@]}"; do
       quarantine_record "$mm" "input" "$UNPIN_TARGET" "${pinned_ref[$mm]}" \
         "$phase" "$fp" "retry-after:$cadence" "$excerpt"
@@ -278,7 +299,12 @@ PYEOF
   # coupled group.
   if ! nix build "${UNPIN_WT}#${FLAKE_SYSTEM_ATTR}" --no-link >>"$log" 2>&1; then
     warn "  unpin: system build fails against ${members[*]} unpin refs; staying pinned"
-    _unpin_record_group "system-build" "unpin-failed" "$(tail -40 "$log")"
+    local roots
+    roots="$(unpin_root_failures "$log")"
+    [[ -n "$roots" ]] && warn "  unpin: blocked by: $roots"
+    _unpin_record_group "system-build" "unpin-failed" \
+      "${roots:+blocked by: $roots
+}$(tail -40 "$log")"
     cleanup_unpin_worktree
     rm -f "$log"
     return 1

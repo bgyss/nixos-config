@@ -48,9 +48,43 @@ got_invalid_overlay="$(state_get_overlay_known_latest claude-code)"
 # restore a valid state file for the lock test below
 state_init
 
+# a probe refresh must not erase the cadence stamp (bumped_at) — it used to,
+# which silently disabled per-package cadence gating
+state_set_overlay_bumped_at c4 2026-11-10T17:00:00Z
+state_set_overlay c4 0-unstable-2026-11-10 2026-11-11T17:00:00Z
+[[ "$(state_get_overlay_bumped_at c4)" == "2026-11-10T17:00:00Z" ]] \
+  || { echo "FAIL: state_set_overlay dropped bumped_at"; exit 1; }
+[[ "$(state_get_overlay_known_latest c4)" == "0-unstable-2026-11-10" ]] \
+  || { echo "FAIL: state_set_overlay did not update known_latest"; exit 1; }
+
 # lock is exclusive
 state_lock || { echo "FAIL: first lock"; exit 1; }
 ( state_lock ) && { echo "FAIL: second lock should fail"; exit 1; }
+state_unlock
+[[ ! -d "${UPDATE_STATE_FILE}.lock.d" ]] || { echo "FAIL: unlock left the lock dir"; exit 1; }
+
+# a lock whose owner pid is dead is reclaimed (a killed run must not wedge
+# every later run at the silent exit 2)
+mkdir "${UPDATE_STATE_FILE}.lock.d"
+( : ) & dead_pid=$!; wait "$dead_pid"
+echo "$dead_pid" > "${UPDATE_STATE_FILE}.lock.d/pid"
+state_lock 2>/dev/null || { echo "FAIL: stale (dead-pid) lock not reclaimed"; exit 1; }
+[[ "$(cat "${UPDATE_STATE_FILE}.lock.d/pid")" == "$$" ]] || { echo "FAIL: reclaimed lock has wrong pid"; exit 1; }
+state_unlock
+
+# a lock whose owner pid is alive is NOT reclaimed
+mkdir "${UPDATE_STATE_FILE}.lock.d"
+sleep 30 & live_pid=$!
+echo "$live_pid" > "${UPDATE_STATE_FILE}.lock.d/pid"
+( state_lock 2>/dev/null ) && { kill "$live_pid"; echo "FAIL: live lock was reclaimed"; exit 1; }
+kill "$live_pid" 2>/dev/null; wait "$live_pid" 2>/dev/null || true
+rm -rf "${UPDATE_STATE_FILE}.lock.d"
+
+# a pid-less lock is held while fresh, reclaimed once older than the threshold
+mkdir "${UPDATE_STATE_FILE}.lock.d"
+( state_lock 2>/dev/null ) && { echo "FAIL: fresh pid-less lock was reclaimed"; exit 1; }
+touch -t 202001010000 "${UPDATE_STATE_FILE}.lock.d"
+state_lock 2>/dev/null || { echo "FAIL: old pid-less lock not reclaimed"; exit 1; }
 state_unlock
 
 echo "PASS: test_state"

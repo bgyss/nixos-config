@@ -105,9 +105,15 @@ Per the design spec, "you should hear from this system roughly never." Concretel
 
 ### Where to look
 
-- `logs/nixos-scheduled-check.log` — the full run log for the most recent invocation
-  (truncated at the start of every run, so it only ever covers the last run, not history).
-  This is the first place to look after any run, healthy or not.
+- `logs/nixos-scheduled-check.log` — the full run log for the most recent run: the propose
+  half starts it fresh and the activate half appends, so one file tells the whole day's
+  story. This is the first place to look after any run, healthy or not.
+- `logs/runs/<UTC start>-{propose,activate}.log` — history: a copy of every invocation's log,
+  kept 45 days (old escalation briefs/session logs are pruned on the same schedule). Look here
+  when a failure notification has already been overwritten by a later quiet run.
+- `logs/unpin-attempt.log` — full build log of the most recent speculative unpin probe. The
+  ledger entry's `error_excerpt` starts with `blocked by: <derivations>` naming the packages
+  whose own build failed; this file has the rest.
 - `logs/nixos-auto-update.out.log` / `.err.log` — launchd's stdout/stderr capture for the
   wrapper script itself (also truncated per run; the truncation loop in `scheduled-check`
   covers both these names and the old `nixos-update-check` names, for continuity across the

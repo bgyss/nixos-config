@@ -90,7 +90,33 @@ for _log_base in nixos-update-check nixos-auto-update; do
   : > "$LOG_DIR/${_log_base}.err.log" 2>/dev/null || true
 done
 RUN_LOG="$LOG_DIR/nixos-scheduled-check.log"
-: > "$RUN_LOG"
+# RUN_LOG is "the latest run"; logs/runs/ is the history. The propose half
+# starts a fresh RUN_LOG; the activate half APPENDS to it, because the launchd
+# agent runs the two back to back and truncating here used to erase the whole
+# propose story (which bumps landed, the closure diff) the moment activation
+# began — and the next day's quiet run then erased the rest. Every invocation
+# is also copied to logs/runs/<start>-<mode>.log on exit, so a failure is
+# still readable after later runs.
+RUN_STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
+if [[ "$MODE" == "propose" ]]; then
+  : > "$RUN_LOG"
+fi
+RUN_LOG_START_BYTES="$(wc -c < "$RUN_LOG" 2>/dev/null | tr -d ' ')"
+echo "=== scheduled-check --${MODE}-only ${ACTIVATE_SHA:+$ACTIVATE_SHA }started $(date -u +%Y-%m-%dT%H:%M:%SZ) ===" >>"$RUN_LOG"
+
+# Copy this invocation's slice of RUN_LOG into logs/runs/ and prune old
+# history. Runs from the EXIT trap; must never fail the script.
+LOG_RETENTION_DAYS="${LOG_RETENTION_DAYS:-45}"
+archive_run_log() {
+  mkdir -p "$LOG_DIR/runs" 2>/dev/null || return 0
+  tail -c "+$(( ${RUN_LOG_START_BYTES:-0} + 1 ))" "$RUN_LOG" \
+    > "$LOG_DIR/runs/${RUN_STAMP}-${MODE}.log" 2>/dev/null || true
+  find "$LOG_DIR/runs" -type f -name '*.log' -mtime "+${LOG_RETENTION_DAYS}" -delete 2>/dev/null || true
+  # Escalation briefs/session logs otherwise accumulate forever (two files per
+  # Claude session). logs/escalation-costs.tsv is the durable record.
+  find "$LOG_DIR" -maxdepth 1 -type f -name 'escalation-*-*Z*' -mtime "+${LOG_RETENTION_DAYS}" -delete 2>/dev/null || true
+  return 0
+}
 
 quarantine_init
 
@@ -108,7 +134,7 @@ commit_ledger() {
     -m "quarantine: update ledger" 2>/dev/null || true
   return 0
 }
-trap 'commit_ledger' EXIT
+trap 'commit_ledger; archive_run_log' EXIT
 
 # ═══════════════════════════════════════════════════════════════════════════
 # --activate-only <sha>: the privileged tail. activate -> health -> rollback

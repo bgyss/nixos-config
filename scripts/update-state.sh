@@ -43,8 +43,13 @@ state_get_overlay_known_latest() {
   jq -r --arg n "$1" '.overlays[$n].known_latest // empty' "$(_state_file)"
 }
 state_set_overlay() {
+  # MERGE into the existing entry, never replace it. Replacing dropped
+  # `bumped_at`, and `prepare` runs this probe right after `bump-overlays` on
+  # every scheduled run — so the cadence stamp was erased minutes after it was
+  # written and per-package cadence_hours never gated anything (c4/hey-cli,
+  # declared weekly, were bumped every day upstream moved).
   _state_write --arg n "$1" --arg v "$2" --arg t "$3" \
-    '.overlays[$n] = {known_latest:$v, checked_at:$t}'
+    '.overlays[$n] = ((.overlays[$n] // {}) + {known_latest:$v, checked_at:$t})'
 }
 # Last time a bump was ATTEMPTED for this package (success or failure). Drives
 # per-package cadence gating in bump-overlays. Distinct from
@@ -66,12 +71,39 @@ state_set_input_updated_at() {
 state_set_last_gate() { _state_write --arg t "$1" '.last_gate = $t'; }
 
 _state_lockfile() { printf '%s.lock' "$(_state_file)"; }
+# The lock is a directory (mkdir is atomic) holding the owner's pid. Without
+# the pid a run that died uncleanly (SIGKILL, power loss, a reboot mid-build)
+# left the directory behind forever, and since callers treat contention as a
+# benign, SILENT exit 2, every later scheduled run quietly did nothing.
+# A lock is stale — and reclaimed — when its owner pid is no longer running,
+# or when it carries no pid and is older than STATE_LOCK_STALE_MINUTES (a lock
+# from before pids were recorded, or a crash between mkdir and the pid write).
+: "${STATE_LOCK_STALE_MINUTES:=360}"
+_state_lock_is_stale() { # <lockdir>
+  local d="$1" pid
+  pid="$(cat "$d/pid" 2>/dev/null)"
+  if [[ "$pid" =~ ^[0-9]+$ ]]; then
+    kill -0 "$pid" 2>/dev/null && return 1   # owner alive -> genuinely held
+    return 0
+  fi
+  [[ -n "$(find "$d" -maxdepth 0 -mmin "+${STATE_LOCK_STALE_MINUTES}" 2>/dev/null)" ]]
+}
 state_lock() {
   local d; d="$(_state_lockfile).d"
-  mkdir "$d" 2>/dev/null   # atomic; fails if held
+  if ! mkdir "$d" 2>/dev/null; then
+    _state_lock_is_stale "$d" || return 1
+    echo "state_lock: reclaiming stale lock $d (owner pid '$(cat "$d/pid" 2>/dev/null)' is gone)" >&2
+    rm -f "$d/pid"
+    rmdir "$d" 2>/dev/null
+    mkdir "$d" 2>/dev/null || return 1   # lost a reclaim race to another run
+  fi
+  # $$ is the top-level script's pid even inside a subshell, i.e. the process
+  # whose EXIT trap will call state_unlock.
+  printf '%s\n' "$$" > "$d/pid"
 }
 state_unlock() {
   local d; d="$(_state_lockfile).d"
+  rm -f "$d/pid" 2>/dev/null
   rmdir "$d" 2>/dev/null || true
 }
 
