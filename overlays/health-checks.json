@@ -94,7 +94,7 @@
     {
       "package": "llama-cpp",
       "command": "llama-server --version",
-      "version_regex": "version: ([0-9]+)",
+      "version_regex": " ([0-9]{4,})[ ,]",
       "timeout": 20
     }
   ],
