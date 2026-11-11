@@ -2,12 +2,12 @@
 # supersedes 3.6b) ahead of the next nixpkgs bump.
 final: prev: {
   tmux = prev.tmux.overrideAttrs (old: {
-    version = "3.7b";
+    version = "3.8";
     src = prev.fetchFromGitHub {
       owner = "tmux";
       repo = "tmux";
-      tag = "3.7b";
-      hash = "sha256-CTq06XP997M0ODxQihTq34dI9H6jSRLUXLYuTWOwDpc=";
+      tag = "3.8";
+      hash = "sha256-pv2wlr3coo+E0pfpb58giJJQn9PGgMFqtVA6nk+9JdE=";
     };
     # The NULL-deref control-mode fix nixpkgs backports onto 3.6a is
     # already part of the 3.7 release; nothing to patch on top.

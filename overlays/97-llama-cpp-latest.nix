@@ -48,12 +48,12 @@ final: prev: {
       oldBuildNumber = builtins.elemAt (builtins.head oldBuildNumberMatches) 0;
     in
     rec {
-      version = "10375";
+      version = "12292";
       src = prev.fetchFromGitHub {
         owner = "ggml-org";
         repo = "llama.cpp";
-        tag = "b10375";
-        hash = "sha256-/AWjgH96UlRaOGwqA3z7eiPGnB73evRNwBuUoL/1rgw=";
+        tag = "b12292";
+        hash = "sha256-LWcvfckR4g93iBFv4ZnOz8fSD3OUUFd/DZ/1QXb9L6c=";
         leaveDotGit = true;
         postFetch = ''
           git -C "$out" rev-parse --short HEAD > $out/COMMIT
@@ -62,7 +62,7 @@ final: prev: {
       };
       doCheck = false;
       npmRoot = "tools/ui";
-      npmDepsHash = "sha256-2Q7XhaLAArmviOLdQsNbYTfdyDE5pW9lR26cRHEVl9k=";
+      npmDepsHash = "sha256-34AKbVBkQZI1+z83Kg4hA43YbxkeDsESKnIt3T5WdL8=";
       cmakeFlags = map (
         flag:
         if final.lib.hasPrefix "-DLLAMA_BUILD_NUMBER" flag then

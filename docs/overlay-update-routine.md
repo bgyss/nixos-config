@@ -291,8 +291,9 @@ actually bump one.
 
 This design separates cheap, safe read-only checks from privileged system activation, and the
 manual routine above is still the only path for every overlay outside the automated set:
-anything whose bump isn't a single verified value substitution (mise's manual paths, yt-dlp,
-ngrok, tmux, `go` minor/major bumps).
+anything whose bump isn't a verified value substitution (mise's manual paths, yt-dlp,
+ngrok, `go` minor/major bumps). The `source-override` overlays (tmux, btop, llama-cpp,
+tmux-resurrect) are automated by `bump-overlays` — the recipes below are the manual fallback.
 
 ## Quarantine and the automated bump path
 

@@ -26,9 +26,20 @@ reach for.
    safety net requires exactly one match, correctly rejects the substitution,
    and reverts the file cleanly via `git checkout --`; it shows up under
    "Failed", not "Skipped". No structured single-URL data exists to fix this
-   without restructuring the overlay itself), and **tmux** (different shape —
-   `overrideAttrs` + `fetchFromGitHub` tag, not automated). For all of these,
-   follow `docs/overlay-update-routine.md` by hand.
+   without restructuring the overlay itself). For these, follow
+   `docs/overlay-update-routine.md` by hand.
+
+**Source-override overlays are automated too** (tmux, btop, llama-cpp,
+tmux-resurrect — `update_type: "source-override"`): `bump-overlays` substitutes
+the version and the tag (`tag_prefix` + version) or rev, then resolves each
+fixed-output hash (`hash`, and `npmDepsHash` when present) by blanking it and
+reading `got:` out of the build error. A package whose attribute path differs
+from its manifest name sets `"attr"` (tmux-resurrect: `tmuxPlugins.resurrect`).
+`llama-cpp` is weekly (`cadence_hours: 168`; upstream tags a build per commit)
+and compiles, so it is the slowest bump. Anything beyond literal substitution
+— a patch that stops applying, a new configure flag (tmux 3.8 needed
+`--disable-jemalloc`), a moved `npmRoot` — fails verification and goes through
+the normal quarantine → escalation path.
 
 **`go` is untracked by any tier as of 2026-09.** `overlays/55-go.nix` now
 sets `go` to `go_1_27` (and defines `buildGo127Module`) pulled from the `nixpkgs-master`

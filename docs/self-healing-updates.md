@@ -103,6 +103,16 @@ Per the design spec, "you should hear from this system roughly never." Concretel
   and nothing else — and since a healthy run is otherwise silent, nobody ever read it and the
   pins stayed pinned indefinitely.
 
+### GitHub API token
+
+Every probe goes through `scripts/github-api.sh`, which attaches a token to
+`api.github.com` requests only: `$GITHUB_TOKEN`, then `$GH_TOKEN`, then `gh auth
+token`. Authenticated, the limit is 5000 requests/hour instead of 60 (a run makes
+~35). The launchd agent can read the gh login from the user keychain; if it
+cannot, set `GITHUB_TOKEN` in the agent's environment. Probes that still fail are
+named in the run log (`overlay version probe FAILED for: ...`) — a persistent
+name there means a rate limit, a network problem, or an upstream tag scheme change.
+
 ### Where to look
 
 - `logs/nixos-scheduled-check.log` — the full run log for the most recent run: the propose

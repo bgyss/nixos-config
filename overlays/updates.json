@@ -193,7 +193,7 @@
     {
       "name": "tmux",
       "overlay": "overlays/96-tmux.nix",
-      "current_version": "3.7b",
+      "current_version": "3.8",
       "check": {
         "method": "github-release",
         "repo": "tmux/tmux"
@@ -267,7 +267,7 @@
     {
       "name": "llama-cpp",
       "overlay": "overlays/97-llama-cpp-latest.nix",
-      "current_version": "10375",
+      "current_version": "12292",
       "check": {
         "method": "github-release",
         "repo": "ggml-org/llama.cpp",
