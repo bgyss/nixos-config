@@ -18,12 +18,18 @@
 
 final: prev:
 let
-  pyOverrides = _pyFinal: pyPrev: {
+  pyOverrides = pyFinal: pyPrev: {
     cocotb =
       if prev.stdenv.hostPlatform.isDarwin then
         pyPrev.cocotb.overridePythonAttrs (old: {
           doCheck = false;
           nativeCheckInputs = [ ];
+          # cocotb >= 2.1 does `import pytest` unconditionally (cocotb/_decorators.py)
+          # but nixpkgs only lists it under the check inputs, which are absent when
+          # doCheck = false here — so the imports check failed against newer
+          # nixpkgs ("No module named pytest"), blocking the nixpkgs unpin.
+          # Harmless on older releases, which simply don't use it.
+          propagatedBuildInputs = (old.propagatedBuildInputs or [ ]) ++ [ pyFinal.pytest ];
           env = (old.env or { }) // {
             COCOTB_IGNORE_PYTHON_REQUIRES = "1";
           };
