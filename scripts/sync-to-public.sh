@@ -4,7 +4,7 @@
 # checkout (~/nixos-config) into the public mirror (~/src/nixos-config), then
 # commit and push.
 #
-# The set of files published = every git-tracked file in the private repo MINUS
+# The set of files published = every file committed at HEAD in the private repo MINUS
 # the paths listed in scripts/public-sync-denylist.txt. Anything tracked in the
 # public repo that is NOT in that set is removed — so a denylisted (private)
 # file can never linger in public, and deletions propagate.
@@ -62,13 +62,20 @@ is_denied() {
 }
 
 # --- Compute the public set (private tracked files minus denylist) ----------
+# Publish COMMITTED content (HEAD), never the working tree. Reading the working
+# tree published uncommitted edits to tracked files under whichever commit
+# happened to fire the sync next, so public history was misattributed (and a
+# half-finished edit could leak). `git archive HEAD` is extracted to a scratch
+# dir and the public set is copied from there.
 public_set="$(mktemp)"
 public_tracked="$(mktemp)"
-trap 'rm -f "$public_set" "$public_tracked"' EXIT
+head_tree="$(mktemp -d)"
+trap 'rm -rf "$public_set" "$public_tracked" "$head_tree"' EXIT
+git -C "$PRIVATE_REPO" archive HEAD | tar -x -C "$head_tree"
 
 while IFS= read -r f; do
   is_denied "$f" || printf '%s\n' "$f"
-done < <(git -C "$PRIVATE_REPO" ls-files) | sort > "$public_set"
+done < <(git -C "$PRIVATE_REPO" ls-tree -r --name-only HEAD) | sort > "$public_set"
 
 git -C "$PUBLIC_REPO" ls-files | sort > "$public_tracked"
 
@@ -88,7 +95,7 @@ while IFS= read -r f; do
   # replacing the link. `rm -f` unlinks the symlink itself (never follows it).
   rm -f "$dest"
   # -P: copy symlinks as symlinks (don't follow, e.g. apps/aarch64-linux).
-  cp -Pp "$PRIVATE_REPO/$f" "$dest"
+  cp -Pp "$head_tree/$f" "$dest"
 done < "$public_set"
 
 # --- Remove anything tracked in public but not in the public set ------------
