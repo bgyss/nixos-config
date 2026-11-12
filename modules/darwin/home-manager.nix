@@ -4,6 +4,10 @@
   lib,
   home-manager,
   user,
+  skills-mattpocock,
+  skills-text-to-cad,
+  skills-trailofbits,
+  skills-shader,
   ...
 }:
 
@@ -180,6 +184,20 @@ in
         lib,
         ...
       }:
+      let
+        # `lib` here is home-manager's (it carries lib.hm.dag), unlike the outer one.
+        agentSkills = import ../shared/agent-skills.nix {
+          inherit lib pkgs;
+          inputs = {
+            inherit
+              skills-mattpocock
+              skills-text-to-cad
+              skills-trailofbits
+              skills-shader
+              ;
+          };
+        };
+      in
       {
         home = {
           enableNixpkgsReleaseCheck = false;
@@ -187,6 +205,7 @@ in
           file = lib.mkMerge [
             sharedFiles
             additionalFiles
+            agentSkills.files
             { "emacs-launcher.command".source = myEmacsLauncher; }
           ];
           sessionVariables = android.sessionVariables // {
@@ -194,6 +213,7 @@ in
           };
           inherit (android) sessionPath;
           stateVersion = "24.11";
+          activation.claudeSettings = agentSkills.activation;
           # Spotlight/Launchpad skip symlinks into /nix/store (what linkApps makes), so give
           # RetroArch a real copy in ~/Applications. Re-copied only when the store path changes.
           activation.copyRetroArch = lib.hm.dag.entryAfter [ "writeBoundary" ] ''

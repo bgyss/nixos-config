@@ -367,6 +367,22 @@
     },
     "treefmt-nix": {
       "cadence_hours": 168
+    },
+    "skills-mattpocock": {
+      "cadence_hours": 0,
+      "on_demand": true
+    },
+    "skills-text-to-cad": {
+      "cadence_hours": 0,
+      "on_demand": true
+    },
+    "skills-trailofbits": {
+      "cadence_hours": 0,
+      "on_demand": true
+    },
+    "skills-shader": {
+      "cadence_hours": 0,
+      "on_demand": true
     }
   },
   "pinned_inputs": [

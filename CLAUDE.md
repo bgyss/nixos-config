@@ -137,6 +137,14 @@ Step-by-step version-bump recipes for every pinned overlay live in
   `home-manager.nix`; system-level settings in the host-specific `default.nix`.
 - **Services**: add launchd services (macOS) or systemd services (NixOS) in the respective
   host configurations.
+- **Agent skills / Claude Code settings**: `modules/shared/agent-skills.nix` links skills into
+  `~/.claude/skills` and merges the settings keys nix owns (`enabledPlugins`,
+  `extraKnownMarketplaces`, `skillOverrides`, `env`) into `~/.claude/settings.json` at
+  activation — toggling those with `/plugin` is reverted on the next activation, so edit the
+  module instead. Third-party skill packs are `skills-*` flake inputs **pinned to an exact
+  commit** (never floated: bump the rev in `flake.nix`, `nix flake lock`, read the diff). Your
+  own skills live in `modules/shared/config/agent-skills/`, which is on the public-sync
+  denylist. Darwin only so far; Codex is not wired yet.
 
 ## Secrets Management
 

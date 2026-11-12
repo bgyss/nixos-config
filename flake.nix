@@ -58,6 +58,27 @@
       url = "git+ssh://git@github.com/bgyss/nix-secrets.git";
       flake = false;
     };
+    # Third-party agent skill packs, linked into ~/.claude/skills by
+    # modules/shared/agent-skills.nix (which lists the skills taken from each).
+    # Pinned to an exact commit on purpose: skills are instructions an agent
+    # follows, so they must not change without a reviewed bump. To update one,
+    # edit the rev here, run `nix flake lock`, and read the diff.
+    skills-mattpocock = {
+      url = "github:mattpocock/skills/0ab1b63a410a03d3627979a109c8695de27af954";
+      flake = false;
+    };
+    skills-text-to-cad = {
+      url = "github:earthtojake/text-to-cad/c222e5da1ae4e6387fcb7ba09c8e475936ee3260";
+      flake = false;
+    };
+    skills-trailofbits = {
+      url = "github:trailofbits/skills-curated/6d05be4889017b06fb15069f371afd220daffb62";
+      flake = false;
+    };
+    skills-shader = {
+      url = "github:gokayfem/shader-skills/a56e7738d3f22698e795f036b4919f0734ab621d";
+      flake = false;
+    };
   };
 
   outputs =
@@ -77,6 +98,10 @@
       agenix,
       treefmt-nix,
       secrets,
+      skills-mattpocock,
+      skills-text-to-cad,
+      skills-trailofbits,
+      skills-shader,
     }@inputs:
     let
       user = "briangyss";
