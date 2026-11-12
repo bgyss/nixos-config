@@ -47,9 +47,17 @@ let
     ]
     // fromInput inputs.skills-trailofbits "plugins/ghidra-headless/skills" [ "ghidra-headless" ]
     // fromInput inputs.skills-shader "skills" [ "shader-art-coding" ]
-    // {
-      armbar-local-environment = ./config/agent-skills/armbar-local-environment;
-    };
+    // ownSkills;
+
+  # Every directory under ./config/agent-skills is one of our own skills. The
+  # directory is private (public-sync denylist), so it is discovered rather
+  # than named here, and the public mirror still evaluates without it.
+  ownDir = ./config/agent-skills;
+  ownSkills = lib.optionalAttrs (builtins.pathExists ownDir) (
+    lib.mapAttrs (name: _: ownDir + "/${name}") (
+      lib.filterAttrs (_: type: type == "directory") (builtins.readDir ownDir)
+    )
+  );
 
   # Fail the build with a readable message when a pinned repo no longer has a
   # skill where we expect it (upstreams do restructure).
