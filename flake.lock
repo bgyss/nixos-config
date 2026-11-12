@@ -280,10 +280,6 @@
         "nixpkgs": "nixpkgs_2",
         "nixpkgs-master": "nixpkgs-master",
         "secrets": "secrets",
-        "skills-mattpocock": "skills-mattpocock",
-        "skills-shader": "skills-shader",
-        "skills-text-to-cad": "skills-text-to-cad",
-        "skills-trailofbits": "skills-trailofbits",
         "treefmt-nix": "treefmt-nix"
       }
     },
@@ -301,74 +297,6 @@
       "original": {
         "type": "git",
         "url": "ssh://git@github.com/bgyss/nix-secrets.git"
-      }
-    },
-    "skills-mattpocock": {
-      "flake": false,
-      "locked": {
-        "lastModified": 1787222114,
-        "narHash": "sha256-Zg64vWsmtVk7WCH/f+bifju+L8yHeAwYbDNh6Ah43V0=",
-        "owner": "mattpocock",
-        "repo": "skills",
-        "rev": "0ab1b63a410a03d3627979a109c8695de27af954",
-        "type": "github"
-      },
-      "original": {
-        "owner": "mattpocock",
-        "repo": "skills",
-        "rev": "0ab1b63a410a03d3627979a109c8695de27af954",
-        "type": "github"
-      }
-    },
-    "skills-shader": {
-      "flake": false,
-      "locked": {
-        "lastModified": 1792745324,
-        "narHash": "sha256-AuP+/rXGWFvePSfDmlJokNLPvmP8NgaDHKHXq4TIeD0=",
-        "owner": "gokayfem",
-        "repo": "shader-skills",
-        "rev": "a56e7738d3f22698e795f036b4919f0734ab621d",
-        "type": "github"
-      },
-      "original": {
-        "owner": "gokayfem",
-        "repo": "shader-skills",
-        "rev": "a56e7738d3f22698e795f036b4919f0734ab621d",
-        "type": "github"
-      }
-    },
-    "skills-text-to-cad": {
-      "flake": false,
-      "locked": {
-        "lastModified": 1788569504,
-        "narHash": "sha256-qZw7bYkVDAO3LMhuFLBWvvtsTT2D4FuMnOJ8zWj21XY=",
-        "owner": "earthtojake",
-        "repo": "text-to-cad",
-        "rev": "c222e5da1ae4e6387fcb7ba09c8e475936ee3260",
-        "type": "github"
-      },
-      "original": {
-        "owner": "earthtojake",
-        "repo": "text-to-cad",
-        "rev": "c222e5da1ae4e6387fcb7ba09c8e475936ee3260",
-        "type": "github"
-      }
-    },
-    "skills-trailofbits": {
-      "flake": false,
-      "locked": {
-        "lastModified": 1784051595,
-        "narHash": "sha256-hN1GoMDYvvF6pmypSuI7++Buhrq/vAkbKrZJof15nOo=",
-        "owner": "trailofbits",
-        "repo": "skills-curated",
-        "rev": "6d05be4889017b06fb15069f371afd220daffb62",
-        "type": "github"
-      },
-      "original": {
-        "owner": "trailofbits",
-        "repo": "skills-curated",
-        "rev": "6d05be4889017b06fb15069f371afd220daffb62",
-        "type": "github"
       }
     },
     "treefmt-nix": {
