@@ -3,7 +3,7 @@
     {
       "name": "claude-code",
       "overlay": "overlays/41-claude-code.nix",
-      "current_version": "2.1.322",
+      "current_version": "2.1.323",
       "check": {
         "method": "github-release",
         "repo": "anthropics/claude-code"
@@ -19,7 +19,7 @@
     {
       "name": "codex-openai",
       "overlay": "overlays/40-codex-openai.nix",
-      "current_version": "0.167.0",
+      "current_version": "0.169.0",
       "check": {
         "method": "github-release",
         "repo": "openai/codex",
@@ -103,7 +103,7 @@
     {
       "name": "uv",
       "overlay": "overlays/25-uv.nix",
-      "current_version": "0.13.7",
+      "current_version": "0.13.8",
       "check": {
         "method": "github-release",
         "repo": "astral-sh/uv"
@@ -119,7 +119,7 @@
     {
       "name": "mise",
       "overlay": "overlays/30-mise.nix",
-      "current_version": "2026.11.6",
+      "current_version": "2026.11.8",
       "check": {
         "method": "github-release",
         "repo": "jdx/mise"
@@ -165,8 +165,8 @@
     {
       "name": "c4",
       "overlay": "overlays/56-c4.nix",
-      "current_version": "0-unstable-2026-11-10",
-      "current_rev": "4b1fe0adcea58c6a5ad824e4683b0c1052dbb652",
+      "current_version": "0-unstable-2026-11-12",
+      "current_rev": "21c9722f60532c7916856edbdf6d094c73d78ef2",
       "check": {
         "method": "github-commits",
         "repo": "Avalanche-io/c4",
@@ -179,8 +179,8 @@
     {
       "name": "hey-cli",
       "overlay": "overlays/94-hey-cli.nix",
-      "current_version": "0-unstable-2026-11-10",
-      "current_rev": "ccc56d0fe39c632d1635eced8b6fdd686e30196d",
+      "current_version": "0-unstable-2026-11-12",
+      "current_rev": "2de736c1e47bacd704ec30505399823dc4e0e3d7",
       "check": {
         "method": "github-commits",
         "repo": "basecamp/hey-cli",
@@ -231,7 +231,7 @@
     {
       "name": "aws-cdk-cli",
       "overlay": "overlays/95-aws-cdk-cli.nix",
-      "current_version": "2.1148.0",
+      "current_version": "2.1148.1",
       "check": {
         "method": "npm",
         "package": "aws-cdk"
