@@ -3,7 +3,7 @@
     {
       "name": "claude-code",
       "overlay": "overlays/41-claude-code.nix",
-      "current_version": "2.1.327",
+      "current_version": "2.1.328",
       "check": {
         "method": "github-release",
         "repo": "anthropics/claude-code"
@@ -165,8 +165,8 @@
     {
       "name": "c4",
       "overlay": "overlays/56-c4.nix",
-      "current_version": "0-unstable-2026-11-12",
-      "current_rev": "21c9722f60532c7916856edbdf6d094c73d78ef2",
+      "current_version": "0-unstable-2026-11-19",
+      "current_rev": "f1bbcda26bc42fb570532c43f32ea7703b4d0fb0",
       "check": {
         "method": "github-commits",
         "repo": "Avalanche-io/c4",
@@ -179,8 +179,8 @@
     {
       "name": "hey-cli",
       "overlay": "overlays/94-hey-cli.nix",
-      "current_version": "0-unstable-2026-11-12",
-      "current_rev": "2de736c1e47bacd704ec30505399823dc4e0e3d7",
+      "current_version": "0-unstable-2026-11-19",
+      "current_rev": "ece2e2ce1d1ddfa620ff094264b8c4d35c8cedfe",
       "check": {
         "method": "github-commits",
         "repo": "basecamp/hey-cli",
@@ -231,7 +231,7 @@
     {
       "name": "aws-cdk-cli",
       "overlay": "overlays/95-aws-cdk-cli.nix",
-      "current_version": "2.1148.1",
+      "current_version": "2.1149.0",
       "check": {
         "method": "npm",
         "package": "aws-cdk"
