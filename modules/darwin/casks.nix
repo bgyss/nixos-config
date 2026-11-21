@@ -100,5 +100,8 @@ _:
   "transmission"
 
   # Animation
+  # Kept deliberately: Homebrew disabled this cask on 2026-09-01 (fails
+  # Gatekeeper), so it can't be reinstalled, but the installed copy still
+  # works. Removing it here would uninstall it (homebrew cleanup = "uninstall").
   "opentoonz"
 ]
