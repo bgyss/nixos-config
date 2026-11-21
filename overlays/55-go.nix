@@ -17,10 +17,18 @@
 # substitution. Only the overlay packages whose go.mod needs Go >= 1.27 (c4,
 # beads, hey-cli) opt in via `buildGo127Module`.
 
+#
+# Newer nixpkgs (unstable as of 2026-11) ships its own `buildGo127Module` and
+# defines `buildGoModule = buildGo127Module`, so overriding `prev.buildGoModule`
+# there would reference `buildGo127Module` in terms of itself (infinite
+# recursion — this blocked the nixpkgs/home-manager/darwin unpin). Prefer the
+# upstream attribute when it exists and only synthesize it on the old pin.
+
 final: prev: {
   go = final.go_1_27;
 
-  buildGo127Module = prev.buildGoModule.override {
-    go = final.go_1_27;
-  };
+  buildGo127Module =
+    prev.buildGo127Module or (prev.buildGoModule.override {
+      go = final.go_1_27;
+    });
 }
