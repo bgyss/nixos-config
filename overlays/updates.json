@@ -3,7 +3,7 @@
     {
       "name": "claude-code",
       "overlay": "overlays/41-claude-code.nix",
-      "current_version": "2.1.329",
+      "current_version": "2.1.330",
       "check": {
         "method": "github-release",
         "repo": "anthropics/claude-code"
@@ -56,7 +56,7 @@
     {
       "name": "trailbase",
       "overlay": "overlays/50-trailbase.nix",
-      "current_version": "0.36.1",
+      "current_version": "0.36.2",
       "check": {
         "method": "github-release",
         "repo": "trailbaseio/trailbase"
@@ -119,7 +119,7 @@
     {
       "name": "mise",
       "overlay": "overlays/30-mise.nix",
-      "current_version": "2026.11.11",
+      "current_version": "2026.11.12",
       "check": {
         "method": "github-release",
         "repo": "jdx/mise"
