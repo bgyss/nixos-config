@@ -73,6 +73,14 @@
     briangyss ALL=(root) NOPASSWD: /run/current-system/sw/bin/darwin-rebuild
   '';
 
+  # Touch ID for interactive sudo. Lives in /etc/pam.d/sudo_local, which macOS
+  # updates leave alone (unlike /etc/pam.d/sudo). `reattach` (pam_reattach)
+  # makes it work inside tmux sessions too.
+  security.pam.services.sudo_local = {
+    touchIdAuth = true;
+    reattach = true;
+  };
+
   # Home Manager's zsh module already runs compinit, after the full fpath
   # (nix profiles, brew, plugins) is assembled. nix-darwin's /etc/zshrc ran it
   # too, earlier and with a shorter fpath, so the two kept invalidating and
