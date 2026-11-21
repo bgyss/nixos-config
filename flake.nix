@@ -24,10 +24,6 @@
     nix-homebrew = {
       url = "github:zhaofengli-wip/nix-homebrew";
     };
-    homebrew-bundle = {
-      url = "github:homebrew/homebrew-bundle";
-      flake = false;
-    };
     homebrew-core = {
       url = "github:homebrew/homebrew-core";
       flake = false;
@@ -65,7 +61,6 @@
       self,
       darwin,
       nix-homebrew,
-      homebrew-bundle,
       homebrew-core,
       homebrew-cask,
       home-manager,
@@ -310,7 +305,6 @@
                   taps = {
                     "homebrew/core" = homebrew-core;
                     "homebrew/cask" = homebrew-cask;
-                    "homebrew/bundle" = homebrew-bundle;
                     "dagger/tap" = dagger-tap;
                   };
                   mutableTaps = false;

@@ -347,9 +347,6 @@
     "nix-homebrew": {
       "cadence_hours": 168
     },
-    "homebrew-bundle": {
-      "cadence_hours": 168
-    },
     "homebrew-core": {
       "cadence_hours": 168
     },
