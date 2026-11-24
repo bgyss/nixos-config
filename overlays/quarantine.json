@@ -2,45 +2,6 @@
   "comment": "Machine-written quarantine ledger. See docs/superpowers/specs/2026-07-25-self-healing-updates-design.md §2. Do not hand-edit while the daily pipeline may be running; use scripts/quarantine.sh.",
   "entries": [
     {
-      "name": "nixpkgs",
-      "kind": "input",
-      "blocked_version": "unpin:nixpkgs@1c872b8 home-manager@5b76c5b darwin@ff0e21a",
-      "known_good_version": "af45a5c7362bcf6585aff1ffd1de09663cce80c8",
-      "first_failed": "2026-11-17T17:06:13Z",
-      "last_attempt": "2026-11-17T17:06:13Z",
-      "attempts": 1,
-      "phase": "system-build",
-      "fingerprint": "unpin-failed",
-      "error_excerpt": "trace: warning: briangyss profile: `programs.ssh.matchBlocks.blacklodge.extraOptions` defined in `<store>/source/modules/darwin/home-manager.nix' is deprecated. Move these OpenSSH options to `programs.ssh.settings.blacklodge` using upstream directive names.\n\nerror:\n       … while calling the 'derivationStrict' builtin\n         at «nix-internal»/derivation-internal.nix:38:12:\n           37|\n           38|   strict = drvFunc drvAttrs;\n             |            ^\n           39|\n\n       … while evaluating derivation 'darwin-system-26.11.ff0e21a'\n         whose name attribute is located at «github:NixOS/nixpkgs/1c872b8»/pkgs/stdenv/generic/make-derivation.nix:651:11\n\n       … while evaluating attribute 'activationScript' of derivation 'darwin-system-26.11.ff0e21a'\n         at «github:LnL7/nix-darwin/ff0e21a»/modules/system/default.nix:89:7:\n           88|\n           89|       activationScript = cfg.activationScripts.script.text;\n             |       ^\n           90|\n\n       … while evaluating the option `system.activationScripts.script.text':\n\n       … while evaluating definitions from `<store>/source/modules/system/activation-scripts.nix':\n\n       … while evaluating the option `system.activationScripts.applications.text':\n\n       … while evaluating definitions from `<store>/source/modules/system/applications.nix':\n\n       … while evaluating the option `environment.systemPackages':\n\n       … while evaluating definitions from `<store>/source/hosts/darwin':\n\n       (stack trace truncated; use '--show-trace' to show the full, detailed trace)\n\n       error: infinite recursion encountered\n       at /private/tmp/tmp.yTzXu4Oa11/unpin-nixpkgs-home-manager-darwin/overlays/55-go.nix:23:22:\n           22|\n           23|   buildGo127Module = prev.buildGoModule.override {\n             |                      ^\n           24|     go = final.go_1_27;",
-      "retry_policy": "retry-after:168"
-    },
-    {
-      "name": "home-manager",
-      "kind": "input",
-      "blocked_version": "unpin:nixpkgs@1c872b8 home-manager@5b76c5b darwin@ff0e21a",
-      "known_good_version": "9ce9f7f",
-      "first_failed": "2026-11-17T17:06:13Z",
-      "last_attempt": "2026-11-17T17:06:13Z",
-      "attempts": 1,
-      "phase": "system-build",
-      "fingerprint": "unpin-failed",
-      "error_excerpt": "trace: warning: briangyss profile: `programs.ssh.matchBlocks.blacklodge.extraOptions` defined in `<store>/source/modules/darwin/home-manager.nix' is deprecated. Move these OpenSSH options to `programs.ssh.settings.blacklodge` using upstream directive names.\n\nerror:\n       … while calling the 'derivationStrict' builtin\n         at «nix-internal»/derivation-internal.nix:38:12:\n           37|\n           38|   strict = drvFunc drvAttrs;\n             |            ^\n           39|\n\n       … while evaluating derivation 'darwin-system-26.11.ff0e21a'\n         whose name attribute is located at «github:NixOS/nixpkgs/1c872b8»/pkgs/stdenv/generic/make-derivation.nix:651:11\n\n       … while evaluating attribute 'activationScript' of derivation 'darwin-system-26.11.ff0e21a'\n         at «github:LnL7/nix-darwin/ff0e21a»/modules/system/default.nix:89:7:\n           88|\n           89|       activationScript = cfg.activationScripts.script.text;\n             |       ^\n           90|\n\n       … while evaluating the option `system.activationScripts.script.text':\n\n       … while evaluating definitions from `<store>/source/modules/system/activation-scripts.nix':\n\n       … while evaluating the option `system.activationScripts.applications.text':\n\n       … while evaluating definitions from `<store>/source/modules/system/applications.nix':\n\n       … while evaluating the option `environment.systemPackages':\n\n       … while evaluating definitions from `<store>/source/hosts/darwin':\n\n       (stack trace truncated; use '--show-trace' to show the full, detailed trace)\n\n       error: infinite recursion encountered\n       at /private/tmp/tmp.yTzXu4Oa11/unpin-nixpkgs-home-manager-darwin/overlays/55-go.nix:23:22:\n           22|\n           23|   buildGo127Module = prev.buildGoModule.override {\n             |                      ^\n           24|     go = final.go_1_27;",
-      "retry_policy": "retry-after:168"
-    },
-    {
-      "name": "darwin",
-      "kind": "input",
-      "blocked_version": "unpin:nixpkgs@1c872b8 home-manager@5b76c5b darwin@ff0e21a",
-      "known_good_version": "nix-darwin-26.05",
-      "first_failed": "2026-11-17T17:06:14Z",
-      "last_attempt": "2026-11-17T17:06:14Z",
-      "attempts": 1,
-      "phase": "system-build",
-      "fingerprint": "unpin-failed",
-      "error_excerpt": "trace: warning: briangyss profile: `programs.ssh.matchBlocks.blacklodge.extraOptions` defined in `<store>/source/modules/darwin/home-manager.nix' is deprecated. Move these OpenSSH options to `programs.ssh.settings.blacklodge` using upstream directive names.\n\nerror:\n       … while calling the 'derivationStrict' builtin\n         at «nix-internal»/derivation-internal.nix:38:12:\n           37|\n           38|   strict = drvFunc drvAttrs;\n             |            ^\n           39|\n\n       … while evaluating derivation 'darwin-system-26.11.ff0e21a'\n         whose name attribute is located at «github:NixOS/nixpkgs/1c872b8»/pkgs/stdenv/generic/make-derivation.nix:651:11\n\n       … while evaluating attribute 'activationScript' of derivation 'darwin-system-26.11.ff0e21a'\n         at «github:LnL7/nix-darwin/ff0e21a»/modules/system/default.nix:89:7:\n           88|\n           89|       activationScript = cfg.activationScripts.script.text;\n             |       ^\n           90|\n\n       … while evaluating the option `system.activationScripts.script.text':\n\n       … while evaluating definitions from `<store>/source/modules/system/activation-scripts.nix':\n\n       … while evaluating the option `system.activationScripts.applications.text':\n\n       … while evaluating definitions from `<store>/source/modules/system/applications.nix':\n\n       … while evaluating the option `environment.systemPackages':\n\n       … while evaluating definitions from `<store>/source/hosts/darwin':\n\n       (stack trace truncated; use '--show-trace' to show the full, detailed trace)\n\n       error: infinite recursion encountered\n       at /private/tmp/tmp.yTzXu4Oa11/unpin-nixpkgs-home-manager-darwin/overlays/55-go.nix:23:22:\n           22|\n           23|   buildGo127Module = prev.buildGoModule.override {\n             |                      ^\n           24|     go = final.go_1_27;",
-      "retry_policy": "retry-after:168"
-    },
-    {
       "name": "llama-cpp",
       "kind": "overlay",
       "blocked_version": "12546",
@@ -57,6 +18,45 @@
         "verdict": "Bumping to b12546 got the src hash (sha256-XSThz7B6JIPhl/og0gr+G/IsQoct0SW8IAFXEdKo5/Y=) but the npm-deps build fails with 'pushd: tools/ui: No such file or directory'. The webui directory (npmRoot) has moved again at b12546, just as it did at b10375 (tools/server/webui -> tools/ui). That is why bump-overlays could not resolve npmDepsHash. I could not find the new path because the sandbox blocked reading the fetched source in the Nix store, GitHub API access, and WebFetch. I reverted my edits, so the overlay and updates.json still pin 12292. A human needs to find where package-lock.json lives at tag b12546 (for example `nix build` the src and look under tools/), set npmRoot to that path, blank npmDepsHash, rebuild to read the hash, and bump version, tag, src hash and updates.json current_version together. If upstream restructured the webui build (a different build tool or no committed lockfile), nixpkgs' package.nix preConfigure/npm handling may also need changes.",
         "at": "2026-11-19T17:04:07Z"
       }
+    },
+    {
+      "name": "nixpkgs",
+      "kind": "input",
+      "blocked_version": "unpin:nixpkgs@619c39f home-manager@b56bcd0 darwin@663d8b9",
+      "known_good_version": "af45a5c7362bcf6585aff1ffd1de09663cce80c8",
+      "first_failed": "2026-11-24T17:37:19Z",
+      "last_attempt": "2026-11-24T17:37:19Z",
+      "attempts": 1,
+      "phase": "verified",
+      "fingerprint": "unpin-verified",
+      "error_excerpt": "verified together with nixpkgs home-manager darwin; nixpkgs af45a5c7362bcf6585aff1ffd1de09663cce80c8 -> 619c39f6eac5d1ed6b8f073a9414baf7034b2356; home-manager 9ce9f7f128c5834bb71a4f5c62232187371379b6 -> b56bcd042b5e69ad188eca20d9bec1bfbf3dd453; darwin c3e90c89649b07d1a96e4b9dd6cd0d6e44b91a74 -> 663d8b962a11cda261b6e9f14e03911fac94baf0; ",
+      "retry_policy": "retry-after:168"
+    },
+    {
+      "name": "home-manager",
+      "kind": "input",
+      "blocked_version": "unpin:nixpkgs@619c39f home-manager@b56bcd0 darwin@663d8b9",
+      "known_good_version": "9ce9f7f",
+      "first_failed": "2026-11-24T17:37:19Z",
+      "last_attempt": "2026-11-24T17:37:19Z",
+      "attempts": 1,
+      "phase": "verified",
+      "fingerprint": "unpin-verified",
+      "error_excerpt": "verified together with nixpkgs home-manager darwin; nixpkgs af45a5c7362bcf6585aff1ffd1de09663cce80c8 -> 619c39f6eac5d1ed6b8f073a9414baf7034b2356; home-manager 9ce9f7f128c5834bb71a4f5c62232187371379b6 -> b56bcd042b5e69ad188eca20d9bec1bfbf3dd453; darwin c3e90c89649b07d1a96e4b9dd6cd0d6e44b91a74 -> 663d8b962a11cda261b6e9f14e03911fac94baf0; ",
+      "retry_policy": "retry-after:168"
+    },
+    {
+      "name": "darwin",
+      "kind": "input",
+      "blocked_version": "unpin:nixpkgs@619c39f home-manager@b56bcd0 darwin@663d8b9",
+      "known_good_version": "nix-darwin-26.05",
+      "first_failed": "2026-11-24T17:37:19Z",
+      "last_attempt": "2026-11-24T17:37:19Z",
+      "attempts": 1,
+      "phase": "verified",
+      "fingerprint": "unpin-verified",
+      "error_excerpt": "verified together with nixpkgs home-manager darwin; nixpkgs af45a5c7362bcf6585aff1ffd1de09663cce80c8 -> 619c39f6eac5d1ed6b8f073a9414baf7034b2356; home-manager 9ce9f7f128c5834bb71a4f5c62232187371379b6 -> b56bcd042b5e69ad188eca20d9bec1bfbf3dd453; darwin c3e90c89649b07d1a96e4b9dd6cd0d6e44b91a74 -> 663d8b962a11cda261b6e9f14e03911fac94baf0; ",
+      "retry_policy": "retry-after:168"
     }
   ]
 }
