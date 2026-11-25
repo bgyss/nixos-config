@@ -3,7 +3,7 @@
     {
       "name": "claude-code",
       "overlay": "overlays/41-claude-code.nix",
-      "current_version": "2.1.331",
+      "current_version": "2.1.332",
       "check": {
         "method": "github-release",
         "repo": "anthropics/claude-code"
@@ -103,7 +103,7 @@
     {
       "name": "uv",
       "overlay": "overlays/25-uv.nix",
-      "current_version": "0.13.9",
+      "current_version": "0.13.10",
       "check": {
         "method": "github-release",
         "repo": "astral-sh/uv"
