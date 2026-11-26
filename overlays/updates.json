@@ -56,7 +56,7 @@
     {
       "name": "trailbase",
       "overlay": "overlays/50-trailbase.nix",
-      "current_version": "0.36.2",
+      "current_version": "0.36.3",
       "check": {
         "method": "github-release",
         "repo": "trailbaseio/trailbase"
@@ -165,8 +165,8 @@
     {
       "name": "c4",
       "overlay": "overlays/56-c4.nix",
-      "current_version": "0-unstable-2026-11-19",
-      "current_rev": "f1bbcda26bc42fb570532c43f32ea7703b4d0fb0",
+      "current_version": "0-unstable-2026-11-26",
+      "current_rev": "4e94c2746eb2fa2c6538e1dc39245469b86106a3",
       "check": {
         "method": "github-commits",
         "repo": "Avalanche-io/c4",
@@ -179,8 +179,8 @@
     {
       "name": "hey-cli",
       "overlay": "overlays/94-hey-cli.nix",
-      "current_version": "0-unstable-2026-11-19",
-      "current_rev": "ece2e2ce1d1ddfa620ff094264b8c4d35c8cedfe",
+      "current_version": "0-unstable-2026-11-26",
+      "current_rev": "8e558a5300a55434dad1ecd901d63753e11af03e",
       "check": {
         "method": "github-commits",
         "repo": "basecamp/hey-cli",
@@ -242,7 +242,7 @@
     {
       "name": "dcg",
       "overlay": "overlays/91-dcg.nix",
-      "current_version": "0.17.1",
+      "current_version": "0.17.2",
       "check": {
         "method": "github-release",
         "repo": "Dicklesworthstone/destructive_command_guard"
