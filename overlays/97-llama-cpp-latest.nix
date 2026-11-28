@@ -70,11 +70,15 @@ final: prev: {
         else
           flag
       ) old.cmakeFlags;
+      # nixpkgs' preConfigure uses `--replace-fail " && publint"`; upstream
+      # removed publint from tools/ui's build script (b12292), so make that
+      # substitution a tolerant `--replace-quiet` or the build aborts.
       preConfigure =
         builtins.replaceStrings
-          [ "LLAMA_BUILD_NUMBER=${oldBuildNumber} " ]
+          [ "LLAMA_BUILD_NUMBER=${oldBuildNumber} " "--replace-fail \" && publint\"" ]
           [
             "LLAMA_BUILD_NUMBER=${version} "
+            "--replace-quiet \" && publint\""
           ]
           old.preConfigure;
     }
